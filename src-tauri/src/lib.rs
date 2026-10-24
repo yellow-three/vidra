@@ -154,19 +154,19 @@ fn delete_history_item(app: AppHandle, id: String) -> CommandResult<Value> {
     Ok(ok())
 }
 
-#[tauri::command]
-fn open_file_location(file_path: String) -> Value {
+/// Dosyanin bulundugu klasoru sistemin dosya yoneticisinde acar.
+fn reveal_file(file_path: &str) {
     #[cfg(target_os = "linux")]
     {
         let _ = std::process::Command::new("xdg-open")
-            .arg(std::path::Path::new(&file_path).parent().unwrap_or(std::path::Path::new(".")))
+            .arg(std::path::Path::new(file_path).parent().unwrap_or(std::path::Path::new(".")))
             .spawn();
     }
     #[cfg(target_os = "macos")]
     {
         let _ = std::process::Command::new("open")
             .arg("-R")
-            .arg(&file_path)
+            .arg(file_path)
             .spawn();
     }
     #[cfg(target_os = "windows")]
@@ -175,6 +175,11 @@ fn open_file_location(file_path: String) -> Value {
             .arg(format!("/select,{}", file_path))
             .spawn();
     }
+}
+
+#[tauri::command]
+fn open_file_location(file_path: String) -> Value {
+    reveal_file(&file_path);
     ok()
 }
 
@@ -217,10 +222,11 @@ async fn start_download_task(
 
 #[tauri::command]
 fn cancel_task(
+    app: AppHandle,
     id: String,
     state: State<'_, AppState>,
 ) -> CommandResult<Value> {
-    state.download_manager.cancel_download(&id);
+    state.download_manager.cancel_download(&app, &id);
     Ok(ok())
 }
 
@@ -275,6 +281,7 @@ pub fn run() {
             dependencies::check_dependencies,
             dependencies::install_ytdlp,
             dependencies::install_ffmpeg,
+            dependencies::update_ytdlp,
             dependencies::get_ytdlp_version,
             dependencies::get_platform,
         ])

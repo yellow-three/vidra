@@ -1,7 +1,9 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use futures_util::StreamExt;
 use tauri::{AppHandle, Emitter, Manager};
+
+const EXE_SUFFIX: &str = if cfg!(target_os = "windows") { ".exe" } else { "" };
 
 pub fn bin_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app
@@ -15,21 +17,38 @@ pub fn bin_dir(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 pub fn ytdlp_path(app: &AppHandle) -> Result<PathBuf, String> {
-    let name = if cfg!(target_os = "windows") {
-        "yt-dlp.exe"
-    } else {
-        "yt-dlp"
-    };
-    Ok(bin_dir(app)?.join(name))
+    Ok(bin_dir(app)?.join(format!("yt-dlp{EXE_SUFFIX}")))
 }
 
 pub fn ffmpeg_path(app: &AppHandle) -> Result<PathBuf, String> {
-    let name = if cfg!(target_os = "windows") {
-        "ffmpeg.exe"
-    } else {
-        "ffmpeg"
-    };
-    Ok(bin_dir(app)?.join(name))
+    Ok(bin_dir(app)?.join(format!("ffmpeg{EXE_SUFFIX}")))
+}
+
+/// Uygulamanin kendi kopyasi yoksa sistemdeki (PATH) FFmpeg kullanilir.
+pub fn resolve_ffmpeg(app: &AppHandle) -> Option<PathBuf> {
+    ffmpeg_path(app)
+        .ok()
+        .filter(|p| p.exists())
+        .or_else(|| find_in_path("ffmpeg"))
+}
+
+pub fn find_in_path(name: &str) -> Option<PathBuf> {
+    let file = format!("{name}{EXE_SUFFIX}");
+    std::env::split_paths(&std::env::var_os("PATH")?)
+        .map(|dir| dir.join(&file))
+        .find(|p| p.is_file())
+}
+
+/// YouTube imza cozumu icin JS runtime gerekir; yt-dlp varsayilan olarak sadece deno'yu arar.
+pub fn js_runtime_args() -> Vec<String> {
+    if find_in_path("deno").is_some() {
+        return Vec::new();
+    }
+    ["node", "bun"]
+        .iter()
+        .find(|name| find_in_path(name).is_some())
+        .map(|name| vec!["--js-runtimes".to_string(), name.to_string()])
+        .unwrap_or_default()
 }
 
 fn ytdlp_url() -> String {
@@ -38,8 +57,11 @@ fn ytdlp_url() -> String {
         format!("{base}.exe")
     } else if cfg!(target_os = "macos") {
         format!("{base}_macos")
+    } else if cfg!(target_arch = "aarch64") {
+        // Duz `yt-dlp` asset'i Python ister; `_linux` surumleri tek basina calisir.
+        format!("{base}_linux_aarch64")
     } else {
-        base.to_string()
+        format!("{base}_linux")
     }
 }
 
@@ -48,27 +70,32 @@ fn ffmpeg_url() -> String {
         "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip".to_string()
     } else if cfg!(target_os = "macos") {
         "https://evermeet.cx/ffmpeg/ffmpeg.zip".to_string()
+    } else if cfg!(target_arch = "aarch64") {
+        "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz".to_string()
     } else {
-        "https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-amd64-static.tar.xz".to_string()
+        "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz".to_string()
     }
 }
 
-async fn download_file(url: &str, dest: &PathBuf, app: &AppHandle, label: &str) -> Result<(), String> {
-    let client = reqwest::Client::new();
-    let resp = client
+/// Yarim kalan indirme "kurulu" sanilmasin diye once `.part` dosyasina yazar, sonra tasir.
+async fn download_file(url: &str, dest: &Path, app: &AppHandle, label: &str) -> Result<(), String> {
+    let resp = reqwest::Client::new()
         .get(url)
         .send()
         .await
+        .and_then(|r| r.error_for_status())
         .map_err(|e| format!("{label} indirilemedi: {e}"))?;
 
     let total = resp.content_length().unwrap_or(0);
     let mut stream = resp.bytes_stream();
-    let mut file = tokio::fs::File::create(dest)
+    let part = dest.with_extension("part");
+    let mut file = tokio::fs::File::create(&part)
         .await
         .map_err(|e| format!("{label} dosyasi olusturulamadi: {e}"))?;
 
     use tokio::io::AsyncWriteExt;
     let mut downloaded: u64 = 0;
+    let mut last_percent = u32::MAX;
 
     while let Some(chunk) = stream
         .next()
@@ -83,31 +110,58 @@ async fn download_file(url: &str, dest: &PathBuf, app: &AppHandle, label: &str) 
 
         if total > 0 {
             let percent = (downloaded as f64 / total as f64 * 100.0) as u32;
-            let _ = app.emit(
-                "dependency-status",
-                format!("{label} indiriliyor... %{}", percent),
-            );
+            if percent != last_percent {
+                last_percent = percent;
+                let _ = app.emit(
+                    "dependency-status",
+                    format!("{label} indiriliyor... %{percent}"),
+                );
+            }
         }
     }
 
+    file.flush().await.map_err(|e| format!("{label} yazma hatasi: {e}"))?;
+    drop(file);
+    std::fs::rename(&part, dest).map_err(|e| format!("{label} kaydedilemedi: {e}"))
+}
+
+fn make_executable(path: &Path) -> Result<(), String> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755))
+            .map_err(|e| format!("Calistirma izni verilemedi: {e}"))?;
+    }
+    #[cfg(not(unix))]
+    let _ = path;
     Ok(())
+}
+
+/// Arsivler binary'leri alt klasorlere koyar (orn. `ffmpeg-7.0.2-amd64-static/ffmpeg`).
+fn find_file(dir: &Path, name: &str) -> Option<PathBuf> {
+    for entry in std::fs::read_dir(dir).ok()?.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            if let Some(found) = find_file(&path, name) {
+                return Some(found);
+            }
+        } else if path.file_name().and_then(|n| n.to_str()) == Some(name) {
+            return Some(path);
+        }
+    }
+    None
 }
 
 #[tauri::command]
 pub async fn check_dependencies(app: AppHandle) -> Result<serde_json::Value, String> {
-    let _ = app.emit("dependency-status", "Bağımlılıklar kontrol ediliyor...");
-
     let yt_dlp = ytdlp_path(&app)?;
-    let ff_mpeg = ffmpeg_path(&app)?;
-
-    let yt_dlp_ok = yt_dlp.exists();
-    let ff_mpeg_ok = ff_mpeg.exists();
+    let ff_mpeg = resolve_ffmpeg(&app);
 
     Ok(serde_json::json!({
-        "ytdlp": yt_dlp_ok,
-        "ffmpeg": ff_mpeg_ok,
+        "ytdlp": yt_dlp.exists(),
+        "ffmpeg": ff_mpeg.is_some(),
         "ytdlpPath": yt_dlp.to_string_lossy(),
-        "ffmpegPath": ff_mpeg.to_string_lossy(),
+        "ffmpegPath": ff_mpeg.map(|p| p.to_string_lossy().to_string()),
     }))
 }
 
@@ -117,60 +171,73 @@ pub async fn install_ytdlp(app: AppHandle) -> Result<serde_json::Value, String> 
     if path.exists() {
         return Ok(serde_json::json!({ "success": true, "message": "yt-dlp zaten kurulu." }));
     }
-
-    let _ = app.emit("dependency-status", "yt-dlp indiriliyor...");
-    download_file(&ytdlp_url(), &path, &app, "yt-dlp").await?;
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755))
-            .map_err(|e| format!("yt-dlp izin hatasi: {e}"))?;
-    }
-
+    download_ytdlp(&app, &path).await?;
     let _ = app.emit("dependency-status", "yt-dlp başarıyla kuruldu.");
     Ok(serde_json::json!({ "success": true }))
 }
 
 #[tauri::command]
+pub async fn update_ytdlp(app: AppHandle) -> Result<serde_json::Value, String> {
+    let path = ytdlp_path(&app)?;
+    download_ytdlp(&app, &path).await?;
+    let _ = app.emit("dependency-status", "yt-dlp güncellendi.");
+    let version = get_ytdlp_version(app)?["version"].clone();
+    Ok(serde_json::json!({ "success": true, "version": version }))
+}
+
+async fn download_ytdlp(app: &AppHandle, path: &Path) -> Result<(), String> {
+    let _ = app.emit("dependency-status", "yt-dlp indiriliyor...");
+    download_file(&ytdlp_url(), path, app, "yt-dlp").await?;
+    make_executable(path)
+}
+
+#[tauri::command]
 pub async fn install_ffmpeg(app: AppHandle) -> Result<serde_json::Value, String> {
-    let path = ffmpeg_path(&app)?;
-    if path.exists() {
+    if resolve_ffmpeg(&app).is_some() {
         return Ok(serde_json::json!({ "success": true, "message": "FFmpeg zaten kurulu." }));
     }
 
-    let _ = app.emit("dependency-status", "FFmpeg indiriliyor...");
+    let bin = bin_dir(&app)?;
     let url = ffmpeg_url();
+    let archive = bin.join(if url.ends_with(".zip") { "ffmpeg_archive.zip" } else { "ffmpeg_archive.tar.xz" });
+    let extract_dir = bin.join("ffmpeg_extract");
 
-    if cfg!(target_os = "windows") || cfg!(target_os = "macos") {
-        let zip_path = bin_dir(&app)?.join("ffmpeg_archive.zip");
-        download_file(&url, &zip_path, &app, "FFmpeg").await?;
-        let _ = app.emit("dependency-status", "FFmpeg arsivi cozuluyor...");
-        let _ = std::process::Command::new("unzip")
-            .arg("-o")
-            .arg(&zip_path)
-            .arg("-d")
-            .arg(bin_dir(&app)?)
-            .output();
-        let _ = std::fs::remove_file(&zip_path);
+    let _ = app.emit("dependency-status", "FFmpeg indiriliyor...");
+    download_file(&url, &archive, &app, "FFmpeg").await?;
+
+    let _ = app.emit("dependency-status", "FFmpeg arşivi çözülüyor...");
+    let _ = std::fs::remove_dir_all(&extract_dir);
+    std::fs::create_dir_all(&extract_dir).map_err(|e| format!("FFmpeg klasoru olusturulamadi: {e}"))?;
+
+    // macOS'ta tar zip acamaz; Windows 10+ ve Linux tar'i ikisini de acar.
+    let mut cmd = if cfg!(target_os = "macos") {
+        let mut c = Command::new("unzip");
+        c.arg("-o").arg(&archive).arg("-d").arg(&extract_dir);
+        c
     } else {
-        let tar_path = bin_dir(&app)?.join("ffmpeg_archive.tar.xz");
-        download_file(&url, &tar_path, &app, "FFmpeg").await?;
-        let _ = app.emit("dependency-status", "FFmpeg arsivi cozuluyor...");
-        let _ = std::process::Command::new("tar")
-            .arg("-xf")
-            .arg(&tar_path)
-            .arg("-C")
-            .arg(bin_dir(&app)?)
-            .output();
-        let _ = std::fs::remove_file(&tar_path);
+        let mut c = Command::new("tar");
+        c.arg("-xf").arg(&archive).arg("-C").arg(&extract_dir);
+        c
+    };
+    let status = cmd.status().map_err(|e| format!("FFmpeg arsivi acilamadi: {e}"));
+    let _ = std::fs::remove_file(&archive);
+    if !status?.success() {
+        let _ = std::fs::remove_dir_all(&extract_dir);
+        return Err("FFmpeg arsivi acilamadi.".to_string());
+    }
 
-        #[cfg(not(target_os = "windows"))]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755))
-                .map_err(|e| format!("FFmpeg izin hatasi: {e}"))?;
+    for name in ["ffmpeg", "ffprobe"] {
+        let file = format!("{name}{EXE_SUFFIX}");
+        if let Some(found) = find_file(&extract_dir, &file) {
+            let dest = bin.join(&file);
+            std::fs::rename(&found, &dest).map_err(|e| format!("{name} tasinamadi: {e}"))?;
+            make_executable(&dest)?;
         }
+    }
+    let _ = std::fs::remove_dir_all(&extract_dir);
+
+    if !ffmpeg_path(&app)?.exists() {
+        return Err("FFmpeg arsivinde ffmpeg bulunamadi.".to_string());
     }
 
     let _ = app.emit("dependency-status", "FFmpeg başarıyla kuruldu.");

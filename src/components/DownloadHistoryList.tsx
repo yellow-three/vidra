@@ -23,8 +23,10 @@ export default function DownloadHistoryList() {
     setHistory([]);
   };
 
-  const formatDate = (iso: string) => {
-    const d = new Date(iso);
+  // Rust backend tarihi Unix saniyesi olarak yazar; eski kayitlar ISO metni olabilir.
+  const formatDate = (value: string) => {
+    const seconds = Number(value);
+    const d = Number.isFinite(seconds) ? new Date(seconds * 1000) : new Date(value);
     return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 

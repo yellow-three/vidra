@@ -34,7 +34,7 @@ export const appApi: AppApi = {
   saveSettings: (settings) => invokeResult('save_settings', { settings }),
 
   getYtdlpVersion: () => invoke<{ version: string | null }>('get_ytdlp_version'),
-  updateYtdlp: async () => invokeResult('install_ytdlp'),
+  updateYtdlp: async () => invokeResult('update_ytdlp'),
   checkForUpdates: async () => ({ updateAvailable: false }),
 
   getHistory: () => invoke<HistoryItem[]>('get_history'),

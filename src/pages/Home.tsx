@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import TaskList from '../components/TaskList';
-import { useQueue } from '../hooks/useQueue';
+import { useQueue } from '../hooks/QueueContext';
 
 const clipIcon = (
   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -16,7 +16,7 @@ const folderIcon = (
 );
 
 export default function Home() {
-  const { url, setUrl, queue, status, downloadDir, handleAnalyze, handleFormatChange, handleStartDownload, handleCancel, handleRetry, moveTask, isWorking } = useQueue();
+  const { url, setUrl, queue, status, downloadDir, handleAnalyze, handleFormatChange, handleStartDownload, handleCancel, handleRetry, moveTask, isWorking, depsReady } = useQueue();
   const [urlError, setUrlError] = useState(false);
 
   const onAnalyze = () => {
@@ -29,7 +29,7 @@ export default function Home() {
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') onAnalyze();
+    if (e.key === 'Enter' && depsReady) onAnalyze();
   };
 
   const countAnalyzing = queue.filter((t) => t.status === 'analyzing').length;
@@ -81,10 +81,10 @@ export default function Home() {
             </div>
             <button
               onClick={onAnalyze}
-              disabled={isWorking || !url.trim()}
+              disabled={isWorking || !depsReady || !url.trim()}
               className="h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:from-slate-700 disabled:to-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm px-6 rounded-xl transition-all shadow-lg shadow-blue-600/20"
             >
-              {isWorking ? 'İşlem sürüyor...' : 'Analiz Et'}
+              {!depsReady ? 'Kurulum sürüyor...' : isWorking ? 'İşlem sürüyor...' : 'Analiz Et'}
             </button>
           </div>
 

@@ -52,7 +52,7 @@ export interface AppApi {
   startConvert(params: { id: string; inputPath: string; outputFormat: string; quality: string }): Promise<IpcResult>;
   cancelConvert(id: string): Promise<void>;
   onConvertProgress(callback: (data: ConvertProgressData) => void): Promise<() => void>;
-  checkDependencies(): Promise<{ ytdlp: boolean; ffmpeg: boolean; ytdlpPath: string; ffmpegPath: string }>;
+  checkDependencies(): Promise<{ ytdlp: boolean; ffmpeg: boolean; ytdlpPath: string; ffmpegPath: string | null }>;
   installYtdlp(): Promise<IpcResult>;
   installFfmpeg(): Promise<IpcResult>;
   getPlatform(): Promise<string>;

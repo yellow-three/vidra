@@ -4,9 +4,11 @@ import Home from './pages/Home';
 import Downloads from './pages/Downloads';
 import Settings from './pages/Settings';
 import Convert from './pages/Convert';
+import { QueueProvider } from './hooks/QueueContext';
 
 export default function App() {
   return (
+    <QueueProvider>
     <BrowserRouter>
       <Routes>
         <Route element={<MainLayout />}>
@@ -17,5 +19,6 @@ export default function App() {
         </Route>
       </Routes>
     </BrowserRouter>
+    </QueueProvider>
   );
 }
