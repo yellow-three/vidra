@@ -2,6 +2,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { AppSettings, Task, VideoFormat } from '../types';
 import { getSettings } from './settingsCache';
 import { appApi } from '../lib/appApi';
+import { engine } from '../engine';
+import { formatFilesize, optionLabel, parseOption } from '../engine/ytdlp';
+import { createLimiter } from '../features/queue/limiter';
+
+const MAX_CONCURRENT_DOWNLOADS = 2;
+const downloadLimiter = createLimiter(MAX_CONCURRENT_DOWNLOADS);
+
+const errorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
 
 // StrictMode efektleri iki kez calistirir; kurulum tek sefer yapilmali.
 let dependencySetup: Promise<void> | null = null;
@@ -39,6 +47,23 @@ function pickDefaultFormat(formats: VideoFormat[], settings: AppSettings | null)
   return (videos.find((f) => (parseInt(f.resolution) || 0) <= maxHeight) ?? videos[videos.length - 1] ?? formats[0])?.formatId;
 }
 
+async function saveHistory(task: Task, formatId: string, filePath: string, size?: number) {
+  const option = parseOption(formatId);
+  const ext = filePath.split('.').pop() ?? '';
+  await appApi.addHistoryItem({
+    id: task.id,
+    title: task.title,
+    url: task.url,
+    thumbnail: task.thumbnail,
+    formatId,
+    quality: option ? optionLabel(option) : '',
+    ext,
+    fileSize: size != null ? formatFilesize(size) : '',
+    filePath,
+    completedAt: String(Math.floor(Date.now() / 1000)),
+  });
+}
+
 export function useQueueState() {
   const [url, setUrl] = useState('');
   const [status, setStatus] = useState('Bağımlılıklar kontrol ediliyor...');
@@ -46,6 +71,11 @@ export function useQueueState() {
   const [downloadDir, setDownloadDir] = useState<string>('');
   const [depsReady, setDepsReady] = useState(false);
   const settingsRef = useRef<AppSettings | null>(null);
+
+  const updateTask = useCallback((id: string, patch: Partial<Task>) => {
+    // Kullanici iptal ettiyse geciken sonuc karti geri acmasin.
+    setQueue((prev) => prev.map((t) => t.id === id && t.status !== 'cancelled' ? { ...t, ...patch } : t));
+  }, []);
 
   const refreshDownloadDir = useCallback(() => {
     getSettings().then((s) => {
@@ -64,17 +94,6 @@ export function useQueueState() {
       refreshDownloadDir();
     }).then((unsub) => unsubscribers.push(unsub));
 
-    void appApi.onQueueProgress((data) => {
-      const selectedFormatId = data.status === 'ready-to-select' && data.formats
-        ? pickDefaultFormat(data.formats, settingsRef.current)
-        : undefined;
-      setQueue((prev) => prev.map((t) => {
-        // Kullanici iptal ettiyse geciken analiz sonucu karti geri acmasin.
-        if (t.id !== data.id || t.status === 'cancelled') return t;
-        return selectedFormatId ? { ...t, ...data, selectedFormatId } : { ...t, ...data };
-      }));
-    }).then((unsub) => unsubscribers.push(unsub));
-
     ensureDependencies(setStatus)
       .then(() => setDepsReady(true))
       .catch((error) => setStatus(`Kurulum hatası: ${error instanceof Error ? error.message : String(error)}`));
@@ -90,6 +109,21 @@ export function useQueueState() {
       void appApi.stopClipboardMonitor();
     };
   }, [refreshDownloadDir]);
+
+  const analyze = useCallback(async (id: string, taskUrl: string) => {
+    try {
+      const info = await engine.getInfo(taskUrl);
+      updateTask(id, {
+        status: 'ready-to-select',
+        title: info.title,
+        thumbnail: info.thumbnail,
+        formats: info.formats,
+        selectedFormatId: pickDefaultFormat(info.formats, settingsRef.current),
+      });
+    } catch (error) {
+      updateTask(id, { status: 'error', message: errorMessage(error) });
+    }
+  }, [updateTask]);
 
   const handleAnalyze = useCallback(async () => {
     if (!url) return;
@@ -109,15 +143,8 @@ export function useQueueState() {
     }, ...prev]);
 
     setUrl('');
-
-    try {
-      await appApi.addToQueue({ id, url });
-    } catch {
-      setQueue((prev) => prev.map((t) =>
-        t.id === id ? { ...t, status: 'error' as const, message: 'Analiz başlatılamadı.' } : t
-      ));
-    }
-  }, [url, refreshDownloadDir]);
+    await analyze(id, url);
+  }, [url, refreshDownloadDir, analyze]);
 
   const handleFormatChange = useCallback((taskId: string, formatId: string) => {
     setQueue((prev) => prev.map((t) => t.id === taskId ? { ...t, selectedFormatId: formatId } : t));
@@ -127,16 +154,34 @@ export function useQueueState() {
     const fId = task.selectedFormatId || task.formats?.[0]?.formatId;
     if (!fId) return;
 
-    setQueue((prev) => prev.map((t) => t.id === task.id ? { ...t, status: 'downloading', selectedFormatId: fId } : t));
+    setQueue((prev) => prev.map((t) => t.id === task.id
+      ? { ...t, status: 'downloading', selectedFormatId: fId, percent: 0, speed: '', eta: '', message: 'Sırada bekliyor...' }
+      : t));
 
     try {
-      await appApi.startDownloadTask({ id: task.id, url: task.url, formatId: fId });
-    } catch {
-      setQueue((prev) => prev.map((t) =>
-        t.id === task.id ? { ...t, status: 'error' as const, message: 'İndirme başlatılamadı.' } : t
-      ));
+      const settings = await getSettings();
+      const outDir = settings.downloadDir || await appApi.getDownloadFolder();
+      const result = await downloadLimiter.run(task.id, () => {
+        updateTask(task.id, { message: undefined });
+        return engine.download(
+          { id: task.id, url: task.url, formatId: fId, outDir, subtitles: settings.downloadSubtitles ?? false },
+          (p) => updateTask(task.id, { percent: p.percent, speed: p.speed, eta: p.eta }),
+        );
+      });
+
+      if (result === null || result.status === 'cancelled') {
+        setQueue((prev) => prev.map((t) => t.id === task.id ? { ...t, status: 'cancelled', message: undefined } : t));
+      } else if (result.status === 'error') {
+        updateTask(task.id, { status: 'error', message: result.message });
+      } else {
+        updateTask(task.id, { status: 'complete', percent: 100 });
+        await saveHistory(task, fId, result.filePath, result.fileSize);
+        if (settings.autoOpenFolder ?? true) void appApi.openFileLocation(result.filePath);
+      }
+    } catch (error) {
+      updateTask(task.id, { status: 'error', message: errorMessage(error) });
     }
-  }, []);
+  }, [updateTask]);
 
   const handleBrowseFolder = useCallback(async () => {
     try {
@@ -148,14 +193,16 @@ export function useQueueState() {
   }, []);
 
   const handleCancel = useCallback(async (taskId: string) => {
-    // Indirme surecini backend sonlandirip "cancelled" bildirir; digerlerinin sureci yok.
+    // Calisan indirmeyi motor sonlandirir ve handleStartDownload "cancelled" yapar;
+    // siradaki ya da indirme disindaki isler burada hemen iptal edilir.
+    if (downloadLimiter.dequeue(taskId)) return;
     setQueue((prev) => prev.map((t) =>
       t.id === taskId && t.status !== 'downloading' ? { ...t, status: 'cancelled' as const } : t
     ));
     try {
-      await appApi.cancelTask(taskId);
-    } catch {
-      // IPC failed
+      await engine.cancel(taskId);
+    } catch (error) {
+      console.warn('İptal başarısız:', error);
     }
   }, []);
 
@@ -164,14 +211,8 @@ export function useQueueState() {
       t.id === task.id ? { ...t, status: 'analyzing', percent: 0, speed: '', eta: '', message: undefined } : t
     ));
 
-    try {
-      await appApi.addToQueue({ id: task.id, url: task.url });
-    } catch {
-      setQueue((prev) => prev.map((t) =>
-        t.id === task.id ? { ...t, status: 'error', message: 'Tekrar deneme başlatılamadı.' } : t
-      ));
-    }
-  }, []);
+    await analyze(task.id, task.url);
+  }, [analyze]);
 
   const moveTask = useCallback((taskId: string, direction: 'up' | 'down') => {
     setQueue((prev) => {

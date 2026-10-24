@@ -21,8 +21,17 @@ npm run tauri build   # paket üretimi
 
 ## Yapı
 
-- `src/` — React arayüzü (Home, Downloads, Convert, Settings sayfaları); backend'e yalnızca `src/lib/appApi.ts` üzerinden erişir.
-- `src-tauri/src/lib.rs` — Tauri command'ları, ayarlar ve geçmiş (`settings.json`).
-- `src-tauri/src/dependencies.rs` — yt-dlp / FFmpeg indirme ve sürüm kontrolü.
-- `src-tauri/src/download.rs` — video analizi, indirme kuyruğu, ilerleme, FFmpeg dönüştürme.
+- `src/engine/` — platformdan bağımsız indirme motoru (PLAN.md: `DownloadEngine`). yt-dlp argümanları, format seçenekleri, `%(progress)j` ayrıştırma ve yarım dosya seçimi saf TS'tir (`ytdlp.ts`, `ffmpeg.ts`); Android'de de aynı kod kullanılacak. `desktop.ts` bunları Rust süreç çalıştırıcısıyla çalıştırır.
+- `src/features/queue/` — eşzamanlı indirme sınırlayıcı.
+- `src/` diğer — React arayüzü (Home, Downloads, Convert, Settings).
+- `src-tauri/src/process.rs` — programdan bağımsız süreç çalıştırıcı: süreci kendi grubunda başlatır (Unix process group, Windows Job Object), stdout/stderr satırlarını `Channel` ile iletir, iptalde tüm grubu öldürür. Webview yalnızca izin verilen programları (yt-dlp, ffmpeg, ffprobe) çalıştırabilir.
+- `src-tauri/src/dependencies.rs` — yt-dlp / FFmpeg kurulum ve güncelleme.
+- `src-tauri/src/lib.rs` — ayarlar, geçmiş, klasör seçimi, fs kapsamı.
 - `src-tauri/src/events.rs` — pano (clipboard) izleme.
+
+## Testler
+
+```bash
+npm test                         # Vitest: src/engine, src/features
+cargo test --manifest-path src-tauri/Cargo.toml   # süreç çalıştırıcı
+```

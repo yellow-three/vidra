@@ -1,5 +1,10 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { open } from '@tauri-apps/plugin-dialog';
+import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { appApi } from '../lib/appApi';
+import { startConvert as runConvert } from '../engine/convert';
+
+const EXTENSIONS = ['mp4', 'webm', 'mkv', 'avi', 'mov', 'flv', 'wmv', 'mp3', 'wav', 'flac', 'ogg', 'm4a'];
 
 interface ConvertTask {
   id: string;
@@ -12,79 +17,66 @@ interface ConvertTask {
   outputPath?: string;
 }
 
+const fileNameOf = (path: string) => path.split(/[\\/]/).pop() ?? path;
+
 export default function ConvertForm() {
   const [tasks, setTasks] = useState<ConvertTask[]>([]);
   const [dragging, setDragging] = useState(false);
+  const cancels = useRef(new Map<string, () => Promise<unknown>>());
 
-  useEffect(() => {
-    let unsub: (() => void) | undefined;
-    void appApi.onConvertProgress((data) => {
-      setTasks((prev) => prev.map((t) =>
-        t.id === data.id
-          ? { ...t, percent: data.percent, status: data.status === 'complete' ? 'complete' : data.status === 'error' ? 'error' : 'converting', outputPath: data.outputPath }
-          : t
-      ));
-    }).then((cleanup) => { unsub = cleanup; });
-    return () => unsub?.();
-  }, []);
-
-  const handleBrowse = async () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.mp4,.webm,.mkv,.avi,.mov,.flv,.wmv,.mp3,.wav,.flac,.ogg,.m4a';
-    input.onchange = async () => {
-      const files = Array.from(input.files || []);
-      for (const file of files) {
-        addTask((file as any).path || file.name, file.name);
-      }
-    };
-    input.click();
-  };
-
-  const addTask = (inputPath: string, fileName: string) => {
-    setTasks((prev) => [...prev, {
+  const addPaths = (paths: string[]) => {
+    setTasks((prev) => [...prev, ...paths.map((inputPath) => ({
       id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
       inputPath,
-      fileName,
+      fileName: fileNameOf(inputPath),
       outputFormat: 'mp4',
       quality: 'medium',
       percent: 0,
-      status: 'idle',
-    }]);
+      status: 'idle' as const,
+    }))]);
   };
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setDragging(false);
-    const files = Array.from(e.dataTransfer.files);
-    for (const file of files) {
-      addTask((file as any).path || file.name, file.name);
-    }
+  // Tauri dosya birakmayi kendisi yakalar; HTML drop olayi dosya yolu vermez.
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    void getCurrentWebview().onDragDropEvent(({ payload }) => {
+      if (payload.type === 'enter' || payload.type === 'over') setDragging(true);
+      else if (payload.type === 'leave') setDragging(false);
+      else {
+        setDragging(false);
+        addPaths(payload.paths);
+      }
+    }).then((fn) => { unlisten = fn; });
+    return () => unlisten?.();
   }, []);
 
-  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setDragging(true); };
-  const handleDragLeave = () => setDragging(false);
+  const handleBrowse = async () => {
+    const selected = await open({ multiple: true, filters: [{ name: 'Medya', extensions: EXTENSIONS }] });
+    if (selected) addPaths(Array.isArray(selected) ? selected : [selected]);
+  };
 
   const updateTask = (id: string, key: string, value: string) => {
     setTasks((prev) => prev.map((t) => t.id === id ? { ...t, [key]: value } : t));
   };
 
   const startConvert = async (task: ConvertTask) => {
-    setTasks((prev) => prev.map((t) => t.id === task.id ? { ...t, status: 'converting', percent: 0 } : t));
+    const setStatus = (patch: Partial<ConvertTask>) =>
+      setTasks((prev) => prev.map((t) => t.id === task.id ? { ...t, ...patch } : t));
+    setStatus({ status: 'converting', percent: 0 });
     try {
-      await appApi.startConvert({
-        id: task.id,
-        inputPath: task.inputPath,
-        outputFormat: task.outputFormat,
-        quality: task.quality,
-      });
+      const { result, cancel } = await runConvert(task.inputPath, task.outputFormat, task.quality);
+      cancels.current.set(task.id, cancel);
+      const outcome = await result;
+      cancels.current.delete(task.id);
+      if (outcome.status === 'complete') setStatus({ status: 'complete', percent: 100, outputPath: outcome.outputPath });
+      else if (outcome.status === 'error') setStatus({ status: 'error' });
     } catch {
-      setTasks((prev) => prev.map((t) => t.id === task.id ? { ...t, status: 'error' } : t));
+      setStatus({ status: 'error' });
     }
   };
 
   const cancelConvert = (id: string) => {
-    appApi.cancelConvert(id);
+    void cancels.current.get(id)?.();
     setTasks((prev) => prev.filter((t) => t.id !== id));
   };
 
@@ -94,9 +86,6 @@ export default function ConvertForm() {
     <div className="space-y-4">
       {/* Drop Zone */}
       <div
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
         className={`border-2 border-dashed rounded-xl p-10 text-center transition-all cursor-pointer ${
           dragging ? 'border-blue-500 bg-blue-500/5' : 'border-[var(--border)] hover:border-blue-500/50'
         }`}

@@ -39,16 +39,23 @@ pub fn find_in_path(name: &str) -> Option<PathBuf> {
         .find(|p| p.is_file())
 }
 
-/// YouTube imza cozumu icin JS runtime gerekir; yt-dlp varsayilan olarak sadece deno'yu arar.
-pub fn js_runtime_args() -> Vec<String> {
-    if find_in_path("deno").is_some() {
-        return Vec::new();
+/// YouTube imza cozumu icin yt-dlp'nin kullanabilecegi ilk JS runtime.
+pub fn js_runtime() -> Option<&'static str> {
+    ["deno", "node", "bun"].into_iter().find(|name| find_in_path(name).is_some())
+}
+
+/// Surec calistiricinin izin verdigi programlar ve gercek yollari.
+pub fn resolve_program(app: &AppHandle, name: &str) -> Option<PathBuf> {
+    match name {
+        "yt-dlp" => ytdlp_path(app).ok().filter(|p| p.exists()),
+        "ffmpeg" => resolve_ffmpeg(app),
+        "ffprobe" => bin_dir(app)
+            .ok()
+            .map(|d| d.join(format!("ffprobe{EXE_SUFFIX}")))
+            .filter(|p| p.exists())
+            .or_else(|| find_in_path("ffprobe")),
+        _ => None,
     }
-    ["node", "bun"]
-        .iter()
-        .find(|name| find_in_path(name).is_some())
-        .map(|name| vec!["--js-runtimes".to_string(), name.to_string()])
-        .unwrap_or_default()
 }
 
 fn ytdlp_url() -> String {
@@ -162,6 +169,7 @@ pub async fn check_dependencies(app: AppHandle) -> Result<serde_json::Value, Str
         "ffmpeg": ff_mpeg.is_some(),
         "ytdlpPath": yt_dlp.to_string_lossy(),
         "ffmpegPath": ff_mpeg.map(|p| p.to_string_lossy().to_string()),
+        "jsRuntime": js_runtime(),
     }))
 }
 

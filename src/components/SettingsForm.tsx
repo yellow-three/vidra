@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { AppSettings } from '../types';
 import { useTheme } from '../hooks/ThemeContext';
 import { getSettings, invalidateSettings } from '../hooks/settingsCache';
+import { engine } from '../engine';
 import { appApi } from '../lib/appApi';
 
 const diskIcon = (
@@ -56,9 +57,9 @@ export default function SettingsForm() {
       if (!mounted.current) return;
       setSettings({ ...s, theme: s.theme || theme });
     });
-    appApi.getYtdlpVersion().then((r) => {
+    engine.engineVersion().then((version) => {
       if (!mounted.current) return;
-      setYtdlpVersion(r.version);
+      setYtdlpVersion(version);
       setVersionLoading(false);
     }).catch(() => setVersionLoading(false));
     return () => { mounted.current = false; };
@@ -86,9 +87,11 @@ export default function SettingsForm() {
   const handleUpdateYtdlp = async () => {
     setCheckingUpdate(true);
     try {
-      const res = await appApi.updateYtdlp();
-      if (res.success && res.version) setYtdlpVersion(res.version);
-    } catch {}
+      const version = await engine.updateEngine();
+      if (version) setYtdlpVersion(version);
+    } catch (error) {
+      console.warn('yt-dlp güncellenemedi:', error);
+    }
     setCheckingUpdate(false);
   };
 

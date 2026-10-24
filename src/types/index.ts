@@ -43,5 +43,5 @@ export interface HistoryItem {
   completedAt: string;
 }
 
-export type { AppApi, IpcResult, QueueProgressData, ConvertProgressData } from './app-api';
+export type { AppApi, IpcResult } from './app-api';
 
