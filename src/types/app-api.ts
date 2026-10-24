@@ -18,8 +18,6 @@ export interface AppApi {
   clearHistory(): Promise<IpcResult>;
   openFileLocation(filePath: string): Promise<IpcResult>;
   deleteHistoryItem(id: string): Promise<IpcResult>;
-  checkDependencies(): Promise<{ ytdlp: boolean; ffmpeg: boolean; ytdlpPath: string; ffmpegPath: string | null; jsRuntime: string | null }>;
-  installYtdlp(): Promise<IpcResult>;
-  installFfmpeg(): Promise<IpcResult>;
+  checkDependencies(): Promise<{ ytdlp: boolean; ffmpeg: boolean; deno: boolean; ytdlpPath: string | null; ffmpegPath: string | null; denoPath: string | null }>;
   getPlatform(): Promise<string>;
 }

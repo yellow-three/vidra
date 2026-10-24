@@ -265,6 +265,8 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .setup(|app| {
             allow_download_dir(app.handle());
+            let handle = app.handle().clone();
+            std::thread::spawn(move || dependencies::prune_stale_ytdlp(&handle));
             Ok(())
         })
         .manage(AppState {
@@ -286,8 +288,6 @@ pub fn run() {
             process_spawn,
             process_kill,
             dependencies::check_dependencies,
-            dependencies::install_ytdlp,
-            dependencies::install_ffmpeg,
             dependencies::update_ytdlp,
             dependencies::get_ytdlp_version,
             dependencies::get_platform,

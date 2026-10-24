@@ -79,15 +79,16 @@ export function buildOptions(formats: YtdlpFormat[]): FormatOption[] {
   return options;
 }
 
-export type JsRuntime = 'deno' | 'node' | 'bun';
-
-/** Analiz (`-J`) ve indirme icin ortak: deno yoksa baska bir JS runtime'i ac. */
-export function jsRuntimeArgs(jsRuntime?: JsRuntime | null): string[] {
-  return jsRuntime && jsRuntime !== 'deno' ? ['--js-runtimes', jsRuntime] : [];
+/**
+ * YouTube imza cozumu icin yt-dlp'ye paketlenmis deno'yu gosterir;
+ * yt-dlp deno'yu kendiliginden yalnizca PATH'te arar.
+ */
+export function jsRuntimeArgs(denoPath?: string | null): string[] {
+  return denoPath ? ['--js-runtimes', `deno:${denoPath}`] : [];
 }
 
-export function buildInfoArgs(url: string, jsRuntime?: JsRuntime | null): string[] {
-  return [url, '-J', '--no-playlist', ...jsRuntimeArgs(jsRuntime)];
+export function buildInfoArgs(url: string, denoPath?: string | null): string[] {
+  return [url, '-J', '--no-playlist', ...jsRuntimeArgs(denoPath)];
 }
 
 export interface DownloadArgsInput {
@@ -96,10 +97,10 @@ export interface DownloadArgsInput {
   outDir: string;
   ffmpegPath?: string | null;
   subtitles: boolean;
-  jsRuntime?: JsRuntime | null;
+  denoPath?: string | null;
 }
 
-export function buildDownloadArgs({ url, option, outDir, ffmpegPath, subtitles, jsRuntime }: DownloadArgsInput): string[] {
+export function buildDownloadArgs({ url, option, outDir, ffmpegPath, subtitles, denoPath }: DownloadArgsInput): string[] {
   const args = [
     url,
     '-o', joinPath(outDir, '%(title)s.%(ext)s'),
@@ -137,7 +138,7 @@ export function buildDownloadArgs({ url, option, outDir, ffmpegPath, subtitles, 
     args.push('--embed-subs', '--sub-langs', 'tr,en');
   }
   if (ffmpegPath) args.push('--ffmpeg-location', ffmpegPath);
-  args.push(...jsRuntimeArgs(jsRuntime));
+  args.push(...jsRuntimeArgs(denoPath));
   return args;
 }
 

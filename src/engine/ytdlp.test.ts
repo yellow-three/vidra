@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildDownloadArgs,
+  buildInfoArgs,
   buildOptions,
   lastErrorLines,
   parseOption,
@@ -142,11 +143,15 @@ describe('buildDownloadArgs', () => {
     expect(joined).not.toContain('--ffmpeg-location');
   });
 
-  it('deno yoksa bulunan JS runtime\'i ekler', () => {
-    const args = buildDownloadArgs({ url: 'U', option: { kind: 'mp3' }, outDir: '/out', subtitles: false, jsRuntime: 'node' });
-    expect(args.join(' ')).toContain('--js-runtimes node');
-    const withDeno = buildDownloadArgs({ url: 'U', option: { kind: 'mp3' }, outDir: '/out', subtitles: false, jsRuntime: 'deno' });
-    expect(withDeno).not.toContain('--js-runtimes');
+  it('paketlenmis deno\'yu acik yoluyla verir (yt-dlp yalnizca PATH\'te arardi)', () => {
+    const args = buildDownloadArgs({ url: 'U', option: { kind: 'mp3' }, outDir: '/out', subtitles: false, denoPath: '/app/deno' });
+    expect(args.join(' ')).toContain('--js-runtimes deno:/app/deno');
+    const without = buildDownloadArgs({ url: 'U', option: { kind: 'mp3' }, outDir: '/out', subtitles: false });
+    expect(without).not.toContain('--js-runtimes');
+  });
+
+  it('analiz argumanlarina da deno yolunu ekler', () => {
+    expect(buildInfoArgs('U', '/app/deno')).toEqual(['U', '-J', '--no-playlist', '--js-runtimes', 'deno:/app/deno']);
   });
 });
 

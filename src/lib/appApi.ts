@@ -37,7 +37,5 @@ export const appApi: AppApi = {
   deleteHistoryItem: (id) => invokeResult('delete_history_item', { id }),
 
   checkDependencies: () => invoke('check_dependencies'),
-  installYtdlp: () => invokeResult('install_ytdlp'),
-  installFfmpeg: () => invokeResult('install_ffmpeg'),
   getPlatform: () => invoke<string>('get_platform'),
 };

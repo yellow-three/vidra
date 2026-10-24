@@ -9,7 +9,21 @@ YouTube video ve ses indirme masaüstü uygulaması. Tauri 2 + React 19 + Tailwi
 - Node.js 24+
 - Rust (stable) ve [Tauri 2 sistem bağımlılıkları](https://v2.tauri.app/start/prerequisites/)
 
-yt-dlp ve FFmpeg uygulama tarafından ilk açılışta app data dizinindeki `bin/` altına indirilir.
+## Sidecar'lar (yt-dlp, FFmpeg, deno)
+
+yt-dlp, LGPL FFmpeg (`ffmpeg` + `ffprobe`) ve deno uygulamayla birlikte paketlenir (`bundle.externalBin`). `npm run sidecars` bunları `src-tauri/binaries/ytd-<ad>-<target-triple>` olarak indirir ve SHA-256 doğrular; `tauri dev` / `tauri build` bunu kendiliğinden çalıştırır, sürümler değişmedikçe tekrar indirmez. `cargo test` / `cargo check` de bu dosyalar olmadan derlenmez.
+
+```bash
+npm run sidecars                                   # host hedefi
+node scripts/fetch-sidecars.mjs --target x86_64-pc-windows-msvc
+FFMPEG_DIR=/yol/lgpl-ffmpeg npm run sidecars        # macOS: hazır LGPL kaynağı yok
+```
+
+- `ytd-` öneki şart: Linux paketleri sidecar'ları `/usr/bin`'e kurar ve önek olmadan sistemdeki `ffmpeg` / `yt-dlp` paketleriyle çakışır.
+- Sürümler `scripts/fetch-sidecars.mjs` başında sabittir (yt-dlp, deno). FFmpeg, BtbN'in `n9.0` dalının en güncel LGPL build'idir; BtbN eski build'leri silmediği için sabitlenemez.
+- FFmpeg LGPL olduğundan GPL'li `libx264` yoktur; Dönüştür sayfası MP4 için `libopenh264` kullanır. FFmpeg lisans metni pakete `licenses/` altında eklenir.
+- yt-dlp sık bozulur: Ayarlar'daki güncelleme, paketlenmiş kopyayı app data `bin/` altına kopyalayıp `yt-dlp -U` çalıştırır (uygulama dizini çoğu kurulumda salt okunurdur). Uygulama daha yeni bir yt-dlp ile güncellenirse eski kopya açılışta silinir.
+- yt-dlp YouTube için JS runtime ister; paketlenmiş deno `--js-runtimes deno:<yol>` ile verilir.
 
 ## Komutlar
 
@@ -25,7 +39,8 @@ npm run tauri build   # paket üretimi
 - `src/features/queue/` — eşzamanlı indirme sınırlayıcı.
 - `src/` diğer — React arayüzü (Home, Downloads, Convert, Settings).
 - `src-tauri/src/process.rs` — programdan bağımsız süreç çalıştırıcı: süreci kendi grubunda başlatır (Unix process group, Windows Job Object), stdout/stderr satırlarını `Channel` ile iletir, iptalde tüm grubu öldürür. Webview yalnızca izin verilen programları (yt-dlp, ffmpeg, ffprobe) çalıştırabilir.
-- `src-tauri/src/dependencies.rs` — yt-dlp / FFmpeg kurulum ve güncelleme.
+- `src-tauri/src/dependencies.rs` — sidecar yollarının çözümü ve yt-dlp güncellemesi.
+- `scripts/fetch-sidecars.mjs` — sidecar indirme ve checksum doğrulama.
 - `src-tauri/src/lib.rs` — ayarlar, geçmiş, klasör seçimi, fs kapsamı.
 - `src-tauri/src/events.rs` — pano (clipboard) izleme.
 

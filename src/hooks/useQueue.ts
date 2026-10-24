@@ -11,30 +11,11 @@ const downloadLimiter = createLimiter(MAX_CONCURRENT_DOWNLOADS);
 
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
 
-// StrictMode efektleri iki kez calistirir; kurulum tek sefer yapilmali.
-let dependencySetup: Promise<void> | null = null;
-
-async function setupDependencies(setStatus: (msg: string) => void): Promise<void> {
+// Sidecar'lar uygulamayla gelir; burada yalnizca eksik kurulum yakalanir.
+async function checkDependencies(): Promise<void> {
   const deps = await appApi.checkDependencies();
-  if (!deps.ytdlp) {
-    const res = await appApi.installYtdlp();
-    if (!res.success) throw new Error(res.error);
-  }
-  if (!deps.ffmpeg) {
-    const res = await appApi.installFfmpeg();
-    if (!res.success) throw new Error(res.error);
-  }
-  setStatus('Sistem hazır.');
-}
-
-function ensureDependencies(setStatus: (msg: string) => void): Promise<void> {
-  if (!dependencySetup) {
-    dependencySetup = setupDependencies(setStatus).catch((error) => {
-      dependencySetup = null;
-      throw error;
-    });
-  }
-  return dependencySetup;
+  const missing = [!deps.ytdlp && 'yt-dlp', !deps.ffmpeg && 'FFmpeg', !deps.deno && 'deno'].filter(Boolean);
+  if (missing.length) throw new Error(`${missing.join(', ')} bulunamadı; uygulamayı yeniden kurun.`);
 }
 
 /** Ayarlardaki varsayilan format/kaliteye en yakin secenek. */
@@ -94,9 +75,9 @@ export function useQueueState() {
       refreshDownloadDir();
     }).then((unsub) => unsubscribers.push(unsub));
 
-    ensureDependencies(setStatus)
-      .then(() => setDepsReady(true))
-      .catch((error) => setStatus(`Kurulum hatası: ${error instanceof Error ? error.message : String(error)}`));
+    checkDependencies()
+      .then(() => { setStatus('Sistem hazır.'); setDepsReady(true); })
+      .catch((error) => setStatus(`Eksik bileşen: ${error instanceof Error ? error.message : String(error)}`));
 
     void appApi.onClipboardLink((link) => {
       setUrl(link);

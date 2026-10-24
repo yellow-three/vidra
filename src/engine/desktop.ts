@@ -13,7 +13,6 @@ import {
   parseOption,
   parseOutputLine,
   partialFilesToRemove,
-  type JsRuntime,
   type YtdlpFormat,
 } from './ytdlp';
 
@@ -21,7 +20,7 @@ interface Dependencies {
   ytdlp: boolean;
   ffmpeg: boolean;
   ffmpegPath: string | null;
-  jsRuntime: JsRuntime | null;
+  denoPath: string | null;
 }
 
 const getDependencies = () => invoke<Dependencies>('check_dependencies');
@@ -48,9 +47,9 @@ export class DesktopEngine implements DownloadEngine {
 
   async getInfo(url: string): Promise<VideoInfo> {
     const deps = await getDependencies();
-    if (!deps.ytdlp) throw new Error('yt-dlp henüz kurulmadı, kurulumun bitmesini bekleyin.');
+    if (!deps.ytdlp) throw new Error('yt-dlp bulunamadı; uygulama eksik kurulmuş olabilir.');
 
-    const result = await runProcess('yt-dlp', buildInfoArgs(url, deps.jsRuntime));
+    const result = await runProcess('yt-dlp', buildInfoArgs(url, deps.denoPath));
     if (result.code !== 0) throw new Error(lastErrorLines(result.stderr) || 'Analiz hatası');
 
     const data = JSON.parse(result.stdout) as {
@@ -85,8 +84,8 @@ export class DesktopEngine implements DownloadEngine {
     onProgress: (p: DownloadProgress) => void,
   ): Promise<DownloadResult> {
     const deps = await getDependencies();
-    if (!deps.ytdlp) return { status: 'error', message: 'yt-dlp kurulu değil.' };
-    if (!deps.ffmpeg) return { status: 'error', message: 'FFmpeg kurulu değil; video birleştirme ve MP3 için gerekli.' };
+    if (!deps.ytdlp) return { status: 'error', message: 'yt-dlp bulunamadı.' };
+    if (!deps.ffmpeg) return { status: 'error', message: 'FFmpeg bulunamadı; video birleştirme ve MP3 için gerekli.' };
 
     const args = buildDownloadArgs({
       url: request.url,
@@ -94,7 +93,7 @@ export class DesktopEngine implements DownloadEngine {
       outDir: request.outDir,
       ffmpegPath: deps.ffmpegPath,
       subtitles: request.subtitles,
-      jsRuntime: deps.jsRuntime,
+      denoPath: deps.denoPath,
     });
 
     let destination = '';

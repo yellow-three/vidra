@@ -16,8 +16,11 @@ function codecArgs(format: string, quality: ConvertQuality): { ext: string; args
     }
     case 'webm':
       return { ext: 'webm', args: ['-c:v', 'libvpx', '-crf', crf(quality), '-b:v', '0', '-c:a', 'libvorbis'] };
-    default:
-      return { ext: 'mp4', args: ['-c:v', 'libx264', '-preset', 'medium', '-crf', crf(quality), '-c:a', 'aac'] };
+    default: {
+      // Paketlenen FFmpeg LGPL'dir; GPL'li libx264 yerine OpenH264 (CRF yok, bit hizi var).
+      const bitrate = quality === 'high' ? '8000k' : quality === 'medium' ? '4000k' : '1500k';
+      return { ext: 'mp4', args: ['-c:v', 'libopenh264', '-b:v', bitrate, '-c:a', 'aac'] };
+    }
   }
 }
 

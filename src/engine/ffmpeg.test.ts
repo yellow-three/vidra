@@ -8,9 +8,11 @@ describe('buildConvertArgs', () => {
     expect(args).toEqual(['-i', '/v/Klip.webm', '-y', '-vn', '-acodec', 'libmp3lame', '-ab', '320k', '/v/Klip_converted.mp3']);
   });
 
-  it('bilinmeyen formatta H.264 MP4 uretir', () => {
+  it('bilinmeyen formatta LGPL uyumlu OpenH264 ile MP4 uretir', () => {
+    // LGPL FFmpeg build'inde GPL'li libx264 yoktur; OpenH264 CRF desteklemez, bit hizi kullanilir.
     const { args, outputPath } = buildConvertArgs('C:\\v\\Klip.mov', 'xyz', 'low');
     expect(outputPath).toBe('C:\\v\\Klip_converted.mp4');
-    expect(args.join(' ')).toContain('-c:v libx264 -preset medium -crf 35 -c:a aac');
+    expect(args.join(' ')).toContain('-c:v libopenh264 -b:v 1500k -c:a aac');
+    expect(args).not.toContain('libx264');
   });
 });

@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.abdurrahman.youtubedownloader",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "npm run sidecars && npm run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "npm run build",
+    "beforeBuildCommand": "npm run sidecars && npm run build",
     "frontendDist": "../dist"
   },
   "app": {
@@ -32,6 +32,15 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "externalBin": [
+      "binaries/ytd-yt-dlp",
+      "binaries/ytd-ffmpeg",
+      "binaries/ytd-ffprobe",
+      "binaries/ytd-deno"
+    ],
+    "resources": {
+      "binaries/licenses/": "licenses/"
+    }
   }
 }
