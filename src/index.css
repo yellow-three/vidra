@@ -1,0 +1,57 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+:root {
+  --bg-body: #141619;
+  --bg-card: #1a1d20;
+  --border: #2b3035;
+  --text-body: #dee2e6;
+  --text-primary: #ffffff;
+  --glow-blue: 0 0 20px rgba(59, 130, 246, 0.15);
+  --glow-emerald: 0 0 20px rgba(16, 185, 129, 0.15);
+}
+
+[data-theme="light"] {
+  --bg-body: #f1f3f5;
+  --bg-card: #ffffff;
+  --border: #dee2e6;
+  --text-body: #495057;
+  --text-primary: #212529;
+  --glow-blue: 0 0 20px rgba(59, 130, 246, 0.08);
+  --glow-emerald: 0 0 20px rgba(16, 185, 129, 0.08);
+}
+
+body {
+  transition: background-color 0.25s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-variant-numeric: tabular-nums;
+}
+
+button:focus-visible,
+a:focus-visible,
+select:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}

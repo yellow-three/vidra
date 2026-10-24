@@ -1,0 +1,47 @@
+export interface VideoFormat {
+  formatId: string;
+  resolution: string;
+  ext: string;
+  note: string;
+  filesize: string;
+}
+
+export interface Task {
+  id: string;
+  url: string;
+  title: string;
+  thumbnail?: string;
+  formats?: VideoFormat[];
+  selectedFormatId?: string;
+  percent: number;
+  speed: string;
+  eta: string;
+  status: 'analyzing' | 'ready-to-select' | 'downloading' | 'complete' | 'cancelled' | 'error';
+  message?: string;
+}
+
+export interface AppSettings {
+  downloadDir?: string;
+  defaultQuality?: string;
+  defaultFormat?: string;
+  theme?: 'dark' | 'light' | 'system';
+  autoOpenFolder?: boolean;
+  downloadSubtitles?: boolean;
+}
+
+export interface HistoryItem {
+  id: string;
+  title: string;
+  url: string;
+  duration?: number;
+  thumbnail?: string;
+  formatId: string;
+  quality: string;
+  ext: string;
+  fileSize: string;
+  filePath: string;
+  completedAt: string;
+}
+
+export type { AppApi, IpcResult, QueueProgressData, ConvertProgressData } from './app-api';
+
