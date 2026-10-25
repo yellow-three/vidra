@@ -36,7 +36,6 @@
     "externalBin": [
       "binaries/ytd-yt-dlp",
       "binaries/ytd-ffmpeg",
-      "binaries/ytd-ffprobe",
       "binaries/ytd-deno"
     ],
     "resources": {

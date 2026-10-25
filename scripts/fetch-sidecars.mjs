@@ -1,11 +1,15 @@
 #!/usr/bin/env node
-// yt-dlp, LGPL FFmpeg (ffmpeg + ffprobe) ve deno'yu Tauri sidecar adlariyla
+// yt-dlp, LGPL FFmpeg ve deno'yu Tauri sidecar adlariyla
 // (src-tauri/binaries/ytd-<ad>-<target-triple>[.exe]) indirir ve checksum dogrular.
 //
 //   node scripts/fetch-sidecars.mjs [--target <triple>] [--force]
 //
 // macOS icin guvenilir hazir bir LGPL FFmpeg kaynagi yok; FFMPEG_DIR ortam
-// degiskeniyle icinde ffmpeg ve ffprobe bulunan yerel bir klasor verilmelidir.
+// degiskeniyle icinde ffmpeg bulunan yerel bir klasor verilmelidir.
+//
+// ffprobe bilerek paketlenmez (kurulu boyutta ~140 MB): yt-dlp'nin kullandigimiz
+// tum ozellikleri (birlestirme, MP3/M4A, altyazi/kapak/metadata gomme, remux)
+// onsuz ayni ciktiyi verir; yalnizca HLS indirmelerinde zararsiz bir uyari yazar.
 
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
@@ -154,7 +158,7 @@ async function fetchDeno(denoTriple, triple, exe, work) {
 }
 
 async function fetchFfmpeg(platform, triple, exe, work) {
-  const names = [`ffmpeg${exe}`, `ffprobe${exe}`];
+  const names = [`ffmpeg${exe}`];
   let found;
   let licenseFile;
 
@@ -164,7 +168,7 @@ async function fetchFfmpeg(platform, triple, exe, work) {
   } else if (!platform) {
     throw new Error(
       `${triple} icin hazir LGPL FFmpeg kaynagi tanimli degil. ` +
-      'ffmpeg ve ffprobe iceren bir klasoru FFMPEG_DIR ile verin (LGPL build oldugunu dogrulayin).',
+      'ffmpeg iceren bir klasoru FFMPEG_DIR ile verin (LGPL build oldugunu dogrulayin).',
     );
   } else {
     const { tag, short } = FFMPEG_BRANCH;
@@ -208,7 +212,9 @@ async function main() {
   await mkdir(OUT_DIR, { recursive: true });
   const stampPath = join(OUT_DIR, `.versions-${triple}.json`);
   const wanted = { YTDLP_VERSION, DENO_VERSION, FFMPEG_BRANCH: FFMPEG_BRANCH.tag, FFMPEG_DIR: process.env.FFMPEG_DIR ?? null };
-  const expected = ['yt-dlp', 'ffmpeg', 'ffprobe', 'deno'].map((n) => join(OUT_DIR, `${PREFIX}${n}-${triple}${exe}`));
+  // Eski surumlerin indirdigi ffprobe artik paketlenmiyor.
+  await rm(join(OUT_DIR, `${PREFIX}ffprobe-${triple}${exe}`), { force: true });
+  const expected = ['yt-dlp', 'ffmpeg', 'deno'].map((n) => join(OUT_DIR, `${PREFIX}${n}-${triple}${exe}`));
 
   if (!args.force) {
     const stamp = await readFile(stampPath, 'utf8').then(JSON.parse, () => null);

@@ -234,7 +234,7 @@ fn stop_clipboard_monitor(state: State<'_, AppState>) -> CommandResult<Value> {
     Ok(ok())
 }
 
-/// `program` mantiksal bir addir (yt-dlp, ffmpeg, ffprobe); webview'e keyfi
+/// `program` mantiksal bir addir (yt-dlp, ffmpeg); webview'e keyfi
 /// komut calistirma yetkisi vermemek icin yol Rust tarafinda cozulur.
 #[tauri::command]
 fn process_spawn(

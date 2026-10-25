@@ -1,4 +1,4 @@
-//! Paketlenmis sidecar'lar (yt-dlp, ffmpeg, ffprobe, deno) ve yt-dlp guncellemesi.
+//! Paketlenmis sidecar'lar (yt-dlp, ffmpeg, deno) ve yt-dlp guncellemesi.
 //!
 //! Sidecar'lar uygulama ile birlikte gelir (`scripts/fetch-sidecars.mjs`) ve calistirilabilir
 //! dosyanin yanina kurulur; bu dizin cogu kurulumda salt okunurdur (AppImage, imzali macOS
@@ -46,7 +46,7 @@ pub fn ytdlp_path(app: &AppHandle) -> Option<PathBuf> {
 pub fn resolve_program(app: &AppHandle, name: &str) -> Option<PathBuf> {
     match name {
         "yt-dlp" => ytdlp_path(app),
-        "ffmpeg" | "ffprobe" => sidecar(name),
+        "ffmpeg" => sidecar(name),
         _ => None,
     }
 }

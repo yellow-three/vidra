@@ -7,7 +7,7 @@ type ProcessEvent =
   | { type: 'stderr'; line: string }
   | { type: 'exit'; code: number | null; killed: boolean };
 
-export type AllowedProgram = 'yt-dlp' | 'ffmpeg' | 'ffprobe';
+export type AllowedProgram = 'yt-dlp' | 'ffmpeg';
 
 export interface ProcessExit {
   code: number | null;
