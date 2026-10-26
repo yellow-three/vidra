@@ -1,64 +1,49 @@
+import type { ReactNode } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { HardDrive, Info, Package, Palette, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import type { AppSettings } from '../../types';
-import { useTheme } from '../../app/ThemeContext';
 import { LEGAL_TEXT } from '../../app/LegalNotice';
 import { queryClient } from '../../app/queryClient';
 import { engine } from '../../engine';
 import { appApi } from '../../lib/appApi';
 import { invalidateSettings, useSaveSettings, useSettings } from './queries';
 import { useAppUpdate, useAppVersion, useInstallUpdate } from './appUpdate';
+import ThemePicker from './ThemePicker';
 
 const versionKey = ['ytdlp-version'] as const;
 
-const diskIcon = (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" /><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-  </svg>
-);
-
-const slidersIcon = (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" />
-  </svg>
-);
-
-const eyeIcon = (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
-  </svg>
-);
-
-const packageIcon = (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="16.5" y1="9.4" x2="7.5" y2="4.21" /><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" />
-  </svg>
-);
-
-function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+function Section({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
   return (
-    <section>
-      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-        {icon}
-        {title}
-      </h3>
-      <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4">
+    <section className="card bg-base-100 border border-base-300">
+      <div className="card-body gap-4">
+        <h2 className="card-title text-base gap-2">{icon}{title}</h2>
         {children}
       </div>
     </section>
   );
 }
 
+function ToggleRow({ label, description, checked, onChange }: { label: string; description: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-center justify-between gap-4 cursor-pointer">
+      <span>
+        <span className="block text-sm font-medium">{label}</span>
+        <span className="block text-xs text-base-content/60">{description}</span>
+      </span>
+      <input type="checkbox" className="toggle toggle-sm" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    </label>
+  );
+}
+
 export default function SettingsForm() {
-  const { theme, setTheme } = useTheme();
   const settings: AppSettings = useSettings().data ?? {};
   const save = useSaveSettings();
-  const version = useQuery({ queryKey: versionKey, queryFn: () => engine.engineVersion() });
-  const update = useMutation({
+  const ytdlpVersion = useQuery({ queryKey: versionKey, queryFn: () => engine.engineVersion() });
+  const updateYtdlp = useMutation({
     mutationFn: () => engine.updateEngine(),
     onSuccess: (v) => queryClient.setQueryData(versionKey, v),
     onError: (error) => console.warn('yt-dlp güncellenemedi:', error),
   });
-
   const appVersion = useAppVersion();
   const appUpdate = useAppUpdate();
   const install = useInstallUpdate();
@@ -70,30 +55,38 @@ export default function SettingsForm() {
     if (res?.success && res.path) await invalidateSettings();
   };
 
+  const appUpdateText = appUpdate.isFetching
+    ? 'Kontrol ediliyor...'
+    : appUpdate.isError
+      ? `Kontrol başarısız: ${appUpdate.error instanceof Error ? appUpdate.error.message : String(appUpdate.error)}`
+      : appUpdate.data
+        ? `Yeni sürüm: ${appUpdate.data.version}`
+        : appUpdate.isSuccess ? 'Güncel' : '';
+
   return (
-    <div className="space-y-6">
-      <Section title="Depolama" icon={diskIcon}>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-400 shrink-0">İndirme Klasörü:</span>
-          <code className="flex-1 text-xs text-slate-300 bg-[var(--bg-body)] px-3 py-1.5 rounded border border-[var(--border)] truncate" title={settings.downloadDir}>
-            {settings.downloadDir ? settings.downloadDir.replace(/^\/home\/[^/]+/, '~') : 'Varsayılan (İndirilenler)'}
-          </code>
-          <button onClick={handleBrowseFolder} className="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-1.5 rounded transition-all">
-            Değiştir
-          </button>
-        </div>
+    <div className="flex flex-col gap-4">
+      <Section title="Depolama" icon={<HardDrive size={18} />}>
+        <fieldset className="fieldset">
+          <legend className="fieldset-legend">İndirme klasörü</legend>
+          <div className="join w-full">
+            <input
+              readOnly
+              value={settings.downloadDir || 'İndirilenler (varsayılan)'}
+              title={settings.downloadDir}
+              className="input join-item w-full"
+              aria-label="İndirme klasörü"
+            />
+            <button onClick={handleBrowseFolder} className="btn join-item">Değiştir</button>
+          </div>
+        </fieldset>
       </Section>
 
-      <Section title="Varsayılanlar" icon={slidersIcon}>
-        <div className="flex gap-6">
-          <div className="flex-1">
-            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Kalite</label>
-            <select
-              value={settings.defaultQuality || ''}
-              onChange={(e) => updateAndSave('defaultQuality', e.target.value)}
-              className="w-full bg-[var(--bg-body)] border border-[var(--border)] text-xs rounded p-2 text-slate-200"
-            >
-              <option value="">Otomatik (En iyi)</option>
+      <Section title="Varsayılanlar" icon={<SlidersHorizontal size={18} />}>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <fieldset className="fieldset">
+            <legend className="fieldset-legend">Kalite</legend>
+            <select value={settings.defaultQuality || ''} onChange={(e) => updateAndSave('defaultQuality', e.target.value)} className="select w-full">
+              <option value="">Otomatik (en iyi)</option>
               <option value="2160">4K</option>
               <option value="1440">2K</option>
               <option value="1080">1080p</option>
@@ -101,126 +94,66 @@ export default function SettingsForm() {
               <option value="480">480p</option>
               <option value="360">360p</option>
             </select>
-          </div>
-          <div className="flex-1">
-            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Format</label>
-            <select
-              value={settings.defaultFormat || ''}
-              onChange={(e) => updateAndSave('defaultFormat', e.target.value)}
-              className="w-full bg-[var(--bg-body)] border border-[var(--border)] text-xs rounded p-2 text-slate-200"
-            >
+          </fieldset>
+          <fieldset className="fieldset">
+            <legend className="fieldset-legend">Format</legend>
+            <select value={settings.defaultFormat || ''} onChange={(e) => updateAndSave('defaultFormat', e.target.value)} className="select w-full">
               <option value="">MP4 (Video)</option>
               <option value="mp3">MP3 (Ses)</option>
             </select>
-          </div>
+          </fieldset>
         </div>
-
-        <div className="mt-4 pt-4 border-t border-[var(--border)] space-y-3">
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={settings.autoOpenFolder ?? true}
-              onChange={(e) => updateAndSave('autoOpenFolder', e.target.checked)}
-              className="accent-blue-500"
-            />
-            <span className="text-xs text-slate-300">Klasörü otomatik aç</span>
-          </label>
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={settings.downloadSubtitles ?? false}
-              onChange={(e) => updateAndSave('downloadSubtitles', e.target.checked)}
-              className="accent-blue-500"
-            />
-            <span className="text-xs text-slate-300">Altyazıları da indir (YouTube)</span>
-          </label>
-        </div>
+        <div className="divider my-0" />
+        <ToggleRow
+          label="Klasörü otomatik aç"
+          description="İndirme bitince dosyanın bulunduğu klasörü açar."
+          checked={settings.autoOpenFolder ?? true}
+          onChange={(v) => updateAndSave('autoOpenFolder', v)}
+        />
+        <ToggleRow
+          label="Altyazıları göm"
+          description="Türkçe ve İngilizce altyazılar varsa videoya eklenir."
+          checked={settings.downloadSubtitles ?? false}
+          onChange={(v) => updateAndSave('downloadSubtitles', v)}
+        />
       </Section>
 
-      <Section title="Görünüm" icon={eyeIcon}>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-400">Tema:</span>
-          <button
-            onClick={() => setTheme('light')}
-            className={`text-xs px-3 py-1.5 rounded-lg transition-all duration-200 ${
-              theme === 'light' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-[var(--bg-body)] text-slate-400 border border-[var(--border)] hover:border-amber-500/50'
-            }`}
-          >
-            ☀️ Aydınlık
-          </button>
-          <button
-            onClick={() => setTheme('dark')}
-            className={`text-xs px-3 py-1.5 rounded-lg transition-all duration-200 ${
-              theme === 'dark' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-[var(--bg-body)] text-slate-400 border border-[var(--border)] hover:border-blue-500/50'
-            }`}
-          >
-            🌙 Karanlık
-          </button>
-          <button
-            onClick={() => setTheme('system')}
-            className={`text-xs px-3 py-1.5 rounded-lg transition-all duration-200 ${
-              theme === 'system' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-[var(--bg-body)] text-slate-400 border border-[var(--border)] hover:border-indigo-500/50'
-            }`}
-          >
-            💻 Sistem
-          </button>
-        </div>
+      <Section title="Görünüm" icon={<Palette size={18} />}>
+        <ThemePicker />
       </Section>
 
-      <Section title="Sistem" icon={packageIcon}>
+      <Section title="Sistem" icon={<Package size={18} />}>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-400">yt-dlp:</span>
-          <code className="text-xs text-emerald-400 font-mono">{version.isPending ? 'Yükleniyor...' : version.data || 'Bilinmiyor'}</code>
-          <button
-            onClick={() => update.mutate()}
-            disabled={update.isPending}
-            className="ml-auto bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white text-xs px-3 py-1.5 rounded transition-all"
-          >
-            {update.isPending ? 'Güncelleniyor...' : 'Güncelle'}
+          <span className="text-sm">yt-dlp</span>
+          <span className="badge badge-ghost font-mono">{ytdlpVersion.isPending ? '…' : ytdlpVersion.data || 'Bilinmiyor'}</span>
+          <button onClick={() => updateYtdlp.mutate()} disabled={updateYtdlp.isPending} className="btn btn-sm ml-auto gap-1.5">
+            {updateYtdlp.isPending ? <span className="loading loading-spinner loading-xs" /> : <RefreshCw size={14} />}
+            {updateYtdlp.isPending ? 'Güncelleniyor...' : 'Güncelle'}
           </button>
         </div>
-        <div className="mt-3 text-[10px] text-slate-500">
-          {update.isError ? `Güncelleme başarısız: ${update.error.message}` : save.isPending ? 'Kaydediliyor...' : 'Tüm değişiklikler otomatik kaydedilir.'}
-        </div>
-      </Section>
-
-      <Section title="Uygulama" icon={packageIcon}>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-400">Sürüm:</span>
-          <code className="text-xs text-emerald-400 font-mono">{appVersion.data ?? '...'}</code>
-          <span className="text-xs text-slate-400" role="status">
-            {appUpdate.isFetching
-              ? 'Kontrol ediliyor...'
-              : appUpdate.isError
-                ? `Kontrol başarısız: ${appUpdate.error instanceof Error ? appUpdate.error.message : String(appUpdate.error)}`
-                : appUpdate.data
-                  ? `Yeni sürüm: ${appUpdate.data.version}`
-                  : appUpdate.isSuccess ? 'Güncel' : ''}
-          </span>
+        {updateYtdlp.isError && <p className="text-xs text-error">Güncelleme başarısız: {updateYtdlp.error.message}</p>}
+        <div className="divider my-0" />
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-sm">Uygulama</span>
+          <span className="badge badge-ghost font-mono">{appVersion.data ?? '…'}</span>
+          <span className={`text-xs ${appUpdate.isError ? 'text-error' : 'text-base-content/60'}`} role="status">{appUpdateText}</span>
           {appUpdate.data ? (
-            <button
-              onClick={() => install.mutate(appUpdate.data!)}
-              disabled={install.isPending}
-              className="ml-auto bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs px-3 py-1.5 rounded transition-all"
-            >
+            <button onClick={() => install.mutate(appUpdate.data!)} disabled={install.isPending} className="btn btn-sm btn-primary ml-auto">
               {install.isPending ? `İndiriliyor %${install.percent ?? 0}` : 'İndir ve yeniden başlat'}
             </button>
           ) : (
-            <button
-              onClick={() => void appUpdate.refetch()}
-              disabled={appUpdate.isFetching}
-              className="ml-auto bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white text-xs px-3 py-1.5 rounded transition-all"
-            >
+            <button onClick={() => void appUpdate.refetch()} disabled={appUpdate.isFetching} className="btn btn-sm ml-auto">
               Güncellemeleri kontrol et
             </button>
           )}
         </div>
-        {appUpdate.data?.body && <p className="mt-3 text-[11px] text-slate-400 whitespace-pre-line">{appUpdate.data.body}</p>}
-        {install.isError && <p className="mt-2 text-[11px] text-rose-400">Güncelleme kurulamadı: {install.error.message}</p>}
+        {appUpdate.data?.body && <p className="text-xs text-base-content/70 whitespace-pre-line">{appUpdate.data.body}</p>}
+        {install.isError && <p className="text-xs text-error">Güncelleme kurulamadı: {install.error.message}</p>}
+        <p className="text-xs text-base-content/50">{save.isPending ? 'Kaydediliyor…' : 'Değişiklikler otomatik kaydedilir.'}</p>
       </Section>
 
-      <Section title="Hakkında" icon={packageIcon}>
-        <p className="text-xs text-slate-400 leading-relaxed">{LEGAL_TEXT}</p>
+      <Section title="Hakkında" icon={<Info size={18} />}>
+        <p className="text-sm text-base-content/70 leading-relaxed">{LEGAL_TEXT}</p>
       </Section>
     </div>
   );

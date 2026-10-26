@@ -1,66 +1,58 @@
+import { Link } from 'react-router-dom';
+import { ClipboardCheck, FolderOpen, Sparkles } from 'lucide-react';
 import TaskList from './TaskList';
 import AddUrlForm from '../add/AddUrlForm';
+import PageHeader from '../../app/PageHeader';
+import { LEGAL_TEXT } from '../../app/LegalNotice';
 import { useAppStatus } from './bootstrap';
 import { useQueueStore } from './store';
 import { useSettings } from '../settings/queries';
 import { useAppUpdate } from '../settings/appUpdate';
-import { Link } from 'react-router-dom';
-import { LEGAL_TEXT } from '../../app/LegalNotice';
 
-const clipIcon = (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-  </svg>
-);
-
-const folderIcon = (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-  </svg>
-);
+const shortenHome = (path: string) => path.replace(/^\/home\/[^/]+/, '~').replace(/^C:\\Users\\[^\\]+/i, '~');
 
 export default function QueuePage() {
   const queue = useQueueStore((s) => s.tasks);
   const { selectFormat, startDownload, cancel, retry, move } = useQueueStore.getState();
-  const status = useAppStatus((s) => s.status);
+  const { status, depsReady } = useAppStatus();
   const appUpdate = useAppUpdate().data;
-  const downloadDir = useSettings().data?.downloadDir || 'Varsayılan (İndirilenler)';
+  const downloadDir = useSettings().data?.downloadDir;
 
-  const countAnalyzing = queue.filter((t) => t.status === 'analyzing').length;
-  const countDownloading = queue.filter((t) => t.status === 'downloading').length;
-  const countPending = queue.filter((t) => t.status === 'ready-to-select').length;
-  const countDone = queue.filter((t) => t.status === 'complete').length;
+  const count = (pred: (s: string) => boolean) => queue.filter((t) => pred(t.status)).length;
+  const stats = [
+    { label: 'Bekleyen', value: count((s) => s === 'ready-to-select' || s === 'analyzing') },
+    { label: 'İniyor', value: count((s) => s === 'downloading') },
+    { label: 'Tamamlanan', value: count((s) => s === 'complete') },
+    { label: 'Hatalı', value: count((s) => s === 'error') },
+  ];
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
-      {/* Header + Input (shrink, no scroll) */}
-      <div className="space-y-6 shrink-0">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">YouTube Downloader</h1>
-            <p className="text-xs text-slate-500 mt-0.5">Video analiz ve indirme havuzu</p>
-          </div>
-          <div className="flex items-center gap-2 text-[10px] text-slate-500">
-            {clipIcon}
-            Pano izleniyor
-          </div>
-        </div>
+    <div className="flex flex-col gap-6 flex-1">
+      <PageHeader
+        title="İndir"
+        subtitle="YouTube videolarını video veya ses olarak indirin."
+        actions={
+          <span className="badge badge-ghost gap-1.5" title="Kopyalanan YouTube linkleri kutuya otomatik gelir">
+            <ClipboardCheck size={14} /> Pano izleniyor
+          </span>
+        }
+      />
 
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-5 shadow-lg">
+      <section className="card bg-base-100 border border-base-300">
+        <div className="card-body gap-5">
           <AddUrlForm />
-
-          <div className="flex gap-4 mt-4 pt-4 border-t border-[var(--border)]">
-            <Stat label="Sırada" value={countPending} />
-            <Stat label="Analiz" value={countAnalyzing} />
-            <Stat label="İnen" value={countDownloading} color="text-blue-400" />
-            <Stat label="Tamam" value={countDone} color="text-emerald-400" />
+          <div className="stats stats-horizontal bg-base-200 w-full">
+            {stats.map((s) => (
+              <div key={s.label} className="stat py-3 px-4">
+                <div className="stat-title text-xs">{s.label}</div>
+                <div className={`stat-value text-2xl ${s.value ? '' : 'text-base-content/30'}`}>{s.value}</div>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Task List (scrolls) */}
-      <div className="flex-1 min-h-0 overflow-y-auto mt-6 space-y-4">
+      <div className="flex-1 flex flex-col">
         <TaskList
           tasks={queue}
           onFormatChange={selectFormat}
@@ -71,32 +63,24 @@ export default function QueuePage() {
         />
       </div>
 
-      {/* Status Bar (bottom) */}
-      <div className="shrink-0 mt-4 flex items-center justify-between px-4 py-2.5 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl">
-        <span className="text-xs text-slate-500 flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          {status}
-          {appUpdate && (
-            <Link to="/settings" className="text-blue-400 hover:text-blue-300">
-              · Yeni sürüm {appUpdate.version} hazır
-            </Link>
-          )}
-        </span>
-        <span className="text-[10px] text-slate-600 flex items-center gap-1.5 truncate max-w-[300px]" title={downloadDir}>
-          {folderIcon}
-          {downloadDir.replace(/^\/home\/[^/]+/, '~')}
-        </span>
-      </div>
-      <p className="shrink-0 mt-2 text-[10px] text-slate-600 text-center">{LEGAL_TEXT}</p>
-    </div>
-  );
-}
-
-function Stat({ label, value, color = 'text-slate-300' }: { label: string; value: number; color?: string }) {
-  return (
-    <div className="flex items-center gap-1.5 text-xs">
-      <span className="text-slate-500">{label}</span>
-      <span className={`font-semibold ${value > 0 ? color : 'text-slate-600'}`}>{value}</span>
+      <footer className="flex flex-col gap-2 pt-2 border-t border-base-300 text-xs text-base-content/60">
+        <div className="flex items-center justify-between gap-4">
+          <span className="flex items-center gap-2 min-w-0">
+            <span className={`status ${depsReady ? 'status-success' : 'status-warning'}`} aria-hidden />
+            <span className="truncate">{status}</span>
+            {appUpdate && (
+              <Link to="/settings" className="link link-hover text-secondary inline-flex items-center gap-1 shrink-0">
+                <Sparkles size={12} /> Yeni sürüm {appUpdate.version} hazır
+              </Link>
+            )}
+          </span>
+          <span className="flex items-center gap-1.5 truncate" title={downloadDir || 'İndirilenler klasörü'}>
+            <FolderOpen size={14} className="shrink-0" />
+            {downloadDir ? shortenHome(downloadDir) : 'İndirilenler'}
+          </span>
+        </div>
+        <p className="text-[11px] text-base-content/40">{LEGAL_TEXT}</p>
+      </footer>
     </div>
   );
 }

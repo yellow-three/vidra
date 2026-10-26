@@ -1,3 +1,4 @@
+import { Scale } from 'lucide-react';
 import { useSaveSettings, useSettings } from '../features/settings/queries';
 
 export const LEGAL_TEXT =
@@ -12,16 +13,20 @@ export default function LegalNotice() {
   if (!isSuccess || settings.legalAccepted) return null;
 
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="legal-title" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">
-      <div className="max-w-md bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-6 shadow-2xl space-y-4">
-        <h2 id="legal-title" className="text-lg font-bold text-white">Kullanım koşulları</h2>
-        <p className="text-sm text-slate-300 leading-relaxed">{LEGAL_TEXT}</p>
-        <button
-          onClick={() => save.mutate({ legalAccepted: true })}
-          className="w-full h-10 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm rounded-xl"
-        >
-          Anladım, kabul ediyorum
-        </button>
+    <div role="dialog" aria-modal="true" aria-labelledby="legal-title" className="modal modal-open">
+      <div className="modal-box max-w-md">
+        <div className="flex items-center gap-3 mb-3">
+          <span className="grid place-items-center size-10 rounded-full bg-base-200">
+            <Scale size={20} />
+          </span>
+          <h2 id="legal-title" className="text-lg font-bold">Kullanım koşulları</h2>
+        </div>
+        <p className="text-sm text-base-content/80 leading-relaxed">{LEGAL_TEXT}</p>
+        <div className="modal-action">
+          <button onClick={() => save.mutate({ legalAccepted: true })} className="btn btn-primary btn-block" autoFocus>
+            Anladım, kabul ediyorum
+          </button>
+        </div>
       </div>
     </div>
   );

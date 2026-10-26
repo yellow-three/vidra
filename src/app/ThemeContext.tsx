@@ -1,52 +1,50 @@
-import { createContext, useContext, useEffect, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useSaveSettings, useSettings } from '../features/settings/queries';
 
-type ThemeMode = 'dark' | 'light' | 'system';
-type ResolvedTheme = 'dark' | 'light';
+export const APP_THEMES = { dark: 'youtube-dark', light: 'youtube-light' } as const;
+
+/** Yerlesik daisyUI temalari (src/index.css: `themes: all`). */
+export const DAISY_THEMES = [
+  'light', 'dark', 'cupcake', 'bumblebee', 'emerald', 'corporate', 'synthwave', 'retro', 'cyberpunk',
+  'valentine', 'halloween', 'garden', 'forest', 'aqua', 'lofi', 'pastel', 'fantasy', 'wireframe', 'black',
+  'luxury', 'dracula', 'cmyk', 'autumn', 'business', 'acid', 'lemonade', 'night', 'coffee', 'winter', 'dim',
+  'nord', 'sunset', 'caramellatte', 'abyss', 'silk',
+] as const;
+
+/** `system`, YouTube temalarindan biri ya da bir daisyUI tema adi. */
+export type ThemeSetting = string;
 
 interface ThemeContextValue {
-  theme: ThemeMode;
-  resolved: ResolvedTheme;
-  setTheme: (t: ThemeMode) => void;
+  theme: ThemeSetting;
+  /** `data-theme`'e yazilan gercek tema. */
+  resolved: string;
+  setTheme: (theme: ThemeSetting) => void;
 }
 
-const ThemeContext = createContext<ThemeContextValue>({ theme: 'dark', resolved: 'dark', setTheme: () => {} });
+const ThemeContext = createContext<ThemeContextValue>({ theme: 'system', resolved: APP_THEMES.dark, setTheme: () => {} });
 
-function getSystemTheme(): ResolvedTheme {
-  if (typeof window === 'undefined') return 'dark';
-  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-}
-
-function resolveTheme(mode: ThemeMode): ResolvedTheme {
-  return mode === 'system' ? getSystemTheme() : mode;
-}
+const prefersLight = () => window.matchMedia('(prefers-color-scheme: light)').matches;
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const theme: ThemeMode = useSettings().data?.theme ?? 'dark';
+  const theme: ThemeSetting = useSettings().data?.theme || 'system';
   const save = useSaveSettings();
-
-  const applyTheme = useCallback((mode: ThemeMode) => {
-    const resolved = resolveTheme(mode);
-    document.documentElement.setAttribute('data-theme', resolved);
-  }, []);
+  const [systemLight, setSystemLight] = useState(prefersLight);
 
   useEffect(() => {
-    applyTheme(theme);
+    const mq = window.matchMedia('(prefers-color-scheme: light)');
+    const onChange = () => setSystemLight(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
-    if (theme === 'system') {
-      const mq = window.matchMedia('(prefers-color-scheme: dark)');
-      const handler = () => applyTheme('system');
-      mq.addEventListener('change', handler);
-      return () => mq.removeEventListener('change', handler);
-    }
-  }, [theme, applyTheme]);
+  const resolved = theme === 'system' ? (systemLight ? APP_THEMES.light : APP_THEMES.dark) : theme;
 
-  const setTheme = (t: ThemeMode) => save.mutate({ theme: t });
-
-  const resolved = resolveTheme(theme);
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', resolved);
+  }, [resolved]);
 
   return (
-    <ThemeContext.Provider value={{ theme, resolved, setTheme }}>
+    <ThemeContext.Provider value={{ theme, resolved, setTheme: (t) => save.mutate({ theme: t }) }}>
       {children}
     </ThemeContext.Provider>
   );
@@ -54,4 +52,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export function useTheme() {
   return useContext(ThemeContext);
+}
+
+/** Tema acik mi koyu mu; kenar cubugundaki hizli gecis dugmesi icin. */
+export function isDarkTheme(name: string): boolean {
+  const dark = new Set(['dark', 'synthwave', 'halloween', 'forest', 'black', 'luxury', 'dracula', 'business', 'night', 'coffee', 'dim', 'sunset', 'abyss', APP_THEMES.dark]);
+  return dark.has(name);
 }

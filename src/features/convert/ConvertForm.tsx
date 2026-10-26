@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
+import { CircleAlert, FileUp, FolderOpen, RotateCcw, X } from 'lucide-react';
 import { appApi } from '../../lib/appApi';
 import { startConvert as runConvert } from '../../engine/convert';
 
@@ -15,6 +16,7 @@ interface ConvertTask {
   percent: number;
   status: 'idle' | 'converting' | 'complete' | 'error';
   outputPath?: string;
+  error?: string;
 }
 
 const fileNameOf = (path: string) => path.split(/[\\/]/).pop() ?? path;
@@ -55,154 +57,106 @@ export default function ConvertForm() {
     if (selected) addPaths(Array.isArray(selected) ? selected : [selected]);
   };
 
-  const updateTask = (id: string, key: string, value: string) => {
-    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, [key]: value } : t));
-  };
+  const patch = (id: string, value: Partial<ConvertTask>) =>
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...value } : t)));
 
   const startConvert = async (task: ConvertTask) => {
-    const setStatus = (patch: Partial<ConvertTask>) =>
-      setTasks((prev) => prev.map((t) => t.id === task.id ? { ...t, ...patch } : t));
-    setStatus({ status: 'converting', percent: 0 });
+    patch(task.id, { status: 'converting', percent: 0, error: undefined });
     try {
-      const { result, cancel } = await runConvert(task.inputPath, task.outputFormat, task.quality, (percent) => setStatus({ percent }));
+      const { result, cancel } = await runConvert(task.inputPath, task.outputFormat, task.quality, (percent) => patch(task.id, { percent }));
       cancels.current.set(task.id, cancel);
       const outcome = await result;
       cancels.current.delete(task.id);
-      if (outcome.status === 'complete') setStatus({ status: 'complete', percent: 100, outputPath: outcome.outputPath });
-      else if (outcome.status === 'error') setStatus({ status: 'error' });
-    } catch {
-      setStatus({ status: 'error' });
+      if (outcome.status === 'complete') patch(task.id, { status: 'complete', percent: 100, outputPath: outcome.outputPath });
+      else if (outcome.status === 'error') patch(task.id, { status: 'error', error: outcome.message });
+    } catch (error) {
+      patch(task.id, { status: 'error', error: error instanceof Error ? error.message : String(error) });
     }
   };
 
-  const cancelConvert = (id: string) => {
+  const remove = (id: string) => {
     void cancels.current.get(id)?.();
     setTasks((prev) => prev.filter((t) => t.id !== id));
   };
 
-  const removeTask = (id: string) => setTasks((prev) => prev.filter((t) => t.id !== id));
-
   return (
-    <div className="space-y-4">
-      {/* Drop Zone */}
-      <div
-        className={`border-2 border-dashed rounded-xl p-10 text-center transition-all cursor-pointer ${
-          dragging ? 'border-blue-500 bg-blue-500/5' : 'border-[var(--border)] hover:border-blue-500/50'
-        }`}
+    <div className="flex flex-col gap-4">
+      <button
+        type="button"
         onClick={handleBrowse}
+        className={`card border-2 border-dashed transition-colors cursor-pointer ${
+          dragging ? 'border-primary bg-primary/5' : 'border-base-300 bg-base-100 hover:border-base-content/30'
+        }`}
       >
-        <p className="text-sm text-slate-400">
-          {dragging ? 'Bırakın...' : 'Dosyaları sürükleyin veya seçmek için tıklayın'}
-        </p>
-        <p className="text-[10px] text-slate-500 mt-1">MP4, WebM, MKV, AVI, MOV, MP3, WAV, FLAC</p>
-      </div>
+        <span className="card-body items-center text-center gap-2 py-10">
+          <FileUp size={32} strokeWidth={1.5} className="opacity-50" />
+          <span className="font-medium">{dragging ? 'Bırakın…' : 'Dosyaları sürükleyin veya seçmek için tıklayın'}</span>
+          <span className="text-xs text-base-content/50">MP4, WebM, MKV, AVI, MOV, MP3, WAV, FLAC</span>
+        </span>
+      </button>
 
-      {/* Task List */}
-      {tasks.map((task) => (
-        <div key={task.id} className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 space-y-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 truncate">
-              <h4 className="text-sm font-bold text-white truncate">{task.fileName}</h4>
-            </div>
-
-            {task.status === 'complete' && (
-              <span className="text-[10px] bg-emerald-500/10 text-emerald-400 font-bold px-2.5 py-1 rounded border border-emerald-500/20 shrink-0">✓ TAMAMLANDI</span>
-            )}
-            {task.status === 'error' && (
-              <span className="text-[10px] bg-rose-500/10 text-rose-400 font-bold px-2.5 py-1 rounded border border-rose-500/20 shrink-0">HATA</span>
-            )}
-          </div>
-
-          {/* Options */}
-          {task.status === 'idle' && (
-            <div className="flex gap-3 items-end">
-              <div className="flex-1">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Format</label>
-                <select
-                  value={task.outputFormat}
-                  onChange={(e) => updateTask(task.id, 'outputFormat', e.target.value)}
-                  className="w-full bg-[var(--bg-body)] border border-[var(--border)] text-xs rounded p-2 text-slate-200"
-                >
-                  <option value="mp4">MP4 (Video)</option>
-                  <option value="mp3">MP3 (Ses)</option>
-                  <option value="webm">WebM (Video)</option>
-                </select>
-              </div>
-              <div className="flex-1">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Kalite</label>
-                <select
-                  value={task.quality}
-                  onChange={(e) => updateTask(task.id, 'quality', e.target.value)}
-                  className="w-full bg-[var(--bg-body)] border border-[var(--border)] text-xs rounded p-2 text-slate-200"
-                >
-                  <option value="high">Yüksek</option>
-                  <option value="medium">Orta</option>
-                  <option value="low">Düşük</option>
-                </select>
-              </div>
-              <button
-                onClick={() => startConvert(task)}
-                className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-5 py-2 rounded transition-all"
-              >
-                Dönüştür
-              </button>
-            </div>
-          )}
-
-          {/* Progress */}
-          {task.status === 'converting' && (
-            <div className="space-y-2">
-              <div className="w-full bg-[var(--bg-body)] rounded-full h-2 overflow-hidden border border-[var(--border)]">
-                <div className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full transition-all" style={{ width: `${task.percent}%` }}></div>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] text-slate-400">%{task.percent}</span>
-                <button
-                  onClick={() => cancelConvert(task.id)}
-                  className="text-[10px] text-red-400 hover:text-red-300"
-                >
-                  İptal
+      {tasks.length > 0 && (
+        <ul className="list bg-base-100 rounded-box border border-base-300">
+          {tasks.map((task) => (
+            <li key={task.id} className="list-row flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <h3 className="font-medium truncate flex-1" title={task.inputPath}>{task.fileName}</h3>
+                {task.status === 'complete' && <span className="badge badge-success badge-soft badge-sm">Tamamlandı</span>}
+                {task.status === 'error' && <span className="badge badge-error badge-soft badge-sm">Hata</span>}
+                {task.status === 'complete' && (
+                  <button onClick={() => void appApi.openFileLocation(task.outputPath || task.inputPath)} className="btn btn-ghost btn-sm btn-square" aria-label="Klasörde göster">
+                    <FolderOpen size={16} />
+                  </button>
+                )}
+                {task.status === 'error' && (
+                  <button onClick={() => startConvert(task)} className="btn btn-ghost btn-sm btn-square" aria-label="Tekrar dene">
+                    <RotateCcw size={16} />
+                  </button>
+                )}
+                <button onClick={() => remove(task.id)} className="btn btn-ghost btn-sm btn-square" aria-label={task.status === 'converting' ? 'İptal et' : 'Kaldır'}>
+                  <X size={16} />
                 </button>
               </div>
-            </div>
-          )}
 
-          {/* Complete actions */}
-          {task.status === 'complete' && (
-            <div className="flex gap-2">
-              <button
-                onClick={() => appApi.openFileLocation(task.outputPath || task.inputPath)}
-                className="text-[10px] bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded transition-all"
-              >
-                Klasörü Aç
-              </button>
-              <button
-                onClick={() => removeTask(task.id)}
-                className="text-[10px] text-slate-500 hover:text-slate-300 px-2"
-              >
-                ✕
-              </button>
-            </div>
-          )}
+              {task.status === 'idle' && (
+                <div className="flex flex-wrap items-end gap-3">
+                  <fieldset className="fieldset py-0">
+                    <legend className="fieldset-legend pt-0">Format</legend>
+                    <select value={task.outputFormat} onChange={(e) => patch(task.id, { outputFormat: e.target.value })} className="select select-sm">
+                      <option value="mp4">MP4 (Video)</option>
+                      <option value="mp3">MP3 (Ses)</option>
+                      <option value="webm">WebM (Video)</option>
+                    </select>
+                  </fieldset>
+                  <fieldset className="fieldset py-0">
+                    <legend className="fieldset-legend pt-0">Kalite</legend>
+                    <select value={task.quality} onChange={(e) => patch(task.id, { quality: e.target.value })} className="select select-sm">
+                      <option value="high">Yüksek</option>
+                      <option value="medium">Orta</option>
+                      <option value="low">Düşük</option>
+                    </select>
+                  </fieldset>
+                  <button onClick={() => startConvert(task)} className="btn btn-sm btn-neutral ml-auto">Dönüştür</button>
+                </div>
+              )}
 
-          {task.status === 'error' && (
-            <div className="flex gap-2">
-              <button
-                onClick={() => startConvert(task)}
-                className="text-[10px] bg-blue-600/20 text-blue-400 border border-blue-500/30 px-3 py-1 rounded"
-              >
-                Tekrar Dene
-              </button>
-              <button
-                onClick={() => removeTask(task.id)}
-                className="text-[10px] text-slate-500 hover:text-slate-300 px-2"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-        </div>
-      ))}
+              {task.status === 'converting' && (
+                <div className="flex items-center gap-3">
+                  <progress className="progress progress-primary flex-1" value={task.percent} max={100} aria-label="Dönüştürme ilerlemesi" />
+                  <span className="text-xs font-semibold w-10 text-right">%{task.percent}</span>
+                </div>
+              )}
+
+              {task.status === 'error' && task.error && (
+                <div role="alert" className="alert alert-error alert-soft py-2 text-sm">
+                  <CircleAlert size={16} />
+                  <span className="break-words min-w-0">{task.error}</span>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

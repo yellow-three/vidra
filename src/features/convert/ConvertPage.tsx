@@ -1,12 +1,10 @@
+import PageHeader from '../../app/PageHeader';
 import ConvertForm from './ConvertForm';
 
-export default function Convert() {
+export default function ConvertPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white tracking-wide">Dönüştür</h1>
-        <p className="text-xs text-slate-400 mt-1">Yerel dosyaları farklı formatlara dönüştürün</p>
-      </div>
+    <div className="flex flex-col">
+      <PageHeader title="Dönüştür" subtitle="Bilgisayarınızdaki video ve ses dosyalarını başka formata çevirin." />
       <ConvertForm />
     </div>
   );

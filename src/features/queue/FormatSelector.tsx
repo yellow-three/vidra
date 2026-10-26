@@ -1,3 +1,4 @@
+import { Download, FileAudio, FileVideo } from 'lucide-react';
 import type { Task } from '../../types';
 
 interface FormatSelectorProps {
@@ -7,31 +8,32 @@ interface FormatSelectorProps {
 }
 
 export default function FormatSelector({ task, onFormatChange, onStartDownload }: FormatSelectorProps) {
-  if (task.status !== 'ready-to-select' || !task.formats) {
-    return null;
-  }
+  if (task.status !== 'ready-to-select' || !task.formats) return null;
+
+  const selected = task.selectedFormatId || task.formats[0]?.formatId;
+  const isAudio = selected?.startsWith('audio-');
+  const videos = task.formats.filter((f) => f.formatId.startsWith('video-'));
+  const audios = task.formats.filter((f) => f.formatId.startsWith('audio-'));
 
   return (
-    <div className="flex gap-3 bg-[var(--bg-body)] p-3 rounded-lg border border-[var(--border)] items-center animate-fade-in">
-      <div className="flex-1">
-        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Mevcut Formatı Seçin</label>
-        <select 
-          value={task.selectedFormatId || task.formats[0]?.formatId}
-          onChange={(e) => onFormatChange(task.id, e.target.value)}
-          className="w-full bg-[var(--bg-card)] border border-[var(--border)] text-xs rounded p-2 text-slate-200 focus:outline-none"
-        >
-          {task.formats.map((f) => (
-            <option key={f.formatId} value={f.formatId}>
-              [{f.ext.toUpperCase()}] • {f.resolution} • {f.filesize} {f.note ? `(${f.note})` : ''}
-            </option>
-          ))}
+    <div className="join w-full">
+      <label className="select select-sm join-item w-full">
+        {isAudio ? <FileAudio size={14} className="opacity-60" /> : <FileVideo size={14} className="opacity-60" />}
+        <select value={selected} onChange={(e) => onFormatChange(task.id, e.target.value)} aria-label="Format">
+          <optgroup label="Video (MP4)">
+            {videos.map((f) => (
+              <option key={f.formatId} value={f.formatId}>{f.resolution} · {f.filesize}</option>
+            ))}
+          </optgroup>
+          <optgroup label="Yalnızca ses">
+            {audios.map((f) => (
+              <option key={f.formatId} value={f.formatId}>{f.ext.toUpperCase()} · {f.note} · {f.filesize}</option>
+            ))}
+          </optgroup>
         </select>
-      </div>
-      <button 
-        onClick={() => onStartDownload(task)}
-        className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-5 py-2.5 rounded shadow self-end"
-      >
-        İndirmeyi Başlat 📥
+      </label>
+      <button onClick={() => onStartDownload(task)} className="btn btn-sm btn-neutral join-item gap-1.5">
+        <Download size={14} /> İndir
       </button>
     </div>
   );

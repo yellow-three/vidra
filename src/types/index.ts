@@ -24,7 +24,8 @@ export interface AppSettings {
   downloadDir?: string;
   defaultQuality?: string;
   defaultFormat?: string;
-  theme?: 'dark' | 'light' | 'system';
+  /** 'system', 'youtube-dark' | 'youtube-light' ya da bir daisyUI tema adi. */
+  theme?: string;
   autoOpenFolder?: boolean;
   downloadSubtitles?: boolean;
   legalAccepted?: boolean;

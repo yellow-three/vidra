@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link2, X } from 'lucide-react';
 import { useAppStatus } from '../queue/bootstrap';
 import { useQueueStore } from '../queue/store';
 
@@ -13,46 +14,45 @@ export default function AddUrlForm() {
   const onAnalyze = () => {
     if (!url.trim()) {
       setUrlError(true);
-      setTimeout(() => setUrlError(false), 2000);
       return;
     }
     void analyze();
   };
 
   return (
-    <div>
-      <div className="flex gap-3">
-        <div className="flex-1 relative">
+    <form
+      onSubmit={(e) => { e.preventDefault(); if (depsReady) onAnalyze(); }}
+      className="flex flex-col gap-2"
+    >
+      <div className="join w-full">
+        <label className={`input input-lg join-item w-full ${urlError ? 'input-error' : ''}`}>
+          <Link2 size={18} className="opacity-50 shrink-0" />
           <input
             type="text"
             aria-label="YouTube linki"
             value={url}
             onChange={(e) => { setUrl(e.target.value); setUrlError(false); }}
-            onKeyDown={(e) => { if (e.key === 'Enter' && depsReady) onAnalyze(); }}
-            placeholder="YouTube linki yapıştırın ve analiz edin..."
-            className={`w-full h-11 bg-[var(--bg-body)] border-2 rounded-xl pl-4 pr-10 text-sm text-white outline-none transition-colors ${
-              urlError ? 'border-red-500 placeholder:text-red-400' : 'border-[var(--border)] focus:border-blue-500'
-            }`}
+            placeholder="https://www.youtube.com/watch?v=…"
+            className="grow"
+            autoFocus
           />
           {url && (
-            <button
-              onClick={() => setUrl('')}
-              aria-label="Linki temizle"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors text-lg leading-none"
-            >
-              &times;
+            <button type="button" onClick={() => setUrl('')} aria-label="Linki temizle" className="btn btn-ghost btn-xs btn-circle">
+              <X size={14} />
             </button>
           )}
-        </div>
-        <button
-          onClick={onAnalyze}
-          disabled={!depsReady || !url.trim()}
-          className="h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:from-slate-700 disabled:to-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm px-6 rounded-xl transition-all shadow-lg shadow-blue-600/20"
-        >
+        </label>
+        <button type="submit" disabled={!depsReady || !url.trim()} className="btn btn-primary btn-lg join-item px-8">
           {depsReady ? 'Analiz Et' : 'Hazırlanıyor...'}
         </button>
       </div>
-      {urlError && <p className="text-[11px] text-red-400 mt-2">Lütfen geçerli bir URL girin.</p>}
-    </div>
+      {urlError ? (
+        <p className="text-xs text-error px-1">Lütfen geçerli bir URL girin.</p>
+      ) : (
+        <p className="text-xs text-base-content/50 px-1">
+          Kopyaladığınız YouTube linkleri kutuya kendiliğinden gelir. Video veya ses formatını analizden sonra seçersiniz.
+        </p>
+      )}
+    </form>
   );
 }

@@ -21,7 +21,8 @@ function install(options: MockOptions) {
   let nextProcess = 1;
 
   const state = {
-    settings: { ...(options.settings ?? {}) } as Record<string, unknown>,
+    // Gercek backend ayarlari diske yazar; sayfa yenilense de korunsun.
+    settings: JSON.parse(sessionStorage.getItem('__mockSettings') ?? 'null') ?? { ...(options.settings ?? {}) } as Record<string, unknown>,
     deps: options.deps ?? { ytdlp: true, ffmpeg: true, deno: true },
     history: [...(options.history ?? [])] as Record<string, unknown>[],
     calls: [] as { cmd: string; args: unknown }[],
@@ -31,7 +32,7 @@ function install(options: MockOptions) {
   const info = {
     title: 'Me at the zoo',
     duration: 19,
-    thumbnail: 'data:image/gif;base64,R0lGODlhAQABAAAAACw=',
+    thumbnail: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 9"><defs><linearGradient id="g"><stop offset="0" stop-color="#6b8e23"/><stop offset="1" stop-color="#2f4f4f"/></linearGradient></defs><rect width="16" height="9" fill="url(#g)"/></svg>'),
     formats: [
       { format_id: '140', ext: 'm4a', vcodec: 'none', acodec: 'mp4a.40.2', filesize: 300000 },
       { format_id: '134', ext: 'mp4', vcodec: 'avc1', acodec: 'none', height: 360, filesize: 900000 },
@@ -66,7 +67,11 @@ function install(options: MockOptions) {
 
   const commands: Record<string, (args: any) => unknown> = {
     get_settings: () => state.settings,
-    save_settings: ({ settings }) => { Object.assign(state.settings, settings); return { success: true }; },
+    save_settings: ({ settings }) => {
+      Object.assign(state.settings, settings);
+      sessionStorage.setItem('__mockSettings', JSON.stringify(state.settings));
+      return { success: true };
+    },
     get_download_folder: () => '/home/u/Downloads',
     select_download_folder: () => ({ success: false, error: 'iptal' }),
     check_dependencies: () => ({ ...state.deps, ytdlpPath: '/bin/ytd-yt-dlp', ffmpegPath: '/bin/ytd-ffmpeg', denoPath: '/bin/ytd-deno' }),

@@ -9,6 +9,16 @@ YouTube video ve ses indirme masaüstü uygulaması. Tauri 2 + React 19 + Tailwi
 - Node.js 24+
 - Rust (stable) ve [Tauri 2 sistem bağımlılıkları](https://v2.tauri.app/start/prerequisites/)
 
+## Arayüz ve temalar
+
+Arayüz daisyUI 5 bileşenleriyle yazılmıştır. `src/index.css` tüm yerleşik daisyUI temalarını açar ve iki özel tema tanımlar: `youtube-dark` (varsayılan) ve `youtube-light`. Ayarlar > Görünüm'den herhangi bir tema seçilebilir; "Sistem" seçeneği işletim sistemine göre YouTube açık/koyu temasını kullanır. Kenar çubuğundaki düğme iki YouTube teması arasında geçer.
+
+Uygulama ikonu `src-tauri/app-icon.svg`'den üretilir:
+
+```bash
+npx tauri icon src-tauri/app-icon.svg -o src-tauri/icons
+```
+
 ## Sidecar'lar (yt-dlp, FFmpeg, deno)
 
 yt-dlp, LGPL FFmpeg ve deno uygulamayla birlikte paketlenir (`bundle.externalBin`). `npm run sidecars` bunları `src-tauri/binaries/ytd-<ad>-<target-triple>` olarak indirir ve SHA-256 doğrular; `tauri dev` / `tauri build` bunu kendiliğinden çalıştırır, sürümler değişmedikçe tekrar indirmez. `cargo test` / `cargo check` de bu dosyalar olmadan derlenmez.

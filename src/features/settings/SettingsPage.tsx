@@ -1,13 +1,11 @@
+import PageHeader from '../../app/PageHeader';
 import SettingsForm from './SettingsForm';
 
-export default function Settings() {
+export default function SettingsPage() {
   return (
-    <div className="flex-1 overflow-y-auto">
-      <h1 className="text-2xl font-bold text-white tracking-wide">Ayarlar</h1>
-      <p className="text-xs text-slate-400 mt-1">Uygulama yapılandırması</p>
-      <div className="mt-6">
-        <SettingsForm />
-      </div>
+    <div className="flex flex-col">
+      <PageHeader title="Ayarlar" subtitle="İndirme, görünüm ve güncelleme tercihleri." />
+      <SettingsForm />
     </div>
   );
 }
