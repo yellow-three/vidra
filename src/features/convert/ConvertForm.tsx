@@ -64,7 +64,7 @@ export default function ConvertForm() {
       setTasks((prev) => prev.map((t) => t.id === task.id ? { ...t, ...patch } : t));
     setStatus({ status: 'converting', percent: 0 });
     try {
-      const { result, cancel } = await runConvert(task.inputPath, task.outputFormat, task.quality);
+      const { result, cancel } = await runConvert(task.inputPath, task.outputFormat, task.quality, (percent) => setStatus({ percent }));
       cancels.current.set(task.id, cancel);
       const outcome = await result;
       cancels.current.delete(task.id);
