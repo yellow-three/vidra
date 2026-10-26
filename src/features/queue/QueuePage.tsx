@@ -3,6 +3,8 @@ import AddUrlForm from '../add/AddUrlForm';
 import { useAppStatus } from './bootstrap';
 import { useQueueStore } from './store';
 import { useSettings } from '../settings/queries';
+import { useAppUpdate } from '../settings/appUpdate';
+import { Link } from 'react-router-dom';
 import { LEGAL_TEXT } from '../../app/LegalNotice';
 
 const clipIcon = (
@@ -22,6 +24,7 @@ export default function QueuePage() {
   const queue = useQueueStore((s) => s.tasks);
   const { selectFormat, startDownload, cancel, retry, move } = useQueueStore.getState();
   const status = useAppStatus((s) => s.status);
+  const appUpdate = useAppUpdate().data;
   const downloadDir = useSettings().data?.downloadDir || 'Varsayılan (İndirilenler)';
 
   const countAnalyzing = queue.filter((t) => t.status === 'analyzing').length;
@@ -73,6 +76,11 @@ export default function QueuePage() {
         <span className="text-xs text-slate-500 flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
           {status}
+          {appUpdate && (
+            <Link to="/settings" className="text-blue-400 hover:text-blue-300">
+              · Yeni sürüm {appUpdate.version} hazır
+            </Link>
+          )}
         </span>
         <span className="text-[10px] text-slate-600 flex items-center gap-1.5 truncate max-w-[300px]" title={downloadDir}>
           {folderIcon}

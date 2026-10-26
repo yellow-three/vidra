@@ -245,6 +245,12 @@ pub fn run() {
             allow_download_dir(app.handle());
             let handle = app.handle().clone();
             std::thread::spawn(move || dependencies::prune_stale_ytdlp(&handle));
+            // Uygulama guncellemesi yalnizca masaustunde (Android APK'lari GitHub Releases'tan elle).
+            #[cfg(desktop)]
+            {
+                app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
+                app.handle().plugin(tauri_plugin_process::init())?;
+            }
             Ok(())
         })
         .manage(AppState {

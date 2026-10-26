@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { appApi } from '../../lib/appApi';
 import { useQueueStore } from './store';
+import { checkForAppUpdateInBackground } from '../settings/appUpdate';
 
 interface AppStatus {
   status: string;
@@ -34,4 +35,5 @@ export function startApp(): void {
   void appApi.onStatusUpdate((status) => useAppStatus.setState({ status }));
   void appApi.onClipboardLink((link) => useQueueStore.getState().setUrl(link));
   void appApi.startClipboardMonitor();
+  checkForAppUpdateInBackground();
 }

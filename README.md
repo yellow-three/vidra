@@ -46,9 +46,21 @@ npm run tauri build   # paket üretimi
 - İndirme geçmişi SQLite'tadır: `<app config>/youtube-downloader.db` (Linux: `~/.config/com.abdurrahman.youtubedownloader/`).
 - `src-tauri/src/events.rs` — pano (clipboard) izleme.
 
+## Uygulama güncellemeleri ve sürüm yayınlama
+
+Uygulama açılışta ve Ayarlar > Uygulama'dan `https://github.com/yellow-three/youtube-downloader/releases/latest/download/latest.json` adresini kontrol eder (tauri-plugin-updater). Güncellemeler minisign ile imzalıdır; açık anahtar `tauri.conf.json`'dadır.
+
+- Özel anahtar repo dışında: `~/.tauri/youtube-downloader.key` (parolalı). **Kaybolursa kurulu uygulamalara bir daha güncelleme gönderilemez — yedekleyin.**
+- GitHub repo Settings > Secrets: `TAURI_SIGNING_PRIVATE_KEY` (anahtar dosyasının içeriği) ve `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+- Yayın: `tauri.conf.json` ve `package.json` sürümünü artırın, `vX.Y.Z` etiketi push edin. `.github/workflows/release.yml` imzalı paketleri ve `latest.json`'ı **taslak** release'e yükler; taslağı yayınlayınca kurulu uygulamalar güncellemeyi görür.
+- Linux'ta `latest.json`'daki `linux-x86_64` girdisi AppImage'ı gösterir; `.deb`/`.rpm` kurulumlarının kendini güncellemesi denenmedi.
+- Yerel `tauri build` imza anahtarı istemez; updater dosyaları yalnızca release workflow'unda üretilir.
+
 ## Testler
 
 ```bash
 npm test                         # Vitest: src/engine, src/features
-cargo test --manifest-path src-tauri/Cargo.toml   # süreç çalıştırıcı
+npm run test:ui                  # Playwright: UI akışları, sahte Tauri backend'i (e2e/)
+npm run typecheck                # uygulama + testler
+cargo test --manifest-path src-tauri/Cargo.toml   # süreç çalıştırıcı (Unix; Windows testleri CI'da)
 ```

@@ -65,5 +65,16 @@
     "resources": {
       "binaries/licenses/": "licenses/"
     }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk4OUFFOEZBREI3MTAyQzYKUldUR0FuSGIrdWlhbUxYcWhCelZaTnUrSHJ5U2N6cnBBaVc1YjlOMU9lbUtxbmtRYnMvRFc5cDEK",
+      "endpoints": [
+        "https://github.com/yellow-three/youtube-downloader/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

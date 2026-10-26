@@ -7,6 +7,8 @@ export interface MockOptions {
   settings?: Record<string, unknown>;
   deps?: { ytdlp: boolean; ffmpeg: boolean; deno: boolean };
   history?: Record<string, unknown>[];
+  /** Sunulacak uygulama guncellemesi; yoksa "guncel". */
+  update?: { version: string; body: string } | null;
 }
 
 /** Tarayicida calisir; disaridan degisken almaz (addInitScript ile serilestirilir). */
@@ -102,6 +104,18 @@ function install(options: MockOptions) {
     },
     'plugin:fs|read_dir': () => [],
     'plugin:notification|is_permission_granted': () => true,
+    'plugin:app|version': () => '0.1.0',
+    'plugin:updater|check': () =>
+      options.update ? { rid: 99, currentVersion: '0.1.0', version: options.update.version, date: null, body: options.update.body, rawJson: {} } : null,
+    'plugin:updater|download_and_install': ({ onEvent }) => {
+      onEvent.onmessage({ event: 'Started', data: { contentLength: 200 } });
+      onEvent.onmessage({ event: 'Progress', data: { chunkLength: 100 } });
+      onEvent.onmessage({ event: 'Progress', data: { chunkLength: 100 } });
+      onEvent.onmessage({ event: 'Finished' });
+      return null;
+    },
+    'plugin:process|restart': () => null,
+    'plugin:resources|close': () => null,
   };
 
   (window as any).__TAURI_INTERNALS__ = {

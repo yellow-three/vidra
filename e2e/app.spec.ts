@@ -108,7 +108,27 @@ test('ayarlar: yt-dlp surumu ve guncelleme', async ({ page }) => {
   await mockTauri(page, { settings: accepted });
   await page.goto('/settings');
   await expect(page.getByText('2026.10.21')).toBeVisible();
-  await page.getByRole('button', { name: 'Güncelle' }).click();
+  await page.getByRole('button', { name: 'Güncelle', exact: true }).click();
   await expect(page.getByText('2026.10.22')).toBeVisible();
   await expect(page.getByText('kullanıcının sorumluluğundadır')).toBeVisible();
+});
+
+test('uygulama guncellemesi: durum cubugunda haber verir, ayarlardan kurulup yeniden baslatir', async ({ page }) => {
+  await mockTauri(page, { settings: accepted, update: { version: '0.2.0', body: 'Playlist desteği' } });
+  await page.goto('/');
+  await page.getByRole('link', { name: /Yeni sürüm 0.2.0 hazır/ }).click();
+
+  await expect(page.getByRole('status')).toHaveText('Yeni sürüm: 0.2.0');
+  await expect(page.getByText('Playlist desteği')).toBeVisible();
+  await page.getByRole('button', { name: 'İndir ve yeniden başlat' }).click();
+  await expect.poll(() => calls(page, 'plugin:process|restart').then((c) => c.length)).toBe(1);
+  expect(await calls(page, 'plugin:updater|download_and_install')).toEqual([expect.objectContaining({ rid: 99 })]);
+});
+
+test('uygulama guncel ise surum ve durum gosterilir', async ({ page }) => {
+  await mockTauri(page, { settings: accepted });
+  await page.goto('/settings');
+  await expect(page.getByText('0.1.0')).toBeVisible();
+  await expect(page.getByRole('status')).toHaveText('Güncel');
+  await expect(page.getByRole('link', { name: /Yeni sürüm/ })).toHaveCount(0);
 });

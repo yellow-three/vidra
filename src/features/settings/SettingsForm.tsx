@@ -6,6 +6,7 @@ import { queryClient } from '../../app/queryClient';
 import { engine } from '../../engine';
 import { appApi } from '../../lib/appApi';
 import { invalidateSettings, useSaveSettings, useSettings } from './queries';
+import { useAppUpdate, useAppVersion, useInstallUpdate } from './appUpdate';
 
 const versionKey = ['ytdlp-version'] as const;
 
@@ -57,6 +58,10 @@ export default function SettingsForm() {
     onSuccess: (v) => queryClient.setQueryData(versionKey, v),
     onError: (error) => console.warn('yt-dlp güncellenemedi:', error),
   });
+
+  const appVersion = useAppVersion();
+  const appUpdate = useAppUpdate();
+  const install = useInstallUpdate();
 
   const updateAndSave = (key: keyof AppSettings, value: string | boolean) => save.mutate({ [key]: value });
 
@@ -177,6 +182,41 @@ export default function SettingsForm() {
         <div className="mt-3 text-[10px] text-slate-500">
           {update.isError ? `Güncelleme başarısız: ${update.error.message}` : save.isPending ? 'Kaydediliyor...' : 'Tüm değişiklikler otomatik kaydedilir.'}
         </div>
+      </Section>
+
+      <Section title="Uygulama" icon={packageIcon}>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-slate-400">Sürüm:</span>
+          <code className="text-xs text-emerald-400 font-mono">{appVersion.data ?? '...'}</code>
+          <span className="text-xs text-slate-400" role="status">
+            {appUpdate.isFetching
+              ? 'Kontrol ediliyor...'
+              : appUpdate.isError
+                ? `Kontrol başarısız: ${appUpdate.error instanceof Error ? appUpdate.error.message : String(appUpdate.error)}`
+                : appUpdate.data
+                  ? `Yeni sürüm: ${appUpdate.data.version}`
+                  : appUpdate.isSuccess ? 'Güncel' : ''}
+          </span>
+          {appUpdate.data ? (
+            <button
+              onClick={() => install.mutate(appUpdate.data!)}
+              disabled={install.isPending}
+              className="ml-auto bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs px-3 py-1.5 rounded transition-all"
+            >
+              {install.isPending ? `İndiriliyor %${install.percent ?? 0}` : 'İndir ve yeniden başlat'}
+            </button>
+          ) : (
+            <button
+              onClick={() => void appUpdate.refetch()}
+              disabled={appUpdate.isFetching}
+              className="ml-auto bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white text-xs px-3 py-1.5 rounded transition-all"
+            >
+              Güncellemeleri kontrol et
+            </button>
+          )}
+        </div>
+        {appUpdate.data?.body && <p className="mt-3 text-[11px] text-slate-400 whitespace-pre-line">{appUpdate.data.body}</p>}
+        {install.isError && <p className="mt-2 text-[11px] text-rose-400">Güncelleme kurulamadı: {install.error.message}</p>}
       </Section>
 
       <Section title="Hakkında" icon={packageIcon}>
