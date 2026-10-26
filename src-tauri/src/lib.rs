@@ -63,6 +63,18 @@ fn allow_download_dir(app: &AppHandle) {
     }
 }
 
+/// Frontend `Database.load` ile ayni adi kullanir (src/features/history/db.ts).
+const DB_URL: &str = "sqlite:youtube-downloader.db";
+
+fn migrations() -> Vec<tauri_plugin_sql::Migration> {
+    vec![tauri_plugin_sql::Migration {
+        version: 1,
+        description: "history",
+        sql: include_str!("../migrations/001_history.sql"),
+        kind: tauri_plugin_sql::MigrationKind::Up,
+    }]
+}
+
 fn ok() -> Value {
     json!({ "success": true })
 }
@@ -129,8 +141,9 @@ async fn select_download_folder(app: AppHandle) -> CommandResult<Value> {
     }
 }
 
+/// Gecmis artik SQLite'ta (plugin-sql); settings.json'daki eski kayitlari frontend bir kez tasir.
 #[tauri::command]
-fn get_history(app: AppHandle) -> CommandResult<Vec<Value>> {
+fn get_legacy_history(app: AppHandle) -> CommandResult<Vec<Value>> {
     let settings = read_settings_value(&app)?;
     Ok(settings
         .get("history")
@@ -140,54 +153,13 @@ fn get_history(app: AppHandle) -> CommandResult<Vec<Value>> {
 }
 
 #[tauri::command]
-fn add_history_item(app: AppHandle, item: Value) -> CommandResult<Value> {
+fn clear_legacy_history(app: AppHandle) -> CommandResult<Value> {
     let mut settings = read_settings_value(&app)?;
-    let settings_obj = settings
-        .as_object_mut()
-        .ok_or_else(|| "Ayar dosyasi nesne formatinda degil.".to_string())?;
-
-    let mut history = settings_obj
-        .get("history")
-        .and_then(Value::as_array)
-        .cloned()
-        .unwrap_or_default();
-    history.insert(0, item);
-    history.truncate(200);
-
-    settings_obj.insert("history".to_string(), Value::Array(history));
-    write_settings_value(&app, &settings)?;
-    Ok(ok())
-}
-
-#[tauri::command]
-fn clear_history(app: AppHandle) -> CommandResult<Value> {
-    let mut settings = read_settings_value(&app)?;
-    let settings_obj = settings
-        .as_object_mut()
-        .ok_or_else(|| "Ayar dosyasi nesne formatinda degil.".to_string())?;
-    settings_obj.insert("history".to_string(), json!([]));
-    write_settings_value(&app, &settings)?;
-    Ok(ok())
-}
-
-#[tauri::command]
-fn delete_history_item(app: AppHandle, id: String) -> CommandResult<Value> {
-    let mut settings = read_settings_value(&app)?;
-    let settings_obj = settings
-        .as_object_mut()
-        .ok_or_else(|| "Ayar dosyasi nesne formatinda degil.".to_string())?;
-
-    let next_history = settings_obj
-        .get("history")
-        .and_then(Value::as_array)
-        .cloned()
-        .unwrap_or_default()
-        .into_iter()
-        .filter(|item| item.get("id").and_then(Value::as_str) != Some(id.as_str()))
-        .collect::<Vec<_>>();
-
-    settings_obj.insert("history".to_string(), Value::Array(next_history));
-    write_settings_value(&app, &settings)?;
+    if let Some(obj) = settings.as_object_mut() {
+        if obj.remove("history").is_some() {
+            write_settings_value(&app, &settings)?;
+        }
+    }
     Ok(ok())
 }
 
@@ -264,6 +236,11 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(
+            tauri_plugin_sql::Builder::default()
+                .add_migrations(DB_URL, migrations())
+                .build(),
+        )
         .setup(|app| {
             allow_download_dir(app.handle());
             let handle = app.handle().clone();
@@ -279,13 +256,11 @@ pub fn run() {
             save_settings,
             get_download_folder,
             select_download_folder,
-            get_history,
-            clear_history,
-            delete_history_item,
+            get_legacy_history,
+            clear_legacy_history,
             open_file_location,
             start_clipboard_monitor,
             stop_clipboard_monitor,
-            add_history_item,
             process_spawn,
             process_kill,
             dependencies::check_dependencies,

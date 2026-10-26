@@ -30,11 +30,9 @@ export const appApi: AppApi = {
 
   checkForUpdates: async () => ({ updateAvailable: false }),
 
-  getHistory: () => invoke<HistoryItem[]>('get_history'),
-  addHistoryItem: (item) => invokeResult('add_history_item', { item }),
-  clearHistory: () => invokeResult('clear_history'),
+  getLegacyHistory: () => invoke<HistoryItem[]>('get_legacy_history'),
+  clearLegacyHistory: () => invokeResult('clear_legacy_history'),
   openFileLocation: (filePath) => invokeResult('open_file_location', { filePath }),
-  deleteHistoryItem: (id) => invokeResult('delete_history_item', { id }),
 
   checkDependencies: () => invoke('check_dependencies'),
   getPlatform: () => invoke<string>('get_platform'),

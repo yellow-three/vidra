@@ -13,11 +13,9 @@ export interface AppApi {
   getSettings(): Promise<import('.').AppSettings>;
   saveSettings(settings: Partial<import('.').AppSettings>): Promise<IpcResult>;
   checkForUpdates(): Promise<{ updateAvailable: boolean; version?: string }>;
-  getHistory(): Promise<import('.').HistoryItem[]>;
-  addHistoryItem(item: import('.').HistoryItem): Promise<IpcResult>;
-  clearHistory(): Promise<IpcResult>;
+  getLegacyHistory(): Promise<import('.').HistoryItem[]>;
+  clearLegacyHistory(): Promise<IpcResult>;
   openFileLocation(filePath: string): Promise<IpcResult>;
-  deleteHistoryItem(id: string): Promise<IpcResult>;
   checkDependencies(): Promise<{ ytdlp: boolean; ffmpeg: boolean; deno: boolean; ytdlpPath: string | null; ffmpegPath: string | null; denoPath: string | null }>;
   getPlatform(): Promise<string>;
 }

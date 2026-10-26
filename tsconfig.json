@@ -13,6 +13,8 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    /* Node tipleri yalnizca testlerde (tsconfig.test.json); uygulama koduna sizmasin */
+    "types": [],
 
     /* Linting */
     "strict": true,
@@ -21,5 +23,6 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src"],
+  "exclude": ["src/**/*.test.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
