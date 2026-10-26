@@ -48,11 +48,13 @@ npm run tauri build   # paket üretimi
 
 ## Uygulama güncellemeleri ve sürüm yayınlama
 
-Uygulama açılışta ve Ayarlar > Uygulama'dan `https://github.com/yellow-three/youtube-downloader/releases/latest/download/latest.json` adresini kontrol eder (tauri-plugin-updater). Güncellemeler minisign ile imzalıdır; açık anahtar `tauri.conf.json`'dadır.
+Uygulama açılışta ve Ayarlar > Uygulama'dan `https://github.com/yellow-three/youtube-downloader-releases/releases/latest/download/latest.json` adresini kontrol eder (tauri-plugin-updater). Kaynak kod bu private repoda kalır; kurulu uygulamalar `latest.json`'ı kimlik doğrulamasız indirebilsin diye sürümler ayrı, public [`youtube-downloader-releases`](https://github.com/yellow-three/youtube-downloader-releases) reposunda yayınlanır. Güncellemeler minisign ile imzalıdır; açık anahtar `tauri.conf.json`'dadır.
 
 - Özel anahtar repo dışında: `~/.tauri/youtube-downloader.key` (parolalı). **Kaybolursa kurulu uygulamalara bir daha güncelleme gönderilemez — yedekleyin.**
-- GitHub repo Settings > Secrets: `TAURI_SIGNING_PRIVATE_KEY` (anahtar dosyasının içeriği) ve `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
-- Yayın: `tauri.conf.json` ve `package.json` sürümünü artırın, `vX.Y.Z` etiketi push edin. `.github/workflows/release.yml` imzalı paketleri ve `latest.json`'ı **taslak** release'e yükler; taslağı yayınlayınca kurulu uygulamalar güncellemeyi görür.
+- Bu reponun Settings > Secrets and variables > Actions > **Repository secrets**:
+  - `TAURI_SIGNING_PRIVATE_KEY` (anahtar dosyasının içeriği), `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
+  - `RELEASES_TOKEN`: yalnızca `youtube-downloader-releases` reposuna **Contents: Read and write** yetkili fine-grained token (`GITHUB_TOKEN` başka repoya yazamaz).
+- Yayın: `tauri.conf.json` ve `package.json` sürümünü artırın, `vX.Y.Z` etiketi push edin. `.github/workflows/release.yml` imzalı paketleri ve `latest.json`'ı releases reposunda **taslak** bir release'e yükler (etiket o reponun `dev` branch'inden oluşturulur); taslağı yayınlayınca kurulu uygulamalar güncellemeyi görür.
 - Linux'ta `latest.json`'daki `linux-x86_64` girdisi AppImage'ı gösterir; `.deb`/`.rpm` kurulumlarının kendini güncellemesi denenmedi.
 - Yerel `tauri build` imza anahtarı istemez; updater dosyaları yalnızca release workflow'unda üretilir.
 

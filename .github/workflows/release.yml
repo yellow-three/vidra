@@ -1,8 +1,10 @@
 name: Release
 
 # `v0.2.0` gibi bir etiket push edilince imzali paketler ve updater'in okudugu
-# latest.json taslak (draft) bir GitHub Release'e yuklenir. Taslak yayinlanana kadar
-# kurulu uygulamalar guncellemeyi gormez (releases/latest yalnizca yayinlanmisi gosterir).
+# latest.json, PUBLIC yellow-three/youtube-downloader-releases reposunda taslak (draft)
+# bir release'e yuklenir. Kaynak kod private kalir; kurulu uygulamalar latest.json'i
+# kimlik dogrulamasiz indirebilsin diye yayin ayri, public repodadir.
+# Taslak yayinlanana kadar kurulu uygulamalar guncellemeyi gormez.
 # Etiket, src-tauri/tauri.conf.json'daki "version" ile ayni olmali.
 
 on:
@@ -40,14 +42,23 @@ jobs:
         run: npm run sidecars
       - uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITHUB_TOKEN baska repoya yazamaz: yalnizca releases reposunda
+          # Contents: Read and write yetkili fine-grained token.
+          GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
           # ~/.tauri/youtube-downloader.key icerigi ve parolasi (repo Settings > Secrets).
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
+          owner: yellow-three
+          repo: youtube-downloader-releases
+          # Etiket releases reposunda olusturulur; bu reponun commit'leri orada yok.
+          releaseCommitish: dev
           tagName: ${{ github.ref_name }}
           releaseName: YouTube Downloader ${{ github.ref_name }}
-          releaseBody: Değişiklikler için commit geçmişine bakın.
+          releaseBody: |
+            İndirilen içeriklerin telif haklarına ve YouTube Hizmet Şartları'na uygun kullanılması kullanıcının sorumluluğundadır.
+
+            Paketlenen bileşenler: yt-dlp (Unlicense), deno (MIT), FFmpeg (LGPL, BtbN build'i; kaynak: https://github.com/BtbN/FFmpeg-Builds ve https://ffmpeg.org). FFmpeg lisans metni uygulamanın `licenses/` klasöründedir.
           releaseDraft: true
           includeUpdaterJson: true
           # Yerel `tauri build` imza anahtari istemesin diye updater dosyalari yalnizca burada uretilir.
