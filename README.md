@@ -42,7 +42,8 @@ npm run tauri build   # paket üretimi
 - `src-tauri/src/process.rs` — programdan bağımsız süreç çalıştırıcı: süreci kendi grubunda başlatır (Unix process group, Windows Job Object), stdout/stderr satırlarını `Channel` ile iletir, iptalde tüm grubu öldürür. Webview yalnızca izin verilen programları (yt-dlp, ffmpeg) çalıştırabilir.
 - `src-tauri/src/dependencies.rs` — sidecar yollarının çözümü ve yt-dlp güncellemesi.
 - `scripts/fetch-sidecars.mjs` — sidecar indirme ve checksum doğrulama.
-- `src-tauri/src/lib.rs` — ayarlar, geçmiş, klasör seçimi, fs kapsamı.
+- `src-tauri/src/lib.rs` — ayarlar (`<app data>/settings.json`), SQLite migration'ları, klasör seçimi, fs kapsamı.
+- İndirme geçmişi SQLite'tadır: `<app config>/youtube-downloader.db` (Linux: `~/.config/com.abdurrahman.youtubedownloader/`).
 - `src-tauri/src/events.rs` — pano (clipboard) izleme.
 
 ## Testler
