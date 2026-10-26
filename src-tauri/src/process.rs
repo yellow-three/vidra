@@ -277,3 +277,86 @@ mod tests {
         assert!(manager.spawn(Path::new("/yok/boyle-bir-program"), &[], |_| {}).is_err());
     }
 }
+
+#[cfg(all(test, windows))]
+mod windows_tests {
+    use super::*;
+    use std::sync::mpsc;
+    use std::time::Duration;
+
+    fn collect(manager: &ProcessManager, program: &str, args: &[&str]) -> (u32, mpsc::Receiver<ProcessEvent>) {
+        let (tx, rx) = mpsc::channel();
+        let tx = Mutex::new(tx);
+        let args: Vec<String> = args.iter().map(|a| a.to_string()).collect();
+        let id = manager
+            .spawn(Path::new(program), &args, move |e| {
+                let _ = tx.lock().unwrap().send(e);
+            })
+            .unwrap();
+        (id, rx)
+    }
+
+    fn until_exit(rx: &mpsc::Receiver<ProcessEvent>) -> Vec<ProcessEvent> {
+        let mut events = Vec::new();
+        loop {
+            let e = rx.recv_timeout(Duration::from_secs(30)).expect("Exit bekleniyordu");
+            let done = matches!(e, ProcessEvent::Exit { .. });
+            events.push(e);
+            if done {
+                return events;
+            }
+        }
+    }
+
+    fn is_running(pid: u32) -> bool {
+        let out = Command::new("tasklist")
+            .args(["/FI", &format!("PID eq {pid}"), "/NH"])
+            .output()
+            .unwrap();
+        String::from_utf8_lossy(&out.stdout).contains(&pid.to_string())
+    }
+
+    #[test]
+    fn streams_lines_then_exit_code() {
+        let manager = ProcessManager::new();
+        let (_, rx) = collect(&manager, "cmd", &["/C", "(echo bir)& (echo iki)1>&2& exit /b 3"]);
+        let events = until_exit(&rx);
+        assert!(events.contains(&ProcessEvent::Stdout { line: "bir".into() }));
+        assert!(events.contains(&ProcessEvent::Stderr { line: "iki".into() }));
+        assert_eq!(events.last(), Some(&ProcessEvent::Exit { code: Some(3), killed: false }));
+    }
+
+    #[test]
+    fn kill_terminates_whole_job() {
+        let manager = ProcessManager::new();
+        // Torun surec (ping) job'a otomatik dahil olur; job sonlaninca o da olmeli.
+        let script = "$p = Start-Process -FilePath ping.exe -ArgumentList '-n','60','127.0.0.1' -PassThru -WindowStyle Hidden; Write-Output $p.Id; Wait-Process -Id $p.Id";
+        let (id, rx) = collect(&manager, "powershell", &["-NoProfile", "-NonInteractive", "-Command", script]);
+        let grandchild: u32 = loop {
+            match rx.recv_timeout(Duration::from_secs(30)).unwrap() {
+                ProcessEvent::Stdout { line } if !line.trim().is_empty() => break line.trim().parse().unwrap(),
+                _ => continue,
+            }
+        };
+        assert!(is_running(grandchild));
+
+        assert!(manager.kill(id));
+        let events = until_exit(&rx);
+        assert!(matches!(events.last(), Some(ProcessEvent::Exit { killed: true, .. })));
+
+        let gone = (0..50).any(|_| {
+            if !is_running(grandchild) {
+                return true;
+            }
+            std::thread::sleep(Duration::from_millis(100));
+            false
+        });
+        assert!(gone, "torun surec hala calisiyor");
+    }
+
+    #[test]
+    fn missing_program_is_an_error() {
+        let manager = ProcessManager::new();
+        assert!(manager.spawn(Path::new("C:\\yok\\boyle-bir-program.exe"), &[], |_| {}).is_err());
+    }
+}
