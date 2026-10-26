@@ -4,3 +4,5 @@ dist/
 .env
 .env.*
 src-tauri/binaries/
+test-results/
+playwright-report/

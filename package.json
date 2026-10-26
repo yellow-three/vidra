@@ -11,7 +11,8 @@
     "tauri": "tauri",
     "test": "vitest run",
     "sidecars": "node scripts/fetch-sidecars.mjs",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "test:ui": "playwright test"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.0",
@@ -30,6 +31,7 @@
     "zustand": "^5.0.16"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@tauri-apps/cli": "^2",
     "@types/node": "^24.19.2",
     "@types/react": "^19.2.14",
