@@ -65,8 +65,8 @@ export default function QueuePage() {
 
       <footer className="flex flex-col gap-2 pt-2 border-t border-base-300 text-xs text-base-content/60">
         <div className="flex items-center justify-between gap-4">
-          <span className="flex items-center gap-2 min-w-0">
-            <span className={`status ${depsReady ? 'status-success' : 'status-warning'}`} aria-hidden />
+          <span className="flex-1 flex items-center gap-2 min-w-0">
+            <span className={`status shrink-0 ${depsReady ? 'status-success' : 'status-warning'}`} aria-hidden />
             <span className="truncate">{status}</span>
             {appUpdate && (
               <Link to="/settings" className="link link-hover text-secondary inline-flex items-center gap-1 shrink-0">
@@ -74,9 +74,9 @@ export default function QueuePage() {
               </Link>
             )}
           </span>
-          <span className="flex items-center gap-1.5 truncate" title={downloadDir || 'İndirilenler klasörü'}>
+          <span className="flex items-center gap-1.5 min-w-0 max-w-[45%]" title={downloadDir || 'İndirilenler klasörü'}>
             <FolderOpen size={14} className="shrink-0" />
-            {downloadDir ? shortenHome(downloadDir) : 'İndirilenler'}
+            <span className="truncate">{downloadDir ? shortenHome(downloadDir) : 'İndirilenler'}</span>
           </span>
         </div>
         <p className="text-[11px] text-base-content/40">{LEGAL_TEXT}</p>

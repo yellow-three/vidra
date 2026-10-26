@@ -1,3 +1,5 @@
+#[cfg(target_os = "linux")]
+pub mod appimage;
 mod dependencies;
 mod events;
 mod process;
