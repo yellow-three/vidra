@@ -1,4 +1,4 @@
-import DownloadHistoryList from '../components/DownloadHistoryList';
+import HistoryList from './HistoryList';
 
 export default function Downloads() {
   return (
@@ -7,7 +7,7 @@ export default function Downloads() {
         <h1 className="text-2xl font-bold text-white tracking-wide">İndirilenler</h1>
         <p className="text-xs text-slate-400 mt-1">Tamamlanan indirmelerin geçmişi</p>
       </div>
-      <DownloadHistoryList />
+      <HistoryList />
     </div>
   );
 }

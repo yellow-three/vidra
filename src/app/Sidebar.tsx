@@ -50,7 +50,7 @@ const links = [
 export default function Sidebar() {
   return (
     <div className="w-16 bg-[var(--bg-card)] border-r border-[var(--border)] flex flex-col items-center py-5 gap-6 shrink-0">
-      <div className="text-blue-500 font-black text-lg tracking-wider">M</div>
+      <div className="text-blue-500 font-black text-lg tracking-wider" title="YouTube Downloader">YT</div>
       <nav className="flex flex-col gap-3">
         {links.map(({ to, label, icon: Icon }) => (
           <NavLink

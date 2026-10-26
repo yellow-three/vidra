@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
-import { appApi } from '../lib/appApi';
-import { startConvert as runConvert } from '../engine/convert';
+import { appApi } from '../../lib/appApi';
+import { startConvert as runConvert } from '../../engine/convert';
 
 const EXTENSIONS = ['mp4', 'webm', 'mkv', 'avi', 'mov', 'flv', 'wmv', 'mp3', 'wav', 'flac', 'ogg', 'm4a'];
 

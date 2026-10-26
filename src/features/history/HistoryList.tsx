@@ -1,26 +1,13 @@
-import { useState, useEffect } from 'react';
-import type { HistoryItem } from '../types';
-import { appApi } from '../lib/appApi';
+import { appApi } from '../../lib/appApi';
+import { useClearHistory, useDeleteHistoryItem, useHistory } from './queries';
 
-export default function DownloadHistoryList() {
-  const [history, setHistory] = useState<HistoryItem[]>([]);
-
-  const load = () => appApi.getHistory().then(setHistory);
-
-  useEffect(() => { load(); }, []);
+export default function HistoryList() {
+  const history = useHistory().data ?? [];
+  const deleteItem = useDeleteHistoryItem();
+  const clearAll = useClearHistory();
 
   const handleOpenFolder = (filePath: string) => {
-    appApi.openFileLocation(filePath);
-  };
-
-  const handleDelete = async (id: string) => {
-    await appApi.deleteHistoryItem(id);
-    setHistory((prev) => prev.filter((h) => h.id !== id));
-  };
-
-  const handleClearAll = async () => {
-    await appApi.clearHistory();
-    setHistory([]);
+    void appApi.openFileLocation(filePath);
   };
 
   // Rust backend tarihi Unix saniyesi olarak yazar; eski kayitlar ISO metni olabilir.
@@ -43,7 +30,7 @@ export default function DownloadHistoryList() {
       <div className="flex items-center justify-between">
         <span className="text-xs text-slate-500">{history.length} kayıt</span>
         <button
-          onClick={handleClearAll}
+          onClick={() => clearAll.mutate()}
           className="text-[10px] text-rose-400 hover:text-rose-300 border border-rose-500/30 px-2 py-1 rounded transition-all"
         >
           Tümünü Temizle
@@ -76,7 +63,7 @@ export default function DownloadHistoryList() {
                 📂
               </button>
               <button
-                onClick={() => handleDelete(item.id)}
+                onClick={() => deleteItem.mutate(item.id)}
                 className="text-[10px] bg-rose-600/20 text-rose-400 hover:bg-rose-600/40 px-2.5 py-1.5 rounded border border-rose-500/30 transition-all"
                 title="Sil"
               >

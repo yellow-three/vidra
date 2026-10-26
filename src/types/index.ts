@@ -27,6 +27,7 @@ export interface AppSettings {
   theme?: 'dark' | 'light' | 'system';
   autoOpenFolder?: boolean;
   downloadSubtitles?: boolean;
+  legalAccepted?: boolean;
 }
 
 export interface HistoryItem {

@@ -1,6 +1,5 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import { getSettings } from './settingsCache';
-import { appApi } from '../lib/appApi';
+import { createContext, useContext, useEffect, useCallback, type ReactNode } from 'react';
+import { useSaveSettings, useSettings } from '../features/settings/queries';
 
 type ThemeMode = 'dark' | 'light' | 'system';
 type ResolvedTheme = 'dark' | 'light';
@@ -23,13 +22,8 @@ function resolveTheme(mode: ThemeMode): ResolvedTheme {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeMode>('dark');
-
-  useEffect(() => {
-    getSettings().then((s) => {
-      if (s.theme) setThemeState(s.theme);
-    });
-  }, []);
+  const theme: ThemeMode = useSettings().data?.theme ?? 'dark';
+  const save = useSaveSettings();
 
   const applyTheme = useCallback((mode: ThemeMode) => {
     const resolved = resolveTheme(mode);
@@ -47,10 +41,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [theme, applyTheme]);
 
-  const setTheme = (t: ThemeMode) => {
-    setThemeState(t);
-    appApi.saveSettings({ theme: t }).catch(() => {});
-  };
+  const setTheme = (t: ThemeMode) => save.mutate({ theme: t });
 
   const resolved = resolveTheme(theme);
 

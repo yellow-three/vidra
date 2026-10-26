@@ -1,4 +1,4 @@
-import ConvertForm from '../components/ConvertForm';
+import ConvertForm from './ConvertForm';
 
 export default function Convert() {
   return (

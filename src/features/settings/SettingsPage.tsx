@@ -1,4 +1,4 @@
-import SettingsForm from '../components/SettingsForm';
+import SettingsForm from './SettingsForm';
 
 export default function Settings() {
   return (

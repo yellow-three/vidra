@@ -1,6 +1,9 @@
-import { useState } from 'react';
-import TaskList from '../components/TaskList';
-import { useQueue } from '../hooks/QueueContext';
+import TaskList from './TaskList';
+import AddUrlForm from '../add/AddUrlForm';
+import { useAppStatus } from './bootstrap';
+import { useQueueStore } from './store';
+import { useSettings } from '../settings/queries';
+import { LEGAL_TEXT } from '../../app/LegalNotice';
 
 const clipIcon = (
   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -15,22 +18,11 @@ const folderIcon = (
   </svg>
 );
 
-export default function Home() {
-  const { url, setUrl, queue, status, downloadDir, handleAnalyze, handleFormatChange, handleStartDownload, handleCancel, handleRetry, moveTask, isWorking, depsReady } = useQueue();
-  const [urlError, setUrlError] = useState(false);
-
-  const onAnalyze = () => {
-    if (!url.trim()) {
-      setUrlError(true);
-      setTimeout(() => setUrlError(false), 2000);
-      return;
-    }
-    handleAnalyze();
-  };
-
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && depsReady) onAnalyze();
-  };
+export default function QueuePage() {
+  const queue = useQueueStore((s) => s.tasks);
+  const { selectFormat, startDownload, cancel, retry, move } = useQueueStore.getState();
+  const status = useAppStatus((s) => s.status);
+  const downloadDir = useSettings().data?.downloadDir || 'Varsayılan (İndirilenler)';
 
   const countAnalyzing = queue.filter((t) => t.status === 'analyzing').length;
   const countDownloading = queue.filter((t) => t.status === 'downloading').length;
@@ -43,7 +35,7 @@ export default function Home() {
       <div className="space-y-6 shrink-0">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">MediaDI Studio</h1>
+            <h1 className="text-2xl font-bold text-white tracking-tight">YouTube Downloader</h1>
             <p className="text-xs text-slate-500 mt-0.5">Video analiz ve indirme havuzu</p>
           </div>
           <div className="flex items-center gap-2 text-[10px] text-slate-500">
@@ -53,44 +45,7 @@ export default function Home() {
         </div>
 
         <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-5 shadow-lg">
-          <div className="flex gap-3">
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                value={url}
-                onChange={(e) => { setUrl(e.target.value); setUrlError(false); }}
-                onKeyDown={onKeyDown}
-                disabled={isWorking}
-                placeholder="YouTube linki yapıştırın ve analiz edin..."
-                className={`w-full h-11 bg-[var(--bg-body)] border-2 rounded-xl pl-4 pr-10 text-sm text-white outline-none transition-colors ${
-                  urlError
-                    ? 'border-red-500 placeholder:text-red-400'
-                    : isWorking
-                      ? 'border-[var(--border)] opacity-50 cursor-not-allowed'
-                      : 'border-[var(--border)] focus:border-blue-500'
-                }`}
-              />
-              {url && !isWorking && (
-                <button
-                  onClick={() => setUrl('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors text-lg leading-none"
-                >
-                  &times;
-                </button>
-              )}
-            </div>
-            <button
-              onClick={onAnalyze}
-              disabled={isWorking || !depsReady || !url.trim()}
-              className="h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:from-slate-700 disabled:to-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm px-6 rounded-xl transition-all shadow-lg shadow-blue-600/20"
-            >
-              {!depsReady ? 'Kurulum sürüyor...' : isWorking ? 'İşlem sürüyor...' : 'Analiz Et'}
-            </button>
-          </div>
-
-          {urlError && (
-            <p className="text-[11px] text-red-400 mt-2">Lütfen geçerli bir URL girin.</p>
-          )}
+          <AddUrlForm />
 
           <div className="flex gap-4 mt-4 pt-4 border-t border-[var(--border)]">
             <Stat label="Sırada" value={countPending} />
@@ -105,11 +60,11 @@ export default function Home() {
       <div className="flex-1 min-h-0 overflow-y-auto mt-6 space-y-4">
         <TaskList
           tasks={queue}
-          onFormatChange={handleFormatChange}
-          onStartDownload={handleStartDownload}
-          onCancel={handleCancel}
-          onRetry={handleRetry}
-          onMove={moveTask}
+          onFormatChange={selectFormat}
+          onStartDownload={(task) => void startDownload(task.id)}
+          onCancel={(id) => void cancel(id)}
+          onRetry={(task) => void retry(task.id)}
+          onMove={move}
         />
       </div>
 
@@ -124,6 +79,7 @@ export default function Home() {
           {downloadDir.replace(/^\/home\/[^/]+/, '~')}
         </span>
       </div>
+      <p className="shrink-0 mt-2 text-[10px] text-slate-600 text-center">{LEGAL_TEXT}</p>
     </div>
   );
 }

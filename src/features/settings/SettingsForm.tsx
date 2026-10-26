@@ -1,9 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
-import type { AppSettings } from '../types';
-import { useTheme } from '../hooks/ThemeContext';
-import { getSettings, invalidateSettings } from '../hooks/settingsCache';
-import { engine } from '../engine';
-import { appApi } from '../lib/appApi';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import type { AppSettings } from '../../types';
+import { useTheme } from '../../app/ThemeContext';
+import { LEGAL_TEXT } from '../../app/LegalNotice';
+import { queryClient } from '../../app/queryClient';
+import { engine } from '../../engine';
+import { appApi } from '../../lib/appApi';
+import { invalidateSettings, useSaveSettings, useSettings } from './queries';
+
+const versionKey = ['ytdlp-version'] as const;
 
 const diskIcon = (
   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -45,54 +49,20 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
 
 export default function SettingsForm() {
   const { theme, setTheme } = useTheme();
-  const [settings, setSettings] = useState<AppSettings>({});
-  const [ytdlpVersion, setYtdlpVersion] = useState<string | null>(null);
-  const [versionLoading, setVersionLoading] = useState(true);
-  const [checkingUpdate, setCheckingUpdate] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const mounted = useRef(true);
+  const settings: AppSettings = useSettings().data ?? {};
+  const save = useSaveSettings();
+  const version = useQuery({ queryKey: versionKey, queryFn: () => engine.engineVersion() });
+  const update = useMutation({
+    mutationFn: () => engine.updateEngine(),
+    onSuccess: (v) => queryClient.setQueryData(versionKey, v),
+    onError: (error) => console.warn('yt-dlp güncellenemedi:', error),
+  });
 
-  useEffect(() => {
-    getSettings().then((s) => {
-      if (!mounted.current) return;
-      setSettings({ ...s, theme: s.theme || theme });
-    });
-    engine.engineVersion().then((version) => {
-      if (!mounted.current) return;
-      setYtdlpVersion(version);
-      setVersionLoading(false);
-    }).catch(() => setVersionLoading(false));
-    return () => { mounted.current = false; };
-  }, []);
-
-  useEffect(() => {
-    setSettings((prev) => ({ ...prev, theme }));
-  }, [theme]);
-
-  const updateAndSave = (key: keyof AppSettings, value: string | boolean) => {
-    const next = { ...settings, [key]: value };
-    setSettings(next);
-    setSaving(true);
-    appApi.saveSettings(next).then(() => invalidateSettings()).catch(() => {}).finally(() => setSaving(false));
-  };
+  const updateAndSave = (key: keyof AppSettings, value: string | boolean) => save.mutate({ [key]: value });
 
   const handleBrowseFolder = async () => {
     const res = await appApi.selectDownloadFolder();
-    if (res?.success && res.path) {
-      setSettings((prev) => ({ ...prev, downloadDir: res.path }));
-      invalidateSettings();
-    }
-  };
-
-  const handleUpdateYtdlp = async () => {
-    setCheckingUpdate(true);
-    try {
-      const version = await engine.updateEngine();
-      if (version) setYtdlpVersion(version);
-    } catch (error) {
-      console.warn('yt-dlp güncellenemedi:', error);
-    }
-    setCheckingUpdate(false);
+    if (res?.success && res.path) await invalidateSettings();
   };
 
   return (
@@ -136,7 +106,6 @@ export default function SettingsForm() {
             >
               <option value="">MP4 (Video)</option>
               <option value="mp3">MP3 (Ses)</option>
-              <option value="webm">WebM</option>
             </select>
           </div>
         </div>
@@ -196,18 +165,22 @@ export default function SettingsForm() {
       <Section title="Sistem" icon={packageIcon}>
         <div className="flex items-center gap-3">
           <span className="text-xs text-slate-400">yt-dlp:</span>
-          <code className="text-xs text-emerald-400 font-mono">{versionLoading ? 'Yükleniyor...' : ytdlpVersion || 'Bilinmiyor'}</code>
+          <code className="text-xs text-emerald-400 font-mono">{version.isPending ? 'Yükleniyor...' : version.data || 'Bilinmiyor'}</code>
           <button
-            onClick={handleUpdateYtdlp}
-            disabled={checkingUpdate}
+            onClick={() => update.mutate()}
+            disabled={update.isPending}
             className="ml-auto bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white text-xs px-3 py-1.5 rounded transition-all"
           >
-            {checkingUpdate ? 'Güncelleniyor...' : 'Güncelle'}
+            {update.isPending ? 'Güncelleniyor...' : 'Güncelle'}
           </button>
         </div>
         <div className="mt-3 text-[10px] text-slate-500">
-          {saving ? 'Kaydediliyor...' : 'Tüm değişiklikler otomatik kaydedilir.'}
+          {update.isError ? `Güncelleme başarısız: ${update.error.message}` : save.isPending ? 'Kaydediliyor...' : 'Tüm değişiklikler otomatik kaydedilir.'}
         </div>
+      </Section>
+
+      <Section title="Hakkında" icon={packageIcon}>
+        <p className="text-xs text-slate-400 leading-relaxed">{LEGAL_TEXT}</p>
       </Section>
     </div>
   );

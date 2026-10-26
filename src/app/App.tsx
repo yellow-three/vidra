@@ -1,24 +1,27 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import MainLayout from './components/MainLayout';
-import Home from './pages/Home';
-import Downloads from './pages/Downloads';
-import Settings from './pages/Settings';
-import Convert from './pages/Convert';
-import { QueueProvider } from './hooks/QueueContext';
+import MainLayout from './MainLayout';
+import LegalNotice from './LegalNotice';
+import QueuePage from '../features/queue/QueuePage';
+import HistoryPage from '../features/history/HistoryPage';
+import SettingsPage from '../features/settings/SettingsPage';
+import ConvertPage from '../features/convert/ConvertPage';
+import { startApp } from '../features/queue/bootstrap';
 
 export default function App() {
+  useEffect(startApp, []);
+
   return (
-    <QueueProvider>
     <BrowserRouter>
+      <LegalNotice />
       <Routes>
         <Route element={<MainLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/downloads" element={<Downloads />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/convert" element={<Convert />} />
+          <Route path="/" element={<QueuePage />} />
+          <Route path="/downloads" element={<HistoryPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/convert" element={<ConvertPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
-    </QueueProvider>
   );
 }
