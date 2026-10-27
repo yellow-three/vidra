@@ -3,7 +3,7 @@ import { appApi } from '../../lib/appApi';
 import { createHistoryRepo, type HistoryRepo } from './historyRepo';
 
 // Rust tarafindaki DB_URL ile ayni olmali (src-tauri/src/lib.rs); migration'lari plugin calistirir.
-const DB_URL = 'sqlite:youtube-downloader.db';
+const DB_URL = 'sqlite:vidra.db';
 
 let repo: Promise<HistoryRepo> | null = null;
 

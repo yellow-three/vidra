@@ -1,9 +1,9 @@
 name: Release
 
 # `v0.2.0` gibi bir etiket push edilince imzali paketler ve updater'in okudugu
-# latest.json, PUBLIC yellow-three/youtube-downloader-releases reposunda taslak (draft)
-# bir release'e yuklenir. Kaynak kod private kalir; kurulu uygulamalar latest.json'i
-# kimlik dogrulamasiz indirebilsin diye yayin ayri, public repodadir.
+# latest.json, PUBLIC yellow-three/vidra-releases reposunda taslak (draft)
+# bir release'e yuklenir. Kaynak repo v0.1.0'da private oldugu icin yayin ayri repodadir;
+# kurulu uygulamalar latest.json'i oradan kimlik dogrulamasiz indirir.
 # Taslak yayinlanana kadar kurulu uygulamalar guncellemeyi gormez.
 # Etiket, src-tauri/tauri.conf.json'daki "version" ile ayni olmali.
 
@@ -50,21 +50,21 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           owner: yellow-three
-          repo: youtube-downloader-releases
+          repo: vidra-releases
           # Etiket releases reposunda olusturulur; bu reponun commit'leri orada yok.
           releaseCommitish: dev
           tagName: ${{ github.ref_name }}
-          releaseName: YouTube Downloader ${{ github.ref_name }}
+          releaseName: Vidra ${{ github.ref_name }}
           # Kurulum notu releases reposunun README'siyle ayni tutulur.
           releaseBody: |
             ## Kurulum
 
             - **Windows:** `x64-setup.exe` dosyasını çalıştırın. İmzasız olduğu için SmartScreen uyarı verebilir: **Ek bilgi > Yine de çalıştır**.
-            - **Ubuntu / Debian / Mint:** `.deb` → `sudo apt install ./YouTube.Downloader_*_amd64.deb`
-            - **Fedora:** `.rpm` → `sudo dnf install ./YouTube.Downloader-*.x86_64.rpm` (openSUSE: `sudo zypper install ...`)
+            - **Ubuntu / Debian / Mint:** `.deb` → `sudo apt install ./Vidra_*_amd64.deb`
+            - **Fedora:** `.rpm` → `sudo dnf install ./Vidra-*.x86_64.rpm` (openSUSE: `sudo zypper install ...`)
             - **Diğer Linux dağıtımları:** `.AppImage` → `chmod +x` ile çalıştırılabilir yapıp açın. "No suitable fusermount binary found" hatasında `fuse3` paketini kurun.
 
-            yt-dlp, FFmpeg ve deno uygulamayla birlikte gelir. Ayrıntılar, güncelleme ve kaldırma: https://github.com/yellow-three/youtube-downloader-releases#kurulum
+            yt-dlp, FFmpeg ve deno uygulamayla birlikte gelir. Ayrıntılar, güncelleme ve kaldırma: https://github.com/yellow-three/vidra-releases#kurulum
 
             İndirilen içeriklerin telif haklarına ve YouTube Hizmet Şartları'na uygun kullanılması kullanıcının sorumluluğundadır.
 

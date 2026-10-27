@@ -135,12 +135,12 @@ test('uygulama guncel ise surum ve durum gosterilir', async ({ page }) => {
 });
 
 test('tema: ayarlardan secilen daisyUI temasi uygulanir ve kaydedilir', async ({ page }) => {
-  await mockTauri(page, { settings: { ...accepted, theme: 'youtube-dark' } });
+  await mockTauri(page, { settings: { ...accepted, theme: 'vidra-dark' } });
   await page.goto('/settings');
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'youtube-dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'vidra-dark');
 
-  await page.getByRole('radio', { name: /YouTube Açık/ }).click();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'youtube-light');
+  await page.getByRole('radio', { name: /Vidra Açık/ }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'vidra-light');
   await page.getByRole('radio', { name: /Dracula/ }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dracula');
   await expect(page.getByRole('radio', { name: /Dracula/ })).toHaveAttribute('aria-checked', 'true');
@@ -151,16 +151,16 @@ test('tema: sistem secimi isletim sistemine gore YouTube temasini kullanir', asy
   await page.emulateMedia({ colorScheme: 'light' });
   await mockTauri(page, { settings: accepted });
   await page.goto('/');
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'youtube-light');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'vidra-light');
   await page.emulateMedia({ colorScheme: 'dark' });
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'youtube-dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'vidra-dark');
 });
 
-test('tema: kenar cubugundaki dugme acik/koyu YouTube temalari arasinda gecer', async ({ page }) => {
-  await mockTauri(page, { settings: { ...accepted, theme: 'youtube-dark' } });
+test('tema: kenar cubugundaki dugme acik/koyu Vidra temalari arasinda gecer', async ({ page }) => {
+  await mockTauri(page, { settings: { ...accepted, theme: 'vidra-dark' } });
   await page.goto('/');
   await page.getByLabel('Açık temaya geç').click();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'youtube-light');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'vidra-light');
   await page.getByLabel('Koyu temaya geç').click();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'youtube-dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'vidra-dark');
 });

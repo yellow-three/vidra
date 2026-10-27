@@ -3,8 +3,8 @@ import { APP_THEMES, DAISY_THEMES, useTheme } from '../../app/ThemeContext';
 
 const LABELS: Record<string, string> = {
   system: 'Sistem',
-  [APP_THEMES.dark]: 'YouTube Koyu',
-  [APP_THEMES.light]: 'YouTube Açık',
+  [APP_THEMES.dark]: 'Vidra Koyu',
+  [APP_THEMES.light]: 'Vidra Açık',
 };
 
 const label = (theme: string) => LABELS[theme] ?? theme.charAt(0).toUpperCase() + theme.slice(1);

@@ -1,17 +1,19 @@
-# YouTube Downloader
+# Vidra
 
 YouTube video ve ses indirme masaüstü uygulaması. Tauri 2 + React 19 + Tailwind/DaisyUI, indirme motoru yt-dlp + FFmpeg.
 
-`~/Projects/yt-downloader` projesinin (`tauri-android-migration`, commit `2554e85`) arayüzü ve Rust backend'i temel alınarak kuruldu. İlk hedef masaüstü; Android sonraya bırakıldı.
+İlk hedef masaüstü; Android sonraya bırakıldı.
+
+Uygulama v0.1.0'da "YouTube Downloader" (`com.abdurrahman.youtubedownloader`) adıyla yayınlandı. Kimlik `io.github.yellow-three.vidra` oldu; eski ayarlar, geçmiş ve yt-dlp kopyası ilk açılışta yeni klasöre taşınır (`src-tauri/src/legacy.rs`). `.deb`/`.rpm` paketleri eski `you-tube-downloader` paketinin yerini alır.
 
 ## Kullanıcı kurulumu
 
-Kullanıcılar uygulamayı [`youtube-downloader-releases`](https://github.com/yellow-three/youtube-downloader-releases/releases/latest) reposundan indirir; dağıtıma göre kurulum, güncelleme ve kaldırma talimatları o reponun README'sindedir. Release notlarındaki kısa kurulum metni `.github/workflows/release.yml` içindeki `releaseBody`'dedir; ikisi birlikte güncellenmelidir.
+Kullanıcılar uygulamayı [`vidra-releases`](https://github.com/yellow-three/vidra-releases/releases/latest) reposundan indirir; dağıtıma göre kurulum, güncelleme ve kaldırma talimatları o reponun README'sindedir. Release notlarındaki kısa kurulum metni `.github/workflows/release.yml` içindeki `releaseBody`'dedir; ikisi birlikte güncellenmelidir.
 
-- Linux'ta `.deb` / `.rpm` önerilir (menüye eklenir, paket yöneticisiyle kaldırılır). Paket adı Tauri'nin `productName`'den ürettiği `you-tube-downloader`'dır.
+- Linux'ta `.deb` / `.rpm` önerilir (menüye eklenir, paket yöneticisiyle kaldırılır). Paket adı `vidra`'dır.
 - AppImage, AppImage'ın statik runtime'ıyla gelir: `libfuse2` istemez, yalnızca `fusermount` (`fuse3` paketi) gerekir.
 - Windows kurulum dosyaları kod imzalı değildir; SmartScreen uyarı verir.
-- Flathub'a şimdilik gönderilmiyor: kaynağın public olması, marka içermeyen bir ad/ikon/app ID ve Flatpak içinde uygulama ile yt-dlp güncelleyicisinin kapatılması gerekir.
+- Flathub'a şimdilik gönderilmiyor: Flatpak içinde uygulama ve yt-dlp güncelleyicilerinin kapatılması gerekir. Flatpak app ID'sinde tire kullanılamadığı için orada `io.github.yellow_three.vidra` olur (Tauri kimliği ise alt çizgi kabul etmez).
 
 ## Gereksinimler
 
@@ -20,7 +22,7 @@ Kullanıcılar uygulamayı [`youtube-downloader-releases`](https://github.com/ye
 
 ## Arayüz ve temalar
 
-Arayüz daisyUI 5 bileşenleriyle yazılmıştır. `src/index.css` tüm yerleşik daisyUI temalarını açar ve iki özel tema tanımlar: `youtube-dark` (varsayılan) ve `youtube-light`. Ayarlar > Görünüm'den herhangi bir tema seçilebilir; "Sistem" seçeneği işletim sistemine göre YouTube açık/koyu temasını kullanır. Kenar çubuğundaki düğme iki YouTube teması arasında geçer.
+Arayüz daisyUI 5 bileşenleriyle yazılmıştır. `src/index.css` tüm yerleşik daisyUI temalarını açar ve iki özel tema tanımlar: `vidra-dark` (varsayılan) ve `vidra-light` (YouTube renklerinden esinlenir). Ayarlar > Görünüm'den herhangi bir tema seçilebilir; "Sistem" seçeneği işletim sistemine göre Vidra açık/koyu temasını kullanır. Kenar çubuğundaki düğme iki Vidra teması arasında geçer.
 
 Uygulama ikonu `src-tauri/app-icon.svg`'den üretilir:
 
@@ -62,17 +64,17 @@ npm run tauri build   # paket üretimi
 - `src-tauri/src/dependencies.rs` — sidecar yollarının çözümü ve yt-dlp güncellemesi.
 - `scripts/fetch-sidecars.mjs` — sidecar indirme ve checksum doğrulama.
 - `src-tauri/src/lib.rs` — ayarlar (`<app data>/settings.json`), SQLite migration'ları, klasör seçimi, fs kapsamı.
-- İndirme geçmişi SQLite'tadır: `<app config>/youtube-downloader.db` (Linux: `~/.config/com.abdurrahman.youtubedownloader/`).
+- İndirme geçmişi SQLite'tadır: `<app config>/vidra.db` (Linux: `~/.config/io.github.yellow-three.vidra/`).
 - `src-tauri/src/events.rs` — pano (clipboard) izleme.
 
 ## Uygulama güncellemeleri ve sürüm yayınlama
 
-Uygulama açılışta ve Ayarlar > Uygulama'dan `https://github.com/yellow-three/youtube-downloader-releases/releases/latest/download/latest.json` adresini kontrol eder (tauri-plugin-updater). Kaynak kod bu private repoda kalır; kurulu uygulamalar `latest.json`'ı kimlik doğrulamasız indirebilsin diye sürümler ayrı, public [`youtube-downloader-releases`](https://github.com/yellow-three/youtube-downloader-releases) reposunda yayınlanır. Güncellemeler minisign ile imzalıdır; açık anahtar `tauri.conf.json`'dadır.
+Uygulama açılışta ve Ayarlar > Uygulama'dan `https://github.com/yellow-three/vidra-releases/releases/latest/download/latest.json` adresini kontrol eder (tauri-plugin-updater). Sürümler ayrı [`vidra-releases`](https://github.com/yellow-three/vidra-releases) reposunda yayınlanır (kaynak repo ilk sürümde private'tı; v0.1.0 kurulumları bu adresi, GitHub'ın eski `youtube-downloader-releases` yönlendirmesiyle bulur). Güncellemeler minisign ile imzalıdır; açık anahtar `tauri.conf.json`'dadır.
 
 - Özel anahtar repo dışında: `~/.tauri/youtube-downloader.key` (parolalı). **Kaybolursa kurulu uygulamalara bir daha güncelleme gönderilemez — yedekleyin.**
 - Bu reponun Settings > Secrets and variables > Actions > **Repository secrets**:
   - `TAURI_SIGNING_PRIVATE_KEY` (anahtar dosyasının içeriği), `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
-  - `RELEASES_TOKEN`: yalnızca `youtube-downloader-releases` reposuna **Contents: Read and write** yetkili fine-grained token (`GITHUB_TOKEN` başka repoya yazamaz).
+  - `RELEASES_TOKEN`: yalnızca `vidra-releases` reposuna **Contents: Read and write** yetkili fine-grained token (`GITHUB_TOKEN` başka repoya yazamaz).
 - Yayın: `tauri.conf.json` ve `package.json` sürümünü artırın, `vX.Y.Z` etiketi push edin. `.github/workflows/release.yml` imzalı paketleri ve `latest.json`'ı releases reposunda **taslak** bir release'e yükler (etiket o reponun `dev` branch'inden oluşturulur); taslağı yayınlayınca kurulu uygulamalar güncellemeyi görür.
 - Linux'ta `latest.json`'daki `linux-x86_64` girdisi AppImage'ı gösterir; `.deb`/`.rpm` kurulumlarının kendini güncellemesi denenmedi.
 - Yerel `tauri build` imza anahtarı istemez; updater dosyaları yalnızca release workflow'unda üretilir.

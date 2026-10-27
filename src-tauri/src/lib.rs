@@ -1,5 +1,6 @@
 #[cfg(target_os = "linux")]
 pub mod appimage;
+pub mod legacy;
 mod dependencies;
 mod events;
 mod process;
@@ -66,7 +67,7 @@ fn allow_download_dir(app: &AppHandle) {
 }
 
 /// Frontend `Database.load` ile ayni adi kullanir (src/features/history/db.ts).
-const DB_URL: &str = "sqlite:youtube-downloader.db";
+const DB_URL: &str = "sqlite:vidra.db";
 
 fn migrations() -> Vec<tauri_plugin_sql::Migration> {
     vec![tauri_plugin_sql::Migration {

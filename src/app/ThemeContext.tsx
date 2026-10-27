@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useSaveSettings, useSettings } from '../features/settings/queries';
 
-export const APP_THEMES = { dark: 'youtube-dark', light: 'youtube-light' } as const;
+export const APP_THEMES = { dark: 'vidra-dark', light: 'vidra-light' } as const;
 
 /** Yerlesik daisyUI temalari (src/index.css: `themes: all`). */
 export const DAISY_THEMES = [
@@ -11,7 +11,7 @@ export const DAISY_THEMES = [
   'nord', 'sunset', 'caramellatte', 'abyss', 'silk',
 ] as const;
 
-/** `system`, YouTube temalarindan biri ya da bir daisyUI tema adi. */
+/** `system`, Vidra temalarindan biri ya da bir daisyUI tema adi. */
 export type ThemeSetting = string;
 
 interface ThemeContextValue {
@@ -21,12 +21,16 @@ interface ThemeContextValue {
   setTheme: (theme: ThemeSetting) => void;
 }
 
+// Eski "YouTube Downloader" surumlerinden tasinan ayarlardaki tema adlari.
+const LEGACY_THEMES: Record<string, string> = { 'youtube-dark': APP_THEMES.dark, 'youtube-light': APP_THEMES.light };
+
 const ThemeContext = createContext<ThemeContextValue>({ theme: 'system', resolved: APP_THEMES.dark, setTheme: () => {} });
 
 const prefersLight = () => window.matchMedia('(prefers-color-scheme: light)').matches;
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const theme: ThemeSetting = useSettings().data?.theme || 'system';
+  const stored: ThemeSetting = useSettings().data?.theme || 'system';
+  const theme = LEGACY_THEMES[stored] ?? stored;
   const save = useSaveSettings();
   const [systemLight, setSystemLight] = useState(prefersLight);
 

@@ -4,6 +4,8 @@
 fn main() {
     // GTK/WebKit yuklenmeden once; bkz. appimage.rs
     #[cfg(target_os = "linux")]
-    youtube_downloader_lib::appimage::prefer_system_wayland();
-    youtube_downloader_lib::run()
+    vidra_lib::appimage::prefer_system_wayland();
+    // Tauri ayar/gecmis klasorlerini acmadan once; bkz. legacy.rs
+    vidra_lib::legacy::migrate_old_identifier();
+    vidra_lib::run()
 }

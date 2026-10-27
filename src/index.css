@@ -7,7 +7,7 @@
 }
 
 @plugin "daisyui/theme" {
-  name: "youtube-dark";
+  name: "vidra-dark";
   default: true;
   prefersdark: true;
   color-scheme: dark;
@@ -47,7 +47,7 @@
 }
 
 @plugin "daisyui/theme" {
-  name: "youtube-light";
+  name: "vidra-light";
   default: false;
   prefersdark: false;
   color-scheme: light;

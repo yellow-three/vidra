@@ -1,8 +1,8 @@
 [package]
-name = "youtube-downloader"
+name = "vidra"
 version = "0.1.0"
-description = "YouTube video ve ses indirme masaustu uygulamasi"
-authors = ["abdurrahman"]
+description = "Vidra: YouTube video ve ses indirme masaustu uygulamasi"
+authors = ["yellow-three"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -11,7 +11,7 @@ edition = "2021"
 # The `_lib` suffix may seem redundant but it is necessary
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
-name = "youtube_downloader_lib"
+name = "vidra_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -27,6 +27,7 @@ serde_json = "1"
 tauri-plugin-fs = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
+dirs = "7"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
