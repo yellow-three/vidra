@@ -87,3 +87,7 @@ npm run test:ui                  # Playwright: UI akışları, sahte Tauri backe
 npm run typecheck                # uygulama + testler
 cargo test --manifest-path src-tauri/Cargo.toml   # süreç çalıştırıcı (Unix; Windows testleri CI'da)
 ```
+
+## Lisans
+
+[MIT](LICENSE). Paketlenen bileşenlerin kendi lisansları vardır: yt-dlp (Unlicense), deno (MIT), FFmpeg (LGPL; lisans metni pakette `licenses/` altında).

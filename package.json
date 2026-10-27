@@ -1,5 +1,6 @@
 {
   "name": "vidra",
+  "license": "MIT",
   "private": true,
   "version": "0.1.0",
   "description": "YouTube video ve ses indirme masaustu uygulamasi (Tauri 2 + React)",
