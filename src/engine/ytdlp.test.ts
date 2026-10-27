@@ -3,7 +3,10 @@ import {
   buildDownloadArgs,
   buildInfoArgs,
   buildOptions,
+  isVideoInPlaylist,
   lastErrorLines,
+  outputTemplate,
+  parseInfo,
   parseOption,
   parseOutputLine,
   partialFilesToRemove,
@@ -124,6 +127,7 @@ describe('buildDownloadArgs', () => {
     expect(joined).toContain('--ffmpeg-location /ff');
     expect(joined).not.toContain('--embed-subs');
     expect(args).toContain('/out/%(title)s.%(ext)s');
+    expect(joined).not.toContain('--embed-thumbnail');
     expect(args).toContain('download:[progress] %(progress)j');
   });
 
@@ -150,8 +154,71 @@ describe('buildDownloadArgs', () => {
     expect(without).not.toContain('--js-runtimes');
   });
 
-  it('analiz argumanlarina da deno yolunu ekler', () => {
-    expect(buildInfoArgs('U', '/app/deno')).toEqual(['U', '-J', '--no-playlist', '--js-runtimes', 'deno:/app/deno']);
+  it('kapak/metadata, hiz siniri, cerez ve proxy argumanlarini ekler', () => {
+    const args = buildDownloadArgs({
+      url: 'U',
+      option: { kind: 'mp3' },
+      outDir: '/out',
+      subtitles: false,
+      embedMetadata: true,
+      rateLimit: '5M',
+      cookiesFromBrowser: 'firefox',
+      proxy: 'socks5://127.0.0.1:1080',
+    }).join(' ');
+    expect(args).toContain('--embed-thumbnail --embed-metadata');
+    expect(args).toContain('--limit-rate 5M');
+    expect(args).toContain('--cookies-from-browser firefox');
+    expect(args).toContain('--proxy socks5://127.0.0.1:1080');
+  });
+
+  it('video dosya adina cozunurluk ekler; ayni videonun farkli kaliteleri cakismaz', () => {
+    const args = buildDownloadArgs({ url: 'U', option: { kind: 'video', height: 720 }, outDir: '/out', subtitles: false });
+    expect(args).toContain('/out/%(title)s [%(height)sp].%(ext)s');
+    expect(outputTemplate({ kind: 'best-video' }, 'uploader-title')).toBe('%(uploader)s - %(title)s [%(height)sp].%(ext)s');
+    expect(outputTemplate({ kind: 'm4a' }, 'title-id')).toBe('%(title)s [%(id)s].%(ext)s');
+    expect(outputTemplate({ kind: 'mp3' }, 'bilinmeyen')).toBe('%(title)s.%(ext)s');
+  });
+});
+
+describe('buildInfoArgs', () => {
+  it('listeleri hizli (flat) okur, deno yolunu ve ag seceneklerini ekler', () => {
+    expect(buildInfoArgs({ url: 'U', denoPath: '/app/deno' }))
+      .toEqual(['U', '-J', '--flat-playlist', '--no-playlist', '--js-runtimes', 'deno:/app/deno']);
+    expect(buildInfoArgs({ url: 'U', playlist: true, cookiesFromBrowser: 'chrome:/p' }))
+      .toEqual(['U', '-J', '--flat-playlist', '--yes-playlist', '--cookies-from-browser', 'chrome:/p']);
+  });
+});
+
+describe('parseInfo', () => {
+  it('tek videoyu sade seceneklere cevirir', () => {
+    const info = parseInfo(JSON.stringify({ title: 'Klip', duration: 5, formats: [] }), 'U');
+    expect(info).toMatchObject({ title: 'Klip', url: 'U', duration: 5 });
+    expect(info.entries).toBeUndefined();
+  });
+
+  it('oynatma listesinden indirilebilir girdileri cikarir', () => {
+    const json = JSON.stringify({
+      _type: 'playlist',
+      title: 'Liste',
+      entries: [
+        { id: 'a', url: 'https://www.youtube.com/watch?v=a', title: 'A', duration: 10, thumbnails: [{ url: 'k' }, { url: 'b' }] },
+        { id: 'b', title: 'B' },
+        { id: 'c', url: 'https://www.youtube.com/watch?v=c', title: '[Private video]' },
+      ],
+    });
+    const info = parseInfo(json, 'L');
+    expect(info.title).toBe('Liste');
+    expect(info.entries).toEqual([
+      { url: 'https://www.youtube.com/watch?v=a', title: 'A', duration: 10, thumbnail: 'b' },
+      { url: 'https://www.youtube.com/watch?v=b', title: 'B', duration: undefined, thumbnail: undefined },
+    ]);
+    expect(info.formats.map((f) => f.formatId)).toContain('video-1080');
+  });
+
+  it('listedeki videoyu tanir', () => {
+    expect(isVideoInPlaylist('https://www.youtube.com/watch?v=a&list=PL1')).toBe(true);
+    expect(isVideoInPlaylist('https://www.youtube.com/playlist?list=PL1')).toBe(false);
+    expect(isVideoInPlaylist('https://youtu.be/a')).toBe(false);
   });
 });
 

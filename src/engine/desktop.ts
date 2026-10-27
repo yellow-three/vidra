@@ -4,16 +4,18 @@ import { invoke } from '@tauri-apps/api/core';
 import { readDir, remove, stat } from '@tauri-apps/plugin-fs';
 import { joinPath, splitPath, stem } from './paths';
 import { killProcess, runProcess, spawnProcess } from './process';
-import type { DownloadEngine, DownloadOption, DownloadProgress, DownloadRequest, DownloadResult, VideoInfo } from './types';
+import { EngineError, friendlyError } from './errors';
+import type {
+  DownloadEngine, DownloadOption, DownloadProgress, DownloadRequest, DownloadResult, InfoOptions, NetworkOptions, VideoInfo,
+} from './types';
 import {
   buildDownloadArgs,
   buildInfoArgs,
-  buildOptions,
   lastErrorLines,
+  parseInfo,
   parseOption,
   parseOutputLine,
   partialFilesToRemove,
-  type YtdlpFormat,
 } from './ytdlp';
 
 interface Dependencies {
@@ -24,6 +26,13 @@ interface Dependencies {
 }
 
 const getDependencies = () => invoke<Dependencies>('check_dependencies');
+
+/** Tarayici adini Flatpak/Snap profil klasoruyle tamamlar (src-tauri/src/cookies.rs). */
+async function resolveNetwork<T extends NetworkOptions>(options: T): Promise<T> {
+  if (!options.cookiesFromBrowser) return options;
+  const cookiesFromBrowser = await invoke<string>('cookie_source', { browser: options.cookiesFromBrowser });
+  return { ...options, cookiesFromBrowser };
+}
 
 /** Iptal edilen indirmenin yazdigi dosyalari siler; hata olursa indirme sonucunu bozmaz. */
 async function removePartialFiles(destination: string, startedMs: number): Promise<void> {
@@ -45,26 +54,13 @@ export class DesktopEngine implements DownloadEngine {
   /** Indirme kimligi -> surec kimligi, ya da surec baslamadan onceki durum. */
   private processes = new Map<string, number | 'starting' | 'cancel-requested'>();
 
-  async getInfo(url: string): Promise<VideoInfo> {
+  async getInfo(url: string, options: InfoOptions = {}): Promise<VideoInfo> {
     const deps = await getDependencies();
     if (!deps.ytdlp) throw new Error('yt-dlp bulunamadı; uygulama eksik kurulmuş olabilir.');
 
-    const result = await runProcess('yt-dlp', buildInfoArgs(url, deps.denoPath));
-    if (result.code !== 0) throw new Error(lastErrorLines(result.stderr) || 'Analiz hatası');
-
-    const data = JSON.parse(result.stdout) as {
-      title?: string;
-      duration?: number;
-      thumbnail?: string;
-      formats?: YtdlpFormat[];
-    };
-    return {
-      title: data.title ?? 'Bilinmeyen video',
-      url,
-      duration: data.duration,
-      thumbnail: data.thumbnail,
-      formats: buildOptions(data.formats ?? []),
-    };
+    const result = await runProcess('yt-dlp', buildInfoArgs({ url, denoPath: deps.denoPath, ...(await resolveNetwork(options)) }));
+    if (result.code !== 0) throw new EngineError(friendlyError(lastErrorLines(result.stderr) || 'Analiz hatası'));
+    return parseInfo(result.stdout, url);
   }
 
   async download(request: DownloadRequest, onProgress: (p: DownloadProgress) => void): Promise<DownloadResult> {
@@ -87,14 +83,8 @@ export class DesktopEngine implements DownloadEngine {
     if (!deps.ytdlp) return { status: 'error', message: 'yt-dlp bulunamadı.' };
     if (!deps.ffmpeg) return { status: 'error', message: 'FFmpeg bulunamadı; video birleştirme ve MP3 için gerekli.' };
 
-    const args = buildDownloadArgs({
-      url: request.url,
-      option,
-      outDir: request.outDir,
-      ffmpegPath: deps.ffmpegPath,
-      subtitles: request.subtitles,
-      denoPath: deps.denoPath,
-    });
+    const { id: _id, formatId: _formatId, ...rest } = await resolveNetwork(request);
+    const args = buildDownloadArgs({ ...rest, option, ffmpegPath: deps.ffmpegPath, denoPath: deps.denoPath });
 
     let destination = '';
     let filePath = '';
@@ -129,7 +119,7 @@ export class DesktopEngine implements DownloadEngine {
       const fileSize = await stat(filePath).then((s) => s.size, () => undefined);
       return { status: 'complete', filePath, fileSize };
     }
-    return { status: 'error', message: lastErrorLines(stderr.join('\n')) || 'İndirme hatası' };
+    return { status: 'error', ...friendlyError(lastErrorLines(stderr.join('\n')) || 'İndirme hatası') };
   }
 
   async cancel(id: string): Promise<void> {

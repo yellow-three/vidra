@@ -40,6 +40,33 @@ describe('createLimiter', () => {
     expect(ran).toBe(false);
   });
 
+  it('bekleyenleri verilen siraya gore baslatir', async () => {
+    const limiter = createLimiter(1);
+    const block = deferred();
+    const started: string[] = [];
+    void limiter.run('a', () => block.promise);
+    for (const id of ['b', 'c', 'd']) void limiter.run(id, async () => { started.push(id); });
+
+    limiter.reorder(['a', 'd', 'b', 'c']);
+    block.resolve();
+    await flush();
+    expect(started).toEqual(['d', 'b', 'c']);
+  });
+
+  it('siniri artirinca bekleyenleri hemen baslatir', async () => {
+    const limiter = createLimiter(1);
+    const block = deferred();
+    const started: string[] = [];
+    for (const id of ['a', 'b', 'c']) void limiter.run(id, async () => { started.push(id); await block.promise; });
+    await flush();
+    expect(started).toEqual(['a']);
+
+    limiter.setMax(3);
+    await flush();
+    expect(started).toEqual(['a', 'b', 'c']);
+    block.resolve();
+  });
+
   it('hata veren is yer acar', async () => {
     const limiter = createLimiter(1);
     await expect(limiter.run('a', async () => { throw new Error('x'); })).rejects.toThrow('x');

@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { HardDrive, Info, Package, Palette, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import type { AppSettings } from '../../types';
@@ -9,31 +8,11 @@ import { appApi } from '../../lib/appApi';
 import { invalidateSettings, useSaveSettings, useSettings } from './queries';
 import { useAppUpdate, useAppVersion, useInstallUpdate } from './appUpdate';
 import ThemePicker from './ThemePicker';
+import DownloadSettings from './DownloadSettings';
+import NetworkSettings from './NetworkSettings';
+import { Section, ToggleRow } from './SettingsParts';
+import { ytdlpVersionKey as versionKey } from './ytdlpAutoUpdate';
 
-const versionKey = ['ytdlp-version'] as const;
-
-function Section({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
-  return (
-    <section className="card bg-base-100 border border-base-300">
-      <div className="card-body gap-4">
-        <h2 className="card-title text-base gap-2">{icon}{title}</h2>
-        {children}
-      </div>
-    </section>
-  );
-}
-
-function ToggleRow({ label, description, checked, onChange }: { label: string; description: string; checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <label className="flex items-center justify-between gap-4 cursor-pointer">
-      <span>
-        <span className="block text-sm font-medium">{label}</span>
-        <span className="block text-xs text-base-content/60">{description}</span>
-      </span>
-      <input type="checkbox" className="toggle toggle-sm" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-    </label>
-  );
-}
 
 export default function SettingsForm() {
   const settings: AppSettings = useSettings().data ?? {};
@@ -118,6 +97,10 @@ export default function SettingsForm() {
         />
       </Section>
 
+      <DownloadSettings />
+
+      <NetworkSettings />
+
       <Section title="Görünüm" icon={<Palette size={18} />}>
         <ThemePicker />
       </Section>
@@ -132,6 +115,12 @@ export default function SettingsForm() {
           </button>
         </div>
         {updateYtdlp.isError && <p className="text-xs text-error">Güncelleme başarısız: {updateYtdlp.error.message}</p>}
+        <ToggleRow
+          label="yt-dlp'yi otomatik güncelle"
+          description="YouTube değiştikçe indirmeler bozulabilir; uygulama açılırken haftada bir güncellenir."
+          checked={settings.autoUpdateYtdlp ?? true}
+          onChange={(v) => updateAndSave('autoUpdateYtdlp', v)}
+        />
         <div className="divider my-0" />
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm">Uygulama</span>

@@ -1,6 +1,7 @@
 #[cfg(target_os = "linux")]
 pub mod appimage;
 pub mod legacy;
+mod cookies;
 mod dependencies;
 mod events;
 mod process;
@@ -10,7 +11,7 @@ use serde_json::{json, Value};
 use std::sync::Mutex;
 use std::{fs, path::PathBuf};
 use tauri::ipc::Channel;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Manager, RunEvent, State};
 use tauri_plugin_fs::FsExt;
 
 type CommandResult<T> = Result<T, String>;
@@ -276,7 +277,13 @@ pub fn run() {
             dependencies::update_ytdlp,
             dependencies::get_ytdlp_version,
             dependencies::get_platform,
+            cookies::cookie_source,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            if let RunEvent::Exit = event {
+                app.state::<AppState>().processes.kill_all();
+            }
+        });
 }

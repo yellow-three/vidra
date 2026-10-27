@@ -11,10 +11,10 @@ export default function StatusBadge({ task }: { task: Task }) {
       );
     case 'ready-to-select':
       return <span className="badge badge-info badge-soft badge-sm">Format seçin</span>;
+    case 'queued':
+      return <span className="badge badge-ghost badge-sm">Sırada</span>;
     case 'downloading':
-      return task.message
-        ? <span className="badge badge-ghost badge-sm">Sırada</span>
-        : <span className="badge badge-primary badge-soft badge-sm">İndiriliyor</span>;
+      return <span className="badge badge-primary badge-soft badge-sm">İndiriliyor</span>;
     case 'complete':
       return <span className="badge badge-success badge-soft badge-sm">Tamamlandı</span>;
     case 'cancelled':

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DownloadProgress, DownloadRequest, DownloadResult, VideoInfo } from '../../engine';
-import { buildOptions } from '../../engine/ytdlp';
+import { EngineError } from '../../engine/errors';
+import { buildOptions, playlistOptions } from '../../engine/ytdlp';
 
 const settings = { downloadDir: '/out', autoOpenFolder: false, downloadSubtitles: true } as Record<string, unknown>;
 
@@ -52,7 +53,7 @@ async function addReadyTask(url: string, title = 'Video') {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  delete settings.defaultFormat;
+  for (const key of ['defaultFormat', 'maxConcurrentDownloads', 'cookiesFromBrowser', 'proxy', 'rateLimit']) delete settings[key];
   useQueueStore.setState({ tasks: [], url: '' });
 });
 
@@ -93,7 +94,7 @@ describe('queue store', () => {
     const done = useQueueStore.getState().startDownload(id);
     await flush();
 
-    expect(calls[0].req).toMatchObject({ url: 'https://youtu.be/a', formatId: 'video-1080', outDir: '/out', subtitles: true });
+    expect(calls[0].req).toMatchObject({ url: 'https://youtu.be/a', formatId: 'video-1080', outDir: '/out', subtitles: true, embedMetadata: true });
     calls[0].progress({ percent: 42, speed: '1 MB/s', eta: '00:05' });
     expect(task(id)).toMatchObject({ status: 'downloading', percent: 42, speed: '1 MB/s', eta: '00:05' });
 
@@ -113,7 +114,7 @@ describe('queue store', () => {
     const runs = ids.map((id) => useQueueStore.getState().startDownload(id));
     await flush();
     expect(calls).toHaveLength(2);
-    expect(task(ids[2]).message).toBe('Sırada bekliyor...');
+    expect(task(ids[2]).status).toBe('queued');
 
     await useQueueStore.getState().cancel(ids[2]);
     expect(task(ids[2]).status).toBe('cancelled');
@@ -137,5 +138,100 @@ describe('queue store', () => {
     resolve(info('Gec'));
     await pending;
     expect(task(id).status).toBe('cancelled');
+  });
+
+  it('oynatma listesini ayni yerde videolarina acar', async () => {
+    mocks.getInfo.mockResolvedValueOnce({
+      title: 'Liste',
+      url: 'L',
+      formats: playlistOptions(),
+      entries: [{ url: 'https://youtu.be/1', title: 'Bir' }, { url: 'https://youtu.be/2', title: 'Iki' }],
+    } satisfies VideoInfo);
+    useQueueStore.getState().setUrl('https://www.youtube.com/playlist?list=PL');
+    await useQueueStore.getState().analyze();
+
+    const tasks = useQueueStore.getState().tasks;
+    expect(tasks.map((t) => [t.title, t.status, t.playlist])).toEqual([
+      ['Bir', 'ready-to-select', 'Liste'],
+      ['Iki', 'ready-to-select', 'Liste'],
+    ]);
+    expect(new Set(tasks.map((t) => t.id)).size).toBe(2);
+  });
+
+  it('listedeki videodan listenin tamamini ister', async () => {
+    const id = await addReadyTask('https://www.youtube.com/watch?v=a&list=PL');
+    mocks.getInfo.mockResolvedValueOnce({ title: 'Liste', url: 'L', formats: [], entries: [{ url: 'u', title: 'X' }] });
+    await useQueueStore.getState().expandPlaylist(id);
+    expect(mocks.getInfo).toHaveBeenLastCalledWith('https://www.youtube.com/watch?v=a&list=PL', expect.objectContaining({ playlist: true }));
+    expect(useQueueStore.getState().tasks.map((t) => t.title)).toEqual(['X']);
+  });
+
+  it('cerez ve proxy ayarlarini analize ve indirmeye verir', async () => {
+    settings.cookiesFromBrowser = 'firefox';
+    settings.proxy = ' socks5://h:1 ';
+    settings.rateLimit = '2M';
+    const calls = controllableDownload();
+    const id = await addReadyTask('https://youtu.be/a');
+    expect(mocks.getInfo).toHaveBeenCalledWith('https://youtu.be/a', { cookiesFromBrowser: 'firefox', proxy: 'socks5://h:1' });
+
+    const run = useQueueStore.getState().startDownload(id);
+    await flush();
+    expect(calls[0].req).toMatchObject({ cookiesFromBrowser: 'firefox', proxy: 'socks5://h:1', rateLimit: '2M' });
+    calls[0].finish({ status: 'cancelled' });
+    await run;
+  });
+
+  it('yukari tasinan siradaki indirme once baslar; ayardaki eszamanlilik uygulanir', async () => {
+    settings.maxConcurrentDownloads = 1;
+    const calls = controllableDownload();
+    const [a, b, c] = [await addReadyTask('a'), await addReadyTask('b'), await addReadyTask('c')];
+    // Liste en yeni ustte: c, b, a. Indirmeler a, b, c sirasiyla baslatilir.
+    const runs = [a, b, c].map((id) => useQueueStore.getState().startDownload(id));
+    await flush();
+    expect(calls.map((x) => x.req.url)).toEqual(['a']);
+    expect([task(b).status, task(c).status]).toEqual(['queued', 'queued']);
+
+    // b ve c yukari tasininca liste c, b, a olur; siradakiler bu sirayla baslar (FIFO olsaydi b, c).
+    useQueueStore.getState().move(b, 'up');
+    useQueueStore.getState().move(c, 'up');
+    calls[0].finish({ status: 'cancelled' });
+    await flush();
+    expect(calls.map((x) => x.req.url)).toEqual(['a', 'c']);
+
+    calls[1].finish({ status: 'cancelled' });
+    await flush();
+    calls[2].finish({ status: 'cancelled' });
+    await Promise.all(runs);
+    expect(calls.map((x) => x.req.url)).toEqual(['a', 'c', 'b']);
+  });
+
+  it('hepsini indir, secim bekleyenleri listedeki sirayla kuyruga alir', async () => {
+    settings.maxConcurrentDownloads = 1;
+    const calls = controllableDownload();
+    await addReadyTask('a');
+    await addReadyTask('b');
+    const all = useQueueStore.getState().startAll();
+    await flush();
+    expect(calls.map((x) => x.req.url)).toEqual(['b']);
+    calls[0].finish({ status: 'cancelled' });
+    await flush();
+    calls[1].finish({ status: 'cancelled' });
+    await all;
+    expect(calls.map((x) => x.req.url)).toEqual(['b', 'a']);
+  });
+
+  it('analiz hatasinin ham metnini ayrinti olarak saklar', async () => {
+    mocks.getInfo.mockRejectedValueOnce(new EngineError({ message: 'Video gizli.', detail: 'ERROR: Private video' }));
+    useQueueStore.getState().setUrl('https://youtu.be/x');
+    const id = (await useQueueStore.getState().analyze())!;
+    expect(task(id)).toMatchObject({ status: 'error', message: 'Video gizli.', detail: 'ERROR: Private video' });
+  });
+
+  it('bitenleri temizler', async () => {
+    const id = await addReadyTask('a');
+    await useQueueStore.getState().cancel(id);
+    await addReadyTask('b');
+    useQueueStore.getState().clearFinished();
+    expect(useQueueStore.getState().tasks.map((t) => t.url)).toEqual(['b']);
   });
 });

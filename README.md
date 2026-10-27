@@ -4,6 +4,12 @@ YouTube video ve ses indirme masaüstü uygulaması. Tauri 2 + React 19 + Tailwi
 
 **[Son sürümü indir](https://github.com/yellow-three/vidra/releases/latest)**
 
+- Video (4K'ya kadar, MP4) veya ses (MP3, M4A) indirme; kapak resmi, başlık, kanal ve bölümler dosyaya gömülür
+- Oynatma listeleri: listenin linkini yapıştırın, videolar kuyruğa gelir, "Hepsini indir" ile topluca inerler
+- Kuyruk: aynı anda kaç indirme yapılacağı ayarlanır, sıradakiler yukarı/aşağı taşınarak öne alınır; uygulama kapansa da kuyruk kalır, yarıda kalan indirme kaldığı yerden sürer
+- Tarayıcı çerezleri, proxy, hız sınırı, dosya adı biçimi, altyazı
+- yt-dlp haftada bir kendiliğinden güncellenir
+
 ## Kurulum
 
 ### Windows
@@ -36,6 +42,12 @@ yt-dlp, FFmpeg ve deno uygulamayla birlikte gelir; ayrıca kurmanız gerekmez.
 Uygulama yeni sürümü açılışta kendisi bulur; Ayarlar > Uygulama'dan da kontrol edilebilir. Otomatik güncelleme çalışmazsa yeni sürümü yukarıdaki gibi kurmanız yeterlidir: ayarlar ve indirme geçmişi korunur.
 
 YouTube değiştikçe indirmeler bozulabilir; önce Ayarlar'dan yt-dlp'yi güncelleyin.
+
+## Sorun giderme
+
+- **"YouTube bot doğrulaması istedi"**, yaş kısıtlamalı veya üyelere özel videolar: Ayarlar > Ağ ve hesap > Tarayıcı çerezleri'nden YouTube'a giriş yaptığınız tarayıcıyı seçin. Linux'ta Flatpak ve Snap tarayıcıların profilleri de bulunur. Windows'ta Chrome ve Edge çerezleri okunamayabilir; Firefox'u seçin.
+- **403 hatası** ya da beklenmedik indirme hataları: Ayarlar > Sistem'den yt-dlp'yi güncelleyin.
+- Hata kartındaki **Ayrıntı** yt-dlp'nin özgün mesajını gösterir; hata bildirirken onu ekleyin.
 
 ## Kaldırma
 
@@ -108,14 +120,18 @@ npm run tauri build   # paket üretimi
 ## Yapı
 
 - `src/engine/` — platformdan bağımsız indirme motoru (PLAN.md: `DownloadEngine`). yt-dlp argümanları, format seçenekleri, `%(progress)j` ayrıştırma ve yarım dosya seçimi saf TS'tir (`ytdlp.ts`, `ffmpeg.ts`); Android'de de aynı kod kullanılacak. `desktop.ts` bunları Rust süreç çalıştırıcısıyla çalıştırır.
-- `src/features/queue/` — eşzamanlı indirme sınırlayıcı.
+- `src/engine/errors.ts` — yt-dlp hatalarını Türkçe, çözüm öneren mesajlara çevirir (ham metin "Ayrıntı"da kalır).
+- `src/features/queue/` — kuyruk store'u, eşzamanlı indirme sınırlayıcı (sıradakiler listedeki sırayla başlar), kuyruğun localStorage'da saklanması (`persistence.ts`).
+- `src/features/settings/ytdlpAutoUpdate.ts` — açılışta haftada bir `yt-dlp -U`.
 - `src/` diğer — React arayüzü (Home, Downloads, Convert, Settings).
-- `src-tauri/src/process.rs` — programdan bağımsız süreç çalıştırıcı: süreci kendi grubunda başlatır (Unix process group, Windows Job Object), stdout/stderr satırlarını `Channel` ile iletir, iptalde tüm grubu öldürür. Webview yalnızca izin verilen programları (yt-dlp, ffmpeg) çalıştırabilir.
+- `src-tauri/src/process.rs` — programdan bağımsız süreç çalıştırıcı: süreci kendi grubunda başlatır (Unix process group, Windows Job Object), stdout/stderr satırlarını `Channel` ile iletir, iptalde ve uygulama kapanırken tüm grubu öldürür. Webview yalnızca izin verilen programları (yt-dlp, ffmpeg) çalıştırabilir.
 - `src-tauri/src/dependencies.rs` — sidecar yollarının çözümü ve yt-dlp güncellemesi.
 - `scripts/fetch-sidecars.mjs` — sidecar indirme ve checksum doğrulama.
 - `src-tauri/src/lib.rs` — ayarlar (`<app data>/settings.json`), SQLite migration'ları, klasör seçimi, fs kapsamı.
 - İndirme geçmişi SQLite'tadır: `<app config>/vidra.db` (Linux: `~/.config/io.github.yellow-three.vidra/`).
 - `src-tauri/src/events.rs` — pano (clipboard) izleme.
+- `src-tauri/src/cookies.rs` — `--cookies-from-browser` için tarayıcı profili; Linux'ta Flatpak/Snap profillerinden en son kullanılanı seçer.
+- Video dosya adlarına çözünürlük eklenir (`Başlık [1080p].mp4`): yt-dlp aynı adlı dosyayı "already downloaded" diyerek atladığı için aksi halde aynı videonun ikinci kalitesi indirilemezdi.
 
 ## Uygulama güncellemeleri ve sürüm yayınlama
 

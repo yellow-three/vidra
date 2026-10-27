@@ -78,6 +78,15 @@ impl ProcessManager {
         Ok(id)
     }
 
+    /// Uygulama kapanirken: Unix'te surec gruplari uygulamadan bagimsiz yasamaya devam ederdi
+    /// (Windows'ta Job Object kapaninca zaten sonlanir).
+    pub fn kill_all(&self) {
+        for entry in self.running.lock().unwrap().values() {
+            entry.killed.store(true, Ordering::SeqCst);
+            entry.group.kill();
+        }
+    }
+
     /// Surecin tum grubunu oldurur; surec zaten bittiyse `false` doner.
     pub fn kill(&self, id: u32) -> bool {
         let running = self.running.lock().unwrap();
@@ -269,6 +278,19 @@ mod tests {
         });
         assert!(gone, "torun surec hala calisiyor");
         assert!(!manager.kill(id), "biten surec tekrar oldurulemez");
+    }
+
+    #[test]
+    fn kill_all_stops_every_running_process() {
+        let manager = ProcessManager::new();
+        let (_, first) = collect(&manager, "sleep 30");
+        let (_, second) = collect(&manager, "sleep 30");
+
+        manager.kill_all();
+        for rx in [first, second] {
+            let events = until_exit(&rx);
+            assert_eq!(events.last(), Some(&ProcessEvent::Exit { code: None, killed: true }));
+        }
     }
 
     #[test]

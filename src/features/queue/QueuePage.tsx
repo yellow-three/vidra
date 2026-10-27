@@ -13,14 +13,14 @@ const shortenHome = (path: string) => path.replace(/^\/home\/[^/]+/, '~').replac
 
 export default function QueuePage() {
   const queue = useQueueStore((s) => s.tasks);
-  const { selectFormat, startDownload, cancel, retry, move } = useQueueStore.getState();
+  const { selectFormat, startDownload, startAll, cancel, retry, move, expandPlaylist, clearFinished } = useQueueStore.getState();
   const { status, depsReady } = useAppStatus();
   const appUpdate = useAppUpdate().data;
   const downloadDir = useSettings().data?.downloadDir;
 
   const count = (pred: (s: string) => boolean) => queue.filter((t) => pred(t.status)).length;
   const stats = [
-    { label: 'Bekleyen', value: count((s) => s === 'ready-to-select' || s === 'analyzing') },
+    { label: 'Bekleyen', value: count((s) => s === 'ready-to-select' || s === 'analyzing' || s === 'queued') },
     { label: 'İniyor', value: count((s) => s === 'downloading') },
     { label: 'Tamamlanan', value: count((s) => s === 'complete') },
     { label: 'Hatalı', value: count((s) => s === 'error') },
@@ -60,6 +60,9 @@ export default function QueuePage() {
           onCancel={(id) => void cancel(id)}
           onRetry={(task) => void retry(task.id)}
           onMove={move}
+          onExpandPlaylist={(id) => void expandPlaylist(id)}
+          onStartAll={() => void startAll()}
+          onClearFinished={clearFinished}
         />
       </div>
 

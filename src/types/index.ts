@@ -11,14 +11,20 @@ export interface Task {
   url: string;
   title: string;
   thumbnail?: string;
+  /** Oynatma listesinden geldiyse listenin adi. */
+  playlist?: string;
   formats?: VideoFormat[];
   selectedFormatId?: string;
   percent: number;
   speed: string;
   eta: string;
-  status: 'analyzing' | 'ready-to-select' | 'downloading' | 'complete' | 'cancelled' | 'error';
+  status: TaskStatus;
   message?: string;
+  /** Hata mesajinin cevrilmeden onceki ham hali. */
+  detail?: string;
 }
+
+export type TaskStatus = 'analyzing' | 'ready-to-select' | 'queued' | 'downloading' | 'complete' | 'cancelled' | 'error';
 
 export interface AppSettings {
   downloadDir?: string;
@@ -28,6 +34,21 @@ export interface AppSettings {
   theme?: string;
   autoOpenFolder?: boolean;
   downloadSubtitles?: boolean;
+  /** Kapak resmi ve baslik/kanal bilgilerini dosyaya gomer (varsayilan acik). */
+  embedMetadata?: boolean;
+  /** Ayni anda calisan indirme sayisi (varsayilan 2). */
+  maxConcurrentDownloads?: number;
+  /** engine/ytdlp.ts FILENAME_TEMPLATES anahtari. */
+  filenameTemplate?: string;
+  /** yt-dlp `--limit-rate` degeri; bos ise sinirsiz. */
+  rateLimit?: string;
+  /** `--cookies-from-browser` icin tarayici adi (firefox, chrome...); bos ise kapali. */
+  cookiesFromBrowser?: string;
+  proxy?: string;
+  /** Acilista haftada bir yt-dlp -U (varsayilan acik). */
+  autoUpdateYtdlp?: boolean;
+  /** Son basarili otomatik yt-dlp guncellemesi, Unix ms. */
+  ytdlpCheckedAt?: number;
   legalAccepted?: boolean;
 }
 

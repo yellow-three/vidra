@@ -10,11 +10,18 @@ interface TaskListProps {
   onCancel: (taskId: string) => void;
   onRetry: (task: Task) => void;
   onMove: (taskId: string, direction: 'up' | 'down') => void;
+  onExpandPlaylist: (taskId: string) => void;
+  onStartAll: () => void;
+  onClearFinished: () => void;
 }
 
-export default function TaskList({ tasks, onFormatChange, onStartDownload, onCancel, onRetry, onMove }: TaskListProps) {
+export default function TaskList({
+  tasks, onFormatChange, onStartDownload, onCancel, onRetry, onMove, onExpandPlaylist, onStartAll, onClearFinished,
+}: TaskListProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const selected = tasks.filter((t) => selectedIds.has(t.id));
+  const readyCount = tasks.filter((t) => t.status === 'ready-to-select').length;
+  const finishedCount = tasks.filter((t) => t.status === 'complete' || t.status === 'cancelled').length;
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -62,9 +69,17 @@ export default function TaskList({ tasks, onFormatChange, onStartDownload, onCan
               <button onClick={clearSelection} className="btn btn-xs btn-ghost">Vazgeç</button>
             </>
           ) : (
-            <button onClick={() => setSelectedIds(new Set(tasks.map((t) => t.id)))} className="btn btn-xs btn-ghost">
-              Tümünü seç
-            </button>
+            <>
+              {finishedCount > 0 && (
+                <button onClick={onClearFinished} className="btn btn-xs btn-ghost">Bitenleri temizle</button>
+              )}
+              <button onClick={() => setSelectedIds(new Set(tasks.map((t) => t.id)))} className="btn btn-xs btn-ghost">
+                Tümünü seç
+              </button>
+              {readyCount > 1 && (
+                <button onClick={onStartAll} className="btn btn-xs btn-neutral">Hepsini indir ({readyCount})</button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -81,6 +96,7 @@ export default function TaskList({ tasks, onFormatChange, onStartDownload, onCan
             onCancel={onCancel}
             onRetry={onRetry}
             onMove={onMove}
+            onExpandPlaylist={onExpandPlaylist}
             isFirst={idx === 0}
             isLast={idx === tasks.length - 1}
           />

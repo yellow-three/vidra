@@ -6,6 +6,10 @@ export interface Limiter {
   isQueued(id: string): boolean;
   /** Henuz baslamamis isi siradan cikarir. */
   dequeue(id: string): boolean;
+  /** Ayarlardan gelen yeni sinir; artarsa bekleyenler hemen baslar, azalirsa calisanlar surer. */
+  setMax(max: number): void;
+  /** Bekleyen isleri verilen kimlik sirasina dizer (kuyrukta yukari/asagi tasima). */
+  reorder(ids: string[]): void;
 }
 
 interface Waiting {
@@ -14,13 +18,13 @@ interface Waiting {
   skip: () => void;
 }
 
-export function createLimiter(max: number): Limiter {
+export function createLimiter(initialMax: number): Limiter {
+  let max = initialMax;
   let active = 0;
-  const waiting: Waiting[] = [];
+  let waiting: Waiting[] = [];
 
   const next = () => {
-    if (active >= max) return;
-    waiting.shift()?.start();
+    while (active < max && waiting.length) waiting.shift()!.start();
   };
 
   return {
@@ -47,6 +51,17 @@ export function createLimiter(max: number): Limiter {
       if (idx === -1) return false;
       waiting.splice(idx, 1)[0].skip();
       return true;
+    },
+
+    setMax(value) {
+      max = Math.max(1, value);
+      next();
+    },
+
+    reorder(ids) {
+      const rank = new Map(ids.map((id, i) => [id, i]));
+      // Listede olmayanlar (beklenmez ama) sona, kendi siralariyla.
+      waiting = [...waiting].sort((a, b) => (rank.get(a.id) ?? Infinity) - (rank.get(b.id) ?? Infinity));
     },
   };
 }

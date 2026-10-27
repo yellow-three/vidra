@@ -1,4 +1,5 @@
-import { ChevronDown, ChevronUp, CircleAlert, RotateCcw, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, CircleAlert, Info, ListPlus, ListVideo, RotateCcw, X } from 'lucide-react';
+import { isVideoInPlaylist } from '../../engine/ytdlp';
 import type { Task } from '../../types';
 import DownloadProgress from './DownloadProgress';
 import FormatSelector from './FormatSelector';
@@ -14,17 +15,21 @@ interface TaskCardProps {
   onCancel: (taskId: string) => void;
   onRetry: (task: Task) => void;
   onMove: (taskId: string, direction: 'up' | 'down') => void;
+  onExpandPlaylist: (taskId: string) => void;
   isFirst: boolean;
   isLast: boolean;
 }
 
 export default function TaskCard({
-  task, selected, onToggleSelect, onFormatChange, onStartDownload, onCancel, onRetry, onMove, isFirst, isLast,
+  task, selected, onToggleSelect, onFormatChange, onStartDownload, onCancel, onRetry, onMove, onExpandPlaylist, isFirst, isLast,
 }: TaskCardProps) {
   const analyzing = task.status === 'analyzing';
   const canCancel = analyzing || task.status === 'ready-to-select';
   const canRetry = task.status === 'error' || task.status === 'cancelled';
-  const canMove = task.status === 'ready-to-select' || task.status === 'complete';
+  const ready = task.status === 'ready-to-select';
+  // Siradakiler tasininca baslama siralari da degisir (store.move).
+  const canMove = !analyzing && task.status !== 'downloading';
+  const canExpand = ready && !task.playlist && isVideoInPlaylist(task.url);
 
   return (
     <article
@@ -56,7 +61,19 @@ export default function TaskCard({
               <h3 className="font-medium leading-snug line-clamp-2">{task.title}</h3>
             )}
             <p className="text-xs text-base-content/50 truncate">{task.url}</p>
-            <div><StatusBadge task={task} /></div>
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge task={task} />
+              {task.playlist && (
+                <span className="badge badge-ghost badge-sm gap-1 max-w-full" title={task.playlist}>
+                  <ListVideo size={12} className="shrink-0" /><span className="truncate">{task.playlist}</span>
+                </span>
+              )}
+              {canExpand && (
+                <button onClick={() => onExpandPlaylist(task.id)} className="btn btn-ghost btn-xs gap-1">
+                  <ListPlus size={14} /> Listenin tamamını ekle
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
@@ -84,11 +101,25 @@ export default function TaskCard({
         </div>
 
         <FormatSelector task={task} onFormatChange={onFormatChange} onStartDownload={onStartDownload} />
-        {task.status === 'downloading' && <DownloadProgress task={task} onCancel={onCancel} />}
+        {(task.status === 'downloading' || task.status === 'queued') && <DownloadProgress task={task} onCancel={onCancel} />}
+        {ready && task.message && (
+          <div role="status" className="alert alert-info alert-soft py-2 text-sm">
+            <Info size={16} />
+            <span className="min-w-0">{task.message}</span>
+          </div>
+        )}
         {task.status === 'error' && task.message && (
-          <div role="alert" className="alert alert-error alert-soft py-2 text-sm">
-            <CircleAlert size={16} />
-            <span className="break-words min-w-0">{task.message}</span>
+          <div role="alert" className="alert alert-error alert-soft py-2 text-sm items-start">
+            <CircleAlert size={16} className="mt-0.5" />
+            <div className="min-w-0 flex flex-col gap-1">
+              <span className="break-words">{task.message}</span>
+              {task.detail && (
+                <details className="text-xs opacity-70">
+                  <summary className="cursor-pointer">Ayrıntı</summary>
+                  <p className="font-mono break-words whitespace-pre-wrap mt-1">{task.detail}</p>
+                </details>
+              )}
+            </div>
           </div>
         )}
       </div>

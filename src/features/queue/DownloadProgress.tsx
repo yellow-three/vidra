@@ -1,7 +1,7 @@
 import type { Task } from '../../types';
 
 export default function DownloadProgress({ task, onCancel }: { task: Task; onCancel: (taskId: string) => void }) {
-  const queued = !!task.message;
+  const queued = task.status === 'queued';
   return (
     <div className="flex flex-col gap-1.5">
       {queued ? (
@@ -11,7 +11,7 @@ export default function DownloadProgress({ task, onCancel }: { task: Task; onCan
       )}
       <div className="flex items-center gap-3 text-xs text-base-content/60">
         {queued ? (
-          <span>{task.message}</span>
+          <span>Sırada bekliyor...</span>
         ) : (
           <>
             <span className="font-semibold text-base-content">%{task.percent}</span>

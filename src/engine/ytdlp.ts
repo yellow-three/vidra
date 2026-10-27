@@ -2,7 +2,7 @@
 // Platformdan bagimsizdir; masaustu ve Android motorlari ayni kodu kullanir.
 
 import { joinPath, splitPath, stem } from './paths';
-import type { DownloadOption, FormatOption } from './types';
+import type { DownloadOption, FormatOption, NetworkOptions, PlaylistEntry, VideoInfo } from './types';
 
 /** `yt-dlp -J` ciktisindaki format nesnesinin kullandigimiz alanlari. */
 export interface YtdlpFormat {
@@ -79,6 +79,64 @@ export function buildOptions(formats: YtdlpFormat[]): FormatOption[] {
   return options;
 }
 
+/** Oynatma listesi girdileri tek tek analiz edilmez; her cozunurluk "en fazla" olarak sunulur. */
+const PLAYLIST_HEIGHTS = [2160, 1440, 1080, 720, 480, 360];
+
+export function playlistOptions(): FormatOption[] {
+  const unknown = formatFilesize(null);
+  return [
+    ...PLAYLIST_HEIGHTS.map((h) => ({ formatId: `video-${h}`, resolution: `${h}p`, ext: 'mp4', note: 'en fazla bu kalite', filesize: unknown })),
+    { formatId: 'audio-mp3', resolution: 'Ses', ext: 'mp3', note: 'En iyi kalite', filesize: unknown },
+    { formatId: 'audio-m4a', resolution: 'Ses', ext: 'm4a', note: 'Dönüştürmesiz', filesize: unknown },
+  ];
+}
+
+/** `yt-dlp -J --flat-playlist` ciktisinin kullandigimiz alanlari. */
+interface InfoJson {
+  _type?: string;
+  title?: string;
+  duration?: number;
+  thumbnail?: string;
+  formats?: YtdlpFormat[];
+  entries?: {
+    id?: string;
+    url?: string;
+    title?: string;
+    duration?: number | null;
+    thumbnails?: { url?: string }[];
+  }[];
+}
+
+/** Silinmis/gizli videolar listede yer tutar ama indirilemez. */
+const UNAVAILABLE_TITLES = new Set(['[Private video]', '[Deleted video]']);
+
+export function parseInfo(json: string, url: string): VideoInfo {
+  const data = JSON.parse(json) as InfoJson;
+  if (data._type === 'playlist') {
+    const entries: PlaylistEntry[] = (data.entries ?? [])
+      .filter((e) => (e.url || e.id) && !UNAVAILABLE_TITLES.has(e.title ?? ''))
+      .map((e) => ({
+        url: e.url ?? `https://www.youtube.com/watch?v=${e.id}`,
+        title: e.title ?? 'Bilinmeyen video',
+        duration: e.duration ?? undefined,
+        thumbnail: e.thumbnails?.[e.thumbnails.length - 1]?.url,
+      }));
+    return { title: data.title ?? 'Oynatma listesi', url, formats: playlistOptions(), entries };
+  }
+  return {
+    title: data.title ?? 'Bilinmeyen video',
+    url,
+    duration: data.duration,
+    thumbnail: data.thumbnail,
+    formats: buildOptions(data.formats ?? []),
+  };
+}
+
+/** `watch?v=..&list=..`: video tek basina indirilir, istenirse liste ayrica eklenir. */
+export function isVideoInPlaylist(url: string): boolean {
+  return /[?&]v=/.test(url) && /[?&]list=/.test(url);
+}
+
 /**
  * YouTube imza cozumu icin yt-dlp'ye paketlenmis deno'yu gosterir;
  * yt-dlp deno'yu kendiliginden yalnizca PATH'te arar.
@@ -87,23 +145,65 @@ export function jsRuntimeArgs(denoPath?: string | null): string[] {
   return denoPath ? ['--js-runtimes', `deno:${denoPath}`] : [];
 }
 
-export function buildInfoArgs(url: string, denoPath?: string | null): string[] {
-  return [url, '-J', '--no-playlist', ...jsRuntimeArgs(denoPath)];
+export function networkArgs({ cookiesFromBrowser, proxy }: NetworkOptions): string[] {
+  return [
+    ...(cookiesFromBrowser ? ['--cookies-from-browser', cookiesFromBrowser] : []),
+    ...(proxy ? ['--proxy', proxy] : []),
+  ];
 }
 
-export interface DownloadArgsInput {
+export interface InfoArgsInput extends NetworkOptions {
+  url: string;
+  denoPath?: string | null;
+  playlist?: boolean;
+}
+
+export function buildInfoArgs({ url, denoPath, playlist, ...network }: InfoArgsInput): string[] {
+  return [
+    url, '-J',
+    // Liste girdileri tek tek acilmaz; yuzlerce videoluk listede saniyeler yerine dakikalar surerdi.
+    '--flat-playlist',
+    playlist ? '--yes-playlist' : '--no-playlist',
+    ...networkArgs(network),
+    ...jsRuntimeArgs(denoPath),
+  ];
+}
+
+/** Ayarlardaki dosya adi secenekleri; video adlarina ayrica cozunurluk eklenir. */
+export const FILENAME_TEMPLATES: Record<string, string> = {
+  title: '%(title)s',
+  'uploader-title': '%(uploader)s - %(title)s',
+  'title-id': '%(title)s [%(id)s]',
+};
+
+/**
+ * Ayni videonun farkli kalitesi ayni ada yazilsaydi yt-dlp "already downloaded" deyip
+ * eskisini dondururdu; cozunurluk ekiyle her kalite ayri dosyadir.
+ */
+export function outputTemplate(option: DownloadOption, template?: string): string {
+  const base = FILENAME_TEMPLATES[template ?? ''] ?? FILENAME_TEMPLATES.title;
+  const quality = option.kind === 'video' || option.kind === 'best-video' ? ' [%(height)sp]' : '';
+  return `${base}${quality}.%(ext)s`;
+}
+
+export interface DownloadArgsInput extends NetworkOptions {
   url: string;
   option: DownloadOption;
   outDir: string;
   ffmpegPath?: string | null;
   subtitles: boolean;
+  embedMetadata?: boolean;
+  filenameTemplate?: string;
+  rateLimit?: string;
   denoPath?: string | null;
 }
 
-export function buildDownloadArgs({ url, option, outDir, ffmpegPath, subtitles, denoPath }: DownloadArgsInput): string[] {
+export function buildDownloadArgs({
+  url, option, outDir, ffmpegPath, subtitles, embedMetadata, filenameTemplate, rateLimit, denoPath, ...network
+}: DownloadArgsInput): string[] {
   const args = [
     url,
-    '-o', joinPath(outDir, '%(title)s.%(ext)s'),
+    '-o', joinPath(outDir, outputTemplate(option, filenameTemplate)),
     '--no-playlist',
     '--newline',
     '--progress',
@@ -137,8 +237,11 @@ export function buildDownloadArgs({ url, option, outDir, ffmpegPath, subtitles, 
     // `--write-subs` eklenirse gomulduktan sonra .vtt dosyasi da diskte kalir.
     args.push('--embed-subs', '--sub-langs', 'tr,en');
   }
+  // MP4/MP3/M4A'da ffprobe olmadan calisir (webp kapak ffmpeg ile PNG'ye cevrilir).
+  if (embedMetadata) args.push('--embed-thumbnail', '--embed-metadata');
+  if (rateLimit) args.push('--limit-rate', rateLimit);
   if (ffmpegPath) args.push('--ffmpeg-location', ffmpegPath);
-  args.push(...jsRuntimeArgs(denoPath));
+  args.push(...networkArgs(network), ...jsRuntimeArgs(denoPath));
   return args;
 }
 

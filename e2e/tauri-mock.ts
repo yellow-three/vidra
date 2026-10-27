@@ -22,7 +22,9 @@ function install(options: MockOptions) {
 
   const state = {
     // Gercek backend ayarlari diske yazar; sayfa yenilense de korunsun.
-    settings: JSON.parse(sessionStorage.getItem('__mockSettings') ?? 'null') ?? { ...(options.settings ?? {}) } as Record<string, unknown>,
+    // ytdlpCheckedAt: acilistaki otomatik yt-dlp guncellemesi testleri bozmasin.
+    settings: JSON.parse(sessionStorage.getItem('__mockSettings') ?? 'null')
+      ?? { ytdlpCheckedAt: Date.now(), ...(options.settings ?? {}) } as Record<string, unknown>,
     deps: options.deps ?? { ytdlp: true, ffmpeg: true, deno: true },
     history: [...(options.history ?? [])] as Record<string, unknown>[],
     calls: [] as { cmd: string; args: unknown }[],
@@ -40,6 +42,15 @@ function install(options: MockOptions) {
     ],
   };
 
+  const playlist = {
+    _type: 'playlist',
+    title: 'Örnek liste',
+    entries: [
+      { id: 'a1', url: 'https://www.youtube.com/watch?v=a1', title: 'Birinci video', duration: 60 },
+      { id: 'b2', url: 'https://www.youtube.com/watch?v=b2', title: 'İkinci video', duration: 90 },
+    ],
+  };
+
   const emit = (event: string, payload: unknown) => {
     for (const id of listeners.get(event) ?? []) callbacks.get(id)?.({ event, payload, id });
   };
@@ -54,7 +65,8 @@ function install(options: MockOptions) {
     const pid = nextProcess++;
     if (args.args.includes('-J')) {
       setTimeout(() => {
-        args.onEvent.onmessage({ type: 'stdout', line: JSON.stringify(info) });
+        const isPlaylist = args.args[0].includes('playlist?list=') || args.args.includes('--yes-playlist');
+        args.onEvent.onmessage({ type: 'stdout', line: JSON.stringify(isPlaylist ? playlist : info) });
         args.onEvent.onmessage({ type: 'exit', code: 0, killed: false });
       }, 50);
     } else {
@@ -73,6 +85,8 @@ function install(options: MockOptions) {
       return { success: true };
     },
     get_download_folder: () => '/home/u/Downloads',
+    cookie_source: ({ browser }) => browser,
+    'plugin:dialog|ask': () => true,
     select_download_folder: () => ({ success: false, error: 'iptal' }),
     check_dependencies: () => ({ ...state.deps, ytdlpPath: '/bin/ytd-yt-dlp', ffmpegPath: '/bin/ytd-ffmpeg', denoPath: '/bin/ytd-deno' }),
     get_ytdlp_version: () => ({ version: '2026.10.21' }),

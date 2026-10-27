@@ -1,5 +1,10 @@
 import { Download, FileAudio, FileVideo } from 'lucide-react';
-import type { Task } from '../../types';
+import { formatFilesize } from '../../engine/ytdlp';
+import type { Task, VideoFormat } from '../../types';
+
+const UNKNOWN_SIZE = formatFilesize(null);
+/** Oynatma listesi girdilerinde boyut bilinmez; yerine secenegin notu gosterilir. */
+const sizeOrNote = (f: VideoFormat) => (f.filesize === UNKNOWN_SIZE ? f.note : f.filesize);
 
 interface FormatSelectorProps {
   task: Task;
@@ -22,12 +27,12 @@ export default function FormatSelector({ task, onFormatChange, onStartDownload }
         <select value={selected} onChange={(e) => onFormatChange(task.id, e.target.value)} aria-label="Format">
           <optgroup label="Video (MP4)">
             {videos.map((f) => (
-              <option key={f.formatId} value={f.formatId}>{f.resolution} · {f.filesize}</option>
+              <option key={f.formatId} value={f.formatId}>{f.resolution} · {sizeOrNote(f)}</option>
             ))}
           </optgroup>
           <optgroup label="Yalnızca ses">
             {audios.map((f) => (
-              <option key={f.formatId} value={f.formatId}>{f.ext.toUpperCase()} · {f.note} · {f.filesize}</option>
+              <option key={f.formatId} value={f.formatId}>{f.ext.toUpperCase()} · {f.note}{f.filesize === UNKNOWN_SIZE ? '' : ` · ${f.filesize}`}</option>
             ))}
           </optgroup>
         </select>
