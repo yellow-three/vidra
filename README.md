@@ -2,15 +2,65 @@
 
 YouTube video ve ses indirme masaüstü uygulaması. Tauri 2 + React 19 + Tailwind/DaisyUI, indirme motoru yt-dlp + FFmpeg.
 
+**[Son sürümü indir](https://github.com/yellow-three/vidra/releases/latest)**
+
+## Kurulum
+
+### Windows
+
+`Vidra_<sürüm>_x64-setup.exe` dosyasını indirip çalıştırın (`.msi`, toplu/kurumsal kurulum içindir).
+
+Kurulum dosyası kod imzalı olmadığından Windows SmartScreen "Windows bilgisayarınızı korudu" uyarısı gösterebilir: **Ek bilgi > Yine de çalıştır**.
+
+### Linux
+
+| Dağıtım | Dosya | Kurulum |
+|---|---|---|
+| Ubuntu, Debian, Linux Mint | `.deb` | `sudo apt install ./Vidra_<sürüm>_amd64.deb` |
+| Fedora | `.rpm` | `sudo dnf install ./Vidra-<sürüm>-1.x86_64.rpm` |
+| openSUSE | `.rpm` | `sudo zypper install ./Vidra-<sürüm>-1.x86_64.rpm` |
+| Diğerleri (Arch vb.) | `.AppImage` | `chmod +x Vidra_<sürüm>_amd64.AppImage` ve çalıştırın |
+
+Dağıtımınızın paketi varsa (`.deb` / `.rpm`) onu tercih edin: uygulama menüye eklenir ve paket yöneticisiyle kaldırılabilir.
+
+AppImage `libfuse2` istemez, yalnızca sistemde `fusermount` olmalıdır; masaüstü dağıtımlarının çoğunda kurulu gelir. "No suitable fusermount binary found" hatası alırsanız:
+
+- Ubuntu, Debian: `sudo apt install fuse3`
+- Fedora: `sudo dnf install fuse3`
+- Arch: `sudo pacman -S fuse3`
+
+yt-dlp, FFmpeg ve deno uygulamayla birlikte gelir; ayrıca kurmanız gerekmez.
+
+## Güncelleme
+
+Uygulama yeni sürümü açılışta kendisi bulur; Ayarlar > Uygulama'dan da kontrol edilebilir. Otomatik güncelleme çalışmazsa yeni sürümü yukarıdaki gibi kurmanız yeterlidir: ayarlar ve indirme geçmişi korunur.
+
+YouTube değiştikçe indirmeler bozulabilir; önce Ayarlar'dan yt-dlp'yi güncelleyin.
+
+## Kaldırma
+
+- Windows: Ayarlar > Uygulamalar > Vidra > Kaldır
+- `.deb`: `sudo apt remove vidra`
+- `.rpm`: `sudo dnf remove vidra` (openSUSE: `sudo zypper remove vidra`)
+- AppImage: dosyayı silin
+
+v0.1.0'ın paket adı `you-tube-downloader`'dır; Vidra paketi kurulunca onun yerini alır.
+
+Ayarlar ve geçmiş kaldırmadan sonra da kalır; tamamen silmek için Linux'ta `~/.config/io.github.yellow-three.vidra` ve `~/.local/share/io.github.yellow-three.vidra` (v0.1.0: `com.abdurrahman.youtubedownloader`) klasörlerini silin.
+
+İndirilen içeriklerin telif haklarına ve YouTube Hizmet Şartları'na uygun kullanılması kullanıcının sorumluluğundadır.
+
+---
+
+# Geliştirme
+
 İlk hedef masaüstü; Android sonraya bırakıldı.
 
-Uygulama v0.1.0'da "YouTube Downloader" (`com.abdurrahman.youtubedownloader`) adıyla yayınlandı. Kimlik `io.github.yellow-three.vidra` oldu; eski ayarlar, geçmiş ve yt-dlp kopyası ilk açılışta yeni klasöre taşınır (`src-tauri/src/legacy.rs`). `.deb`/`.rpm` paketleri eski `you-tube-downloader` paketinin yerini alır.
+Uygulama v0.1.0'da "YouTube Downloader" (`com.abdurrahman.youtubedownloader`) adıyla, ayrı (artık silinmiş) `vidra-releases` reposunda yayınlandı. Kimlik `io.github.yellow-three.vidra` oldu; eski ayarlar, geçmiş ve yt-dlp kopyası ilk açılışta yeni klasöre taşınır (`src-tauri/src/legacy.rs`). `.deb`/`.rpm` paketleri eski `you-tube-downloader` paketinin yerini alır.
 
-## Kullanıcı kurulumu
+## Dağıtım notları
 
-Kullanıcılar uygulamayı [`vidra-releases`](https://github.com/yellow-three/vidra-releases/releases/latest) reposundan indirir; dağıtıma göre kurulum, güncelleme ve kaldırma talimatları o reponun README'sindedir. Release notlarındaki kısa kurulum metni `.github/workflows/release.yml` içindeki `releaseBody`'dedir; ikisi birlikte güncellenmelidir.
-
-- Linux'ta `.deb` / `.rpm` önerilir (menüye eklenir, paket yöneticisiyle kaldırılır). Paket adı `vidra`'dır.
+- Release notlarındaki kısa kurulum metni `.github/workflows/release.yml` içindeki `releaseBody`'dedir; yukarıdaki "Kurulum" bölümüyle birlikte güncellenmelidir.
 - AppImage, AppImage'ın statik runtime'ıyla gelir: `libfuse2` istemez, yalnızca `fusermount` (`fuse3` paketi) gerekir.
 - Windows kurulum dosyaları kod imzalı değildir; SmartScreen uyarı verir.
 - Flathub'a şimdilik gönderilmiyor: Flatpak içinde uygulama ve yt-dlp güncelleyicilerinin kapatılması gerekir. Flatpak app ID'sinde tire kullanılamadığı için orada `io.github.yellow_three.vidra` olur (Tauri kimliği ise alt çizgi kabul etmez).
@@ -69,13 +119,12 @@ npm run tauri build   # paket üretimi
 
 ## Uygulama güncellemeleri ve sürüm yayınlama
 
-Uygulama açılışta ve Ayarlar > Uygulama'dan `https://github.com/yellow-three/vidra-releases/releases/latest/download/latest.json` adresini kontrol eder (tauri-plugin-updater). Sürümler ayrı [`vidra-releases`](https://github.com/yellow-three/vidra-releases) reposunda yayınlanır (kaynak repo ilk sürümde private'tı; v0.1.0 kurulumları bu adresi, GitHub'ın eski `youtube-downloader-releases` yönlendirmesiyle bulur). Güncellemeler minisign ile imzalıdır; açık anahtar `tauri.conf.json`'dadır.
+Uygulama açılışta ve Ayarlar > Uygulama'dan `https://github.com/yellow-three/vidra/releases/latest/download/latest.json` adresini kontrol eder (tauri-plugin-updater). Güncellemeler minisign ile imzalıdır; açık anahtar `tauri.conf.json`'dadır.
 
 - Özel anahtar repo dışında: `~/.tauri/youtube-downloader.key` (parolalı). **Kaybolursa kurulu uygulamalara bir daha güncelleme gönderilemez — yedekleyin.**
-- Bu reponun Settings > Secrets and variables > Actions > **Repository secrets**:
-  - `TAURI_SIGNING_PRIVATE_KEY` (anahtar dosyasının içeriği), `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
-  - `RELEASES_TOKEN`: yalnızca `vidra-releases` reposuna **Contents: Read and write** yetkili fine-grained token (`GITHUB_TOKEN` başka repoya yazamaz).
-- Yayın: `tauri.conf.json` ve `package.json` sürümünü artırın, `vX.Y.Z` etiketi push edin. `.github/workflows/release.yml` imzalı paketleri ve `latest.json`'ı releases reposunda **taslak** bir release'e yükler (etiket o reponun `dev` branch'inden oluşturulur); taslağı yayınlayınca kurulu uygulamalar güncellemeyi görür.
+- Repo Settings > Secrets and variables > Actions > **Repository secrets**: `TAURI_SIGNING_PRIVATE_KEY` (anahtar dosyasının içeriği), `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+- Yayın: `tauri.conf.json` ve `package.json` sürümünü artırın, `vX.Y.Z` etiketi push edin. `.github/workflows/release.yml` imzalı paketleri ve `latest.json`'ı bu repoda **taslak** bir release'e yükler; taslağı yayınlayınca kurulu uygulamalar güncellemeyi görür.
+- v0.1.0 kurulumları güncellemeyi silinmiş `vidra-releases` reposunda aradığı için kendiliğinden güncellenmez; yeni sürümü elle kurmaları gerekir (ayarlar ve geçmiş taşınır). v0.1.0'ın dosyaları bu reponun release'lerine taşındı.
 - Linux'ta `latest.json`'daki `linux-x86_64` girdisi AppImage'ı gösterir; `.deb`/`.rpm` kurulumlarının kendini güncellemesi denenmedi.
 - Yerel `tauri build` imza anahtarı istemez; updater dosyaları yalnızca release workflow'unda üretilir.
 
