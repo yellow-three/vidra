@@ -4,6 +4,15 @@ YouTube video ve ses indirme masaüstü uygulaması. Tauri 2 + React 19 + Tailwi
 
 `~/Projects/yt-downloader` projesinin (`tauri-android-migration`, commit `2554e85`) arayüzü ve Rust backend'i temel alınarak kuruldu. İlk hedef masaüstü; Android sonraya bırakıldı.
 
+## Kullanıcı kurulumu
+
+Kullanıcılar uygulamayı [`youtube-downloader-releases`](https://github.com/yellow-three/youtube-downloader-releases/releases/latest) reposundan indirir; dağıtıma göre kurulum, güncelleme ve kaldırma talimatları o reponun README'sindedir. Release notlarındaki kısa kurulum metni `.github/workflows/release.yml` içindeki `releaseBody`'dedir; ikisi birlikte güncellenmelidir.
+
+- Linux'ta `.deb` / `.rpm` önerilir (menüye eklenir, paket yöneticisiyle kaldırılır). Paket adı Tauri'nin `productName`'den ürettiği `you-tube-downloader`'dır.
+- AppImage, AppImage'ın statik runtime'ıyla gelir: `libfuse2` istemez, yalnızca `fusermount` (`fuse3` paketi) gerekir.
+- Windows kurulum dosyaları kod imzalı değildir; SmartScreen uyarı verir.
+- Flathub'a şimdilik gönderilmiyor: kaynağın public olması, marka içermeyen bir ad/ikon/app ID ve Flatpak içinde uygulama ile yt-dlp güncelleyicisinin kapatılması gerekir.
+
 ## Gereksinimler
 
 - Node.js 24+

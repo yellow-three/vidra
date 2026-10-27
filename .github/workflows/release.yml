@@ -55,7 +55,17 @@ jobs:
           releaseCommitish: dev
           tagName: ${{ github.ref_name }}
           releaseName: YouTube Downloader ${{ github.ref_name }}
+          # Kurulum notu releases reposunun README'siyle ayni tutulur.
           releaseBody: |
+            ## Kurulum
+
+            - **Windows:** `x64-setup.exe` dosyasını çalıştırın. İmzasız olduğu için SmartScreen uyarı verebilir: **Ek bilgi > Yine de çalıştır**.
+            - **Ubuntu / Debian / Mint:** `.deb` → `sudo apt install ./YouTube.Downloader_*_amd64.deb`
+            - **Fedora:** `.rpm` → `sudo dnf install ./YouTube.Downloader-*.x86_64.rpm` (openSUSE: `sudo zypper install ...`)
+            - **Diğer Linux dağıtımları:** `.AppImage` → `chmod +x` ile çalıştırılabilir yapıp açın. "No suitable fusermount binary found" hatasında `fuse3` paketini kurun.
+
+            yt-dlp, FFmpeg ve deno uygulamayla birlikte gelir. Ayrıntılar, güncelleme ve kaldırma: https://github.com/yellow-three/youtube-downloader-releases#kurulum
+
             İndirilen içeriklerin telif haklarına ve YouTube Hizmet Şartları'na uygun kullanılması kullanıcının sorumluluğundadır.
 
             Paketlenen bileşenler: yt-dlp (Unlicense), deno (MIT), FFmpeg (LGPL, BtbN build'i; kaynak: https://github.com/BtbN/FFmpeg-Builds ve https://ffmpeg.org). FFmpeg lisans metni uygulamanın `licenses/` klasöründedir.
