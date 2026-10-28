@@ -250,6 +250,22 @@ const tr = {
     playlistFolderHint: 'Listeden inen videolar, indirme klasöründe listenin adını taşıyan bir klasöre kaydedilir.',
   },
 
+  sponsorBlock: {
+    title: 'SponsorBlock',
+    description: 'Topluluğun işaretlediği sponsor, tanıtım ve "abone ol" bölümlerini videoda bölüm olarak gösterir ya da tamamen keser.',
+    needsFfprobe: 'SponsorBlock için ffprobe gerekir. Uygulama boyutunu küçük tutmak için ffprobe pakete eklenmedi; isterseniz şimdi indirilip kurulur (yaklaşık 135 MB indirme, kurulumdan sonra 140 MB yer).',
+    install: 'ffprobe\'u indir ve kur',
+    downloading: 'ffprobe indiriliyor',
+    installFailed: (e: string) => `ffprobe kurulamadı: ${e}`,
+    installed: 'ffprobe kurulu.',
+    uninstall: 'Kaldır',
+    mode: 'Sponsor bölümleri',
+    off: 'Kapalı',
+    mark: 'Bölüm olarak işaretle',
+    remove: 'Videodan kes',
+    hint: 'Kesme yalnızca sponsor, kendi tanıtımı ve etkileşim isteği bölümlerini çıkarır. Bölüm bilgisi olmayan videolar olduğu gibi iner.',
+  },
+
   network: {
     title: 'Ağ ve hesap',
     cookies: 'Tarayıcı çerezleri',

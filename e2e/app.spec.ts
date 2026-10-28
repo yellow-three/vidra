@@ -287,3 +287,21 @@ test('dil: sistem dili Ingilizceyse arayuz Ingilizce, ayardan Turkceye gecer', a
   await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
   await context.close();
 });
+
+test('SponsorBlock: ffprobe indirilince secilir ve indirmeye eklenir', async ({ page }) => {
+  await mockTauri(page, { settings: accepted });
+  await page.goto('/settings');
+  await expect(page.getByText('SponsorBlock için ffprobe gerekir')).toBeVisible();
+  await page.getByRole('button', { name: 'ffprobe\'u indir ve kur' }).click();
+  await expect(page.getByText('ffprobe kurulu.')).toBeVisible();
+
+  await page.getByRole('combobox').filter({ has: page.getByRole('option', { name: 'Videodan kes' }) }).selectOption('remove');
+  expect(await calls(page, 'save_settings')).toContainEqual({ settings: { sponsorBlock: 'remove' } });
+
+  await page.getByRole('link', { name: 'İndir' }).click();
+  await analyze(page);
+  await page.getByRole('button', { name: 'İndir', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).__mock.state.downloads.length)).toBe(1);
+  const spawned = (await calls(page, 'process_spawn')).map((a: any) => a.args.join(' '));
+  expect(spawned[1]).toContain('--sponsorblock-remove sponsor,selfpromo,interaction');
+});

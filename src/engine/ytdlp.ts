@@ -3,7 +3,7 @@
 
 import { msg } from '../i18n';
 import { joinPath, splitPath, stem } from './paths';
-import type { DownloadOption, FormatOption, NetworkOptions, PlaylistEntry, TimeRange, VideoInfo } from './types';
+import type { DownloadOption, FormatOption, NetworkOptions, PlaylistEntry, SponsorBlockMode, TimeRange, VideoInfo } from './types';
 
 /** `yt-dlp -J` ciktisindaki format nesnesinin kullandigimiz alanlari. */
 export interface YtdlpFormat {
@@ -241,11 +241,15 @@ export interface DownloadArgsInput extends NetworkOptions {
   subtitleLangs?: string;
   subfolder?: string;
   section?: TimeRange;
+  sponsorBlock?: SponsorBlockMode;
 }
+
+/** Kesilince videonun konusu bozulmayan SponsorBlock kategorileri; isaretlemede hepsi bolum olur. */
+const SPONSOR_REMOVE = 'sponsor,selfpromo,interaction';
 
 export function buildDownloadArgs({
   url, option, outDir, ffmpegPath, subtitles, embedMetadata, filenameTemplate, rateLimit, denoPath,
-  subtitleLangs, subfolder, section, ...network
+  subtitleLangs, subfolder, section, sponsorBlock, ...network
 }: DownloadArgsInput): string[] {
   const args = [
     url,
@@ -286,6 +290,8 @@ export function buildDownloadArgs({
   if (section) {
     args.push('--download-sections', `*${section.start}-${section.end ?? 'inf'}`);
   }
+  if (sponsorBlock === 'mark') args.push('--sponsorblock-mark', 'all');
+  if (sponsorBlock === 'remove') args.push('--sponsorblock-remove', SPONSOR_REMOVE);
 
   // MP4/MP3/M4A'da ffprobe olmadan calisir (webp kapak ffmpeg ile PNG'ye cevrilir).
   if (embedMetadata) args.push('--embed-thumbnail', '--embed-metadata');

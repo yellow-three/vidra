@@ -11,6 +11,7 @@ YouTube video ve ses indirme masaüstü uygulaması. Tauri 2 + React 19 + Tailwi
 - Kuyruk: aynı anda kaç indirme yapılacağı ayarlanır, sıradakiler yukarı/aşağı taşınarak öne alınır; uygulama kapansa da kuyruk kalır, yarıda kalan indirme kaldığı yerden sürer
 - Geçmiş: arama, dosyayı oynatma, yeniden indirme; diskten silinen dosyalar işaretlenir
 - Tarayıcı çerezleri, proxy, hız sınırı, dosya adı biçimi, altyazı dilleri
+- SponsorBlock: sponsor bölümlerini işaretleme ya da kesme (gereken ffprobe istenirse uygulama içinden indirilir)
 - Türkçe ve İngilizce arayüz (sistem diline göre; Ayarlar > Görünüm'den değiştirilir)
 - yt-dlp haftada bir kendiliğinden güncellenir
 
@@ -111,7 +112,7 @@ FFMPEG_DIR=/yol/lgpl-ffmpeg npm run sidecars        # macOS: hazır LGPL kaynağ
 
 - `ytd-` öneki şart: Linux paketleri sidecar'ları `/usr/bin`'e kurar ve önek olmadan sistemdeki `ffmpeg` / `yt-dlp` paketleriyle çakışır.
 - Sürümler `scripts/fetch-sidecars.mjs` başında sabittir (yt-dlp, deno). FFmpeg, BtbN'in `n9.0` dalının en güncel LGPL build'idir; BtbN eski build'leri silmediği için sabitlenemez.
-- `ffprobe` bilerek paketlenmez (kurulu boyutta ~140 MB). yt-dlp birleştirme, MP3/M4A, altyazı/kapak/metadata gömme ve remux'u onsuz aynı çıktıyla yapar; yalnızca HLS (m3u8) indirmelerinde zararsız bir "ffprobe not found" uyarısı yazar. BtbN'in `lgpl-shared` build'i de denendi: ffmpeg + ffprobe + kütüphaneler ~170 MB ve Linux'ta kütüphanelerin `/usr/lib`'e kurulmasını gerektiriyor.
+- `ffprobe` bilerek paketlenmez (kurulu boyutta ~140 MB); yalnızca SponsorBlock için gerekir. Kullanıcı Ayarlar > SponsorBlock'tan isterse aynı BtbN LGPL build'i indirilir, `checksums.sha256` ile doğrulanır ve yalnızca ffprobe `<app data>/bin/ffmpeg-tools/`e çıkarılır; paketlenmiş ffmpeg aynı klasöre bağlanır ve yt-dlp'ye `--ffmpeg-location` olarak bu klasör verilir (`src-tauri/src/ffprobe.rs`). yt-dlp birleştirme, MP3/M4A, altyazı/kapak/metadata gömme ve remux'u onsuz aynı çıktıyla yapar; yalnızca HLS (m3u8) indirmelerinde zararsız bir "ffprobe not found" uyarısı yazar. BtbN'in `lgpl-shared` build'i de denendi: ffmpeg + ffprobe + kütüphaneler ~170 MB ve Linux'ta kütüphanelerin `/usr/lib`'e kurulmasını gerektiriyor.
 - FFmpeg LGPL olduğundan GPL'li `libx264` yoktur; Dönüştür sayfası MP4 için `libopenh264` kullanır. FFmpeg lisans metni pakete `licenses/` altında eklenir.
 - yt-dlp sık bozulur: Ayarlar'daki güncelleme, paketlenmiş kopyayı app data `bin/` altına kopyalayıp `yt-dlp -U` çalıştırır (uygulama dizini çoğu kurulumda salt okunurdur). Uygulama daha yeni bir yt-dlp ile güncellenirse eski kopya açılışta silinir.
 - yt-dlp YouTube için JS runtime ister; paketlenmiş deno `--js-runtimes deno:<yol>` ile verilir.

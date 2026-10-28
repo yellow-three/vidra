@@ -1,4 +1,4 @@
-import type { TimeRange } from '../engine/types';
+import type { SponsorBlockMode, TimeRange } from '../engine/types';
 
 export interface VideoFormat {
   formatId: string;
@@ -42,6 +42,8 @@ export interface AppSettings {
   subtitleLangs?: string;
   /** Oynatma listesi videolari liste adiyla bir alt klasore iner (varsayilan acik). */
   playlistSubfolder?: boolean;
+  /** ffprobe kurulu degilse uygulanmaz. */
+  sponsorBlock?: SponsorBlockMode;
   /** Kapak resmi ve baslik/kanal bilgilerini dosyaya gomer (varsayilan acik). */
   embedMetadata?: boolean;
   /** Ayni anda calisan indirme sayisi (varsayilan 2). */

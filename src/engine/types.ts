@@ -69,7 +69,12 @@ export interface DownloadRequest extends NetworkOptions {
   subfolder?: string;
   /** Yalnizca bu araligi indirir (saniye); `end` yoksa videonun sonuna kadar. */
   section?: TimeRange;
+  /** ffprobe kurulu degilse motor yok sayar (src-tauri/src/ffprobe.rs). */
+  sponsorBlock?: SponsorBlockMode;
 }
+
+/** `mark`: sponsor bolumleri dosyaya bolum olarak eklenir; `remove`: dosyadan kesilir. */
+export type SponsorBlockMode = 'off' | 'mark' | 'remove';
 
 export interface TimeRange {
   start: number;

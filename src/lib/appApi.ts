@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { Channel, invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { AppSettings, HistoryItem } from '../types';
 import type { AppApi, IpcResult } from '../types/app-api';
@@ -36,5 +36,11 @@ export const appApi: AppApi = {
   filesExist: (paths) => invoke<boolean[]>('files_exist', { paths }),
 
   checkDependencies: () => invoke('check_dependencies'),
+  installFfprobe: async (onProgress) => {
+    const channel = new Channel<number>();
+    channel.onmessage = onProgress;
+    await invoke('install_ffprobe', { onProgress: channel });
+  },
+  removeFfprobe: () => invoke('remove_ffprobe'),
   getPlatform: () => invoke<string>('get_platform'),
 };

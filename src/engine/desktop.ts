@@ -22,6 +22,8 @@ import {
 interface Dependencies {
   ytdlp: boolean;
   ffmpeg: boolean;
+  /** Varsa `ffmpegPath` ffmpeg + ffprobe klasorudur. */
+  ffprobe: boolean;
   ffmpegPath: string | null;
   denoPath: string | null;
 }
@@ -84,8 +86,15 @@ export class DesktopEngine implements DownloadEngine {
     if (!deps.ytdlp) return { status: 'error', message: msg().engine.noYtdlp };
     if (!deps.ffmpeg) return { status: 'error', message: msg().engine.noFfmpeg };
 
-    const { id: _id, formatId: _formatId, ...rest } = await resolveNetwork(request);
-    const args = buildDownloadArgs({ ...rest, option, ffmpegPath: deps.ffmpegPath, denoPath: deps.denoPath });
+    const { id: _id, formatId: _formatId, sponsorBlock, ...rest } = await resolveNetwork(request);
+    const args = buildDownloadArgs({
+      ...rest,
+      option,
+      // ffprobe olmadan yt-dlp SponsorBlock'ta "Unable to determine video duration" ile durur.
+      sponsorBlock: deps.ffprobe ? sponsorBlock : undefined,
+      ffmpegPath: deps.ffmpegPath,
+      denoPath: deps.denoPath,
+    });
 
     let destination = '';
     let filePath = '';

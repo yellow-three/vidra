@@ -5,7 +5,7 @@ import type { Page } from '@playwright/test';
 
 export interface MockOptions {
   settings?: Record<string, unknown>;
-  deps?: { ytdlp: boolean; ffmpeg: boolean; deno: boolean };
+  deps?: { ytdlp: boolean; ffmpeg: boolean; deno: boolean; ffprobe?: boolean };
   history?: Record<string, unknown>[];
   /** Sunulacak uygulama guncellemesi; yoksa "guncel". */
   update?: { version: string; body: string } | null;
@@ -98,6 +98,15 @@ function install(options: MockOptions) {
     open_file_location: () => ({ success: true }),
     open_file: () => ({ success: true }),
     is_flatpak: () => false,
+    install_ffprobe: ({ onProgress }: any) => {
+      for (const p of [0, 50, 100]) onProgress.onmessage(p);
+      state.deps = { ...state.deps, ffprobe: true };
+      return null;
+    },
+    remove_ffprobe: () => {
+      state.deps = { ...state.deps, ffprobe: false };
+      return null;
+    },
     files_exist: (args: { paths: string[] }) => args.paths.map((p) => !p.includes('silinmis')),
     process_spawn: spawn,
     process_kill: ({ id }) => {

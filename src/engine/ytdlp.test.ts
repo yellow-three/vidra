@@ -260,4 +260,12 @@ describe('bolum ve klasor', () => {
     expect(buildDownloadArgs({ url: 'U', option: { kind: 'mp3' }, outDir: '/o', subtitles: false, section: { start: 3 } }))
       .toContain('*3-inf');
   });
+
+  it('SponsorBlock modunu argumanlara cevirir', () => {
+    const base = { url: 'U', option: { kind: 'mp3' } as const, outDir: '/o', subtitles: false };
+    expect(buildDownloadArgs({ ...base, sponsorBlock: 'mark' })).toEqual(expect.arrayContaining(['--sponsorblock-mark', 'all']));
+    expect(buildDownloadArgs({ ...base, sponsorBlock: 'remove' }))
+      .toEqual(expect.arrayContaining(['--sponsorblock-remove', 'sponsor,selfpromo,interaction']));
+    expect(buildDownloadArgs({ ...base, sponsorBlock: 'off' }).join(' ')).not.toContain('sponsorblock');
+  });
 });

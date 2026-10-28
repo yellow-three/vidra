@@ -9,19 +9,19 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tauri::{AppHandle, Manager};
 
-const EXE_SUFFIX: &str = if cfg!(target_os = "windows") { ".exe" } else { "" };
+pub(crate) const EXE_SUFFIX: &str = if cfg!(target_os = "windows") { ".exe" } else { "" };
 const YTDLP_VERSION_FILE: &str = "yt-dlp.version";
 
 /// Linux paketleri sidecar'lari /usr/bin'e kurar; onek sistemdeki ffmpeg / yt-dlp ile cakismayi onler.
 const SIDECAR_PREFIX: &str = "ytd-";
 
-fn sidecar(name: &str) -> Option<PathBuf> {
+pub(crate) fn sidecar(name: &str) -> Option<PathBuf> {
     let exe = std::env::current_exe().ok()?;
     let path = exe.parent()?.join(format!("{SIDECAR_PREFIX}{name}{EXE_SUFFIX}"));
     path.is_file().then_some(path)
 }
 
-fn override_dir(app: &AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn override_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app
         .path()
         .app_data_dir()
@@ -87,12 +87,14 @@ pub fn prune_stale_ytdlp(app: &AppHandle) {
 pub fn check_dependencies(app: AppHandle) -> serde_json::Value {
     let path_str = |p: Option<PathBuf>| p.map(|p| p.to_string_lossy().to_string());
     let ytdlp = ytdlp_path(&app);
-    let ffmpeg = sidecar("ffmpeg");
+    // ffprobe kuruluysa yt-dlp'ye ffmpeg + ffprobe iceren klasor verilir (SponsorBlock).
+    let ffmpeg = crate::ffprobe::ffmpeg_location(&app);
     let deno = sidecar("deno");
     serde_json::json!({
         "ytdlp": ytdlp.is_some(),
         "ffmpeg": ffmpeg.is_some(),
         "deno": deno.is_some(),
+        "ffprobe": crate::ffprobe::is_installed(&app),
         "ytdlpPath": path_str(ytdlp),
         "ffmpegPath": path_str(ffmpeg),
         "denoPath": path_str(deno),

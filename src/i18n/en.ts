@@ -249,6 +249,22 @@ const en: Messages = {
     playlistFolderHint: 'Videos from a playlist are saved in a folder named after the playlist inside the download folder.',
   },
 
+  sponsorBlock: {
+    title: 'SponsorBlock',
+    description: 'Shows the sponsor, self-promotion and "subscribe" segments marked by the community as chapters, or cuts them out entirely.',
+    needsFfprobe: 'SponsorBlock needs ffprobe. To keep the app small, ffprobe is not bundled; you can download and install it now (about 135 MB download, 140 MB on disk).',
+    install: 'Download and install ffprobe',
+    downloading: 'Downloading ffprobe',
+    installFailed: (e) => `Could not install ffprobe: ${e}`,
+    installed: 'ffprobe is installed.',
+    uninstall: 'Remove',
+    mode: 'Sponsor segments',
+    off: 'Off',
+    mark: 'Mark as chapters',
+    remove: 'Cut from the video',
+    hint: 'Cutting only removes sponsor, self-promotion and interaction reminder segments. Videos without segment data download unchanged.',
+  },
+
   network: {
     title: 'Network and account',
     cookies: 'Browser cookies',

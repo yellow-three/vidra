@@ -218,6 +218,7 @@ export const useQueueStore = create<QueueState>()((set, get) => {
               subtitleLangs: settings.subtitleLangs,
               subfolder: (settings.playlistSubfolder ?? true) ? task.playlist : undefined,
               section: task.section,
+              sponsorBlock: settings.sponsorBlock,
               embedMetadata: settings.embedMetadata ?? true,
               filenameTemplate: settings.filenameTemplate,
               rateLimit: settings.rateLimit || undefined,

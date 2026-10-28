@@ -17,6 +17,9 @@ export interface AppApi {
   openFileLocation(filePath: string): Promise<IpcResult>;
   openFile(filePath: string): Promise<IpcResult>;
   filesExist(paths: string[]): Promise<boolean[]>;
-  checkDependencies(): Promise<{ ytdlp: boolean; ffmpeg: boolean; deno: boolean; ytdlpPath: string | null; ffmpegPath: string | null; denoPath: string | null }>;
+  checkDependencies(): Promise<{ ytdlp: boolean; ffmpeg: boolean; deno: boolean; ffprobe: boolean; ytdlpPath: string | null; ffmpegPath: string | null; denoPath: string | null }>;
+  /** SponsorBlock icin ffprobe'u indirir; ilerleme 0-100. */
+  installFfprobe(onProgress: (percent: number) => void): Promise<void>;
+  removeFfprobe(): Promise<void>;
   getPlatform(): Promise<string>;
 }
