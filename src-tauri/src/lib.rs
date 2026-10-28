@@ -4,7 +4,8 @@ pub mod legacy;
 mod cookies;
 mod dependencies;
 mod events;
-mod ffprobe;
+mod system_tools;
+mod tools;
 mod process;
 
 use events::ClipboardMonitor;
@@ -242,7 +243,10 @@ fn process_spawn(
 ) -> CommandResult<u32> {
     let path = dependencies::resolve_program(&app, &program)
         .ok_or_else(|| format!("{program} bulunamadi veya izin verilmiyor."))?;
+    // yt-dlp calisirken dosyasi guncellemeyle degistirilmesin (dependencies::YtdlpGate).
+    let run = (program == "yt-dlp").then(|| dependencies::YTDLP_GATE.enter(&path));
     state.processes.spawn(&path, &args, move |event| {
+        let _ = &run;
         let _ = on_event.send(event);
     })
 }
@@ -300,8 +304,9 @@ pub fn run() {
             dependencies::get_ytdlp_version,
             dependencies::get_platform,
             dependencies::is_flatpak,
-            ffprobe::install_ffprobe,
-            ffprobe::remove_ffprobe,
+            tools::tools_status,
+            tools::install_tool,
+            tools::remove_ffprobe,
             cookies::cookie_source,
         ])
         .build(tauri::generate_context!())

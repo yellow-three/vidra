@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import MainLayout from './MainLayout';
 import LegalNotice from './LegalNotice';
+import SetupScreen from '../features/setup/SetupScreen';
 import QueuePage from '../features/queue/QueuePage';
 import HistoryPage from '../features/history/HistoryPage';
 import SettingsPage from '../features/settings/SettingsPage';
@@ -26,6 +27,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <LegalNotice />
+      <SetupScreen />
       <Routes>
         <Route element={<MainLayout />}>
           <Route path="/" element={<QueuePage />} />

@@ -6,6 +6,12 @@ import type { Page } from '@playwright/test';
 export interface MockOptions {
   settings?: Record<string, unknown>;
   deps?: { ytdlp: boolean; ffmpeg: boolean; deno: boolean; ffprobe?: boolean };
+  /** Kurulum ekrani: indirilmis ama eski surum bilesenler (orn. ['deno']). */
+  outdated?: string[];
+  /** Sistemde (PATH) bulunan bilesenler (orn. ['ffmpeg', 'ffprobe']). */
+  system?: string[];
+  /** Kurulum ekrani: bu bilesenin indirmesi bir kez hata versin. */
+  failInstall?: string;
   history?: Record<string, unknown>[];
   /** Sunulacak uygulama guncellemesi; yoksa "guncel". */
   update?: { version: string; body: string } | null;
@@ -26,6 +32,9 @@ function install(options: MockOptions) {
     settings: JSON.parse(sessionStorage.getItem('__mockSettings') ?? 'null')
       ?? { ytdlpCheckedAt: Date.now(), ...(options.settings ?? {}) } as Record<string, unknown>,
     deps: options.deps ?? { ytdlp: true, ffmpeg: true, deno: true },
+    outdated: [...(options.outdated ?? [])],
+    system: [...(options.system ?? [])],
+    failInstall: options.failInstall ?? null as string | null,
     history: [...(options.history ?? [])] as Record<string, unknown>[],
     calls: [] as { cmd: string; args: unknown }[],
     downloads: [] as { pid: number; channel: Channel; args: string[]; done: boolean }[],
@@ -88,7 +97,10 @@ function install(options: MockOptions) {
     cookie_source: ({ browser }) => browser,
     'plugin:dialog|ask': () => true,
     select_download_folder: () => ({ success: false, error: 'iptal' }),
-    check_dependencies: () => ({ ...state.deps, ytdlpPath: '/bin/ytd-yt-dlp', ffmpegPath: '/bin/ytd-ffmpeg', denoPath: '/bin/ytd-deno' }),
+    check_dependencies: () => {
+      const has = (key: 'ffmpeg' | 'deno' | 'ffprobe') => !!state.deps[key] || state.system.includes(key);
+      return { ...state.deps, ffmpeg: has('ffmpeg'), deno: has('deno'), ffprobe: has('ffprobe'), ytdlpPath: '/bin/ytd-yt-dlp', ffmpegPath: '/bin/ytd-ffmpeg', denoPath: '/bin/ytd-deno' };
+    },
     get_ytdlp_version: () => ({ version: '2026.10.21' }),
     update_ytdlp: () => ({ success: true, version: '2026.10.22' }),
     start_clipboard_monitor: () => ({ success: true }),
@@ -98,9 +110,21 @@ function install(options: MockOptions) {
     open_file_location: () => ({ success: true }),
     open_file: () => ({ success: true }),
     is_flatpak: () => false,
-    install_ffprobe: ({ onProgress }: any) => {
+    tools_status: () => (['yt-dlp', 'deno', 'ffmpeg', 'ffprobe'] as const).map((id) => {
+      const key = id === 'yt-dlp' ? 'ytdlp' : id;
+      const downloaded = !!state.deps[key];
+      const system = !downloaded && state.system.includes(id);
+      return { id, installed: downloaded || system, bundled: false, system, outdated: downloaded && state.outdated.includes(id), downloadable: true, downloadMb: 40 };
+    }),
+    install_tool: ({ tool, withFfprobe, onProgress }: any) => {
       for (const p of [0, 50, 100]) onProgress.onmessage(p);
-      state.deps = { ...state.deps, ffprobe: true };
+      if (state.failInstall === tool) {
+        state.failInstall = null;
+        throw 'İndirilemedi: bağlantı kesildi';
+      }
+      const key = tool === 'yt-dlp' ? 'ytdlp' : tool;
+      state.deps = { ...state.deps, [key]: true, ...(withFfprobe ? { ffprobe: true } : {}) };
+      state.outdated = state.outdated.filter((t) => t !== tool);
       return null;
     },
     remove_ffprobe: () => {

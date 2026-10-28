@@ -29,10 +29,12 @@ tauri-plugin-fs = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 dirs = "7"
-# Istege bagli ffprobe indirmesi (SponsorBlock); updater ile ayni reqwest/rustls (ring) kurulumu.
-reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "system-proxy"] }
+# Ilk acilistaki arac indirmesi (tools.rs); updater ile ayni reqwest/rustls (ring) kurulumu.
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "system-proxy", "socks"] }
 rustls = { version = "0.23", default-features = false, features = ["ring"] }
 sha2 = "0.10"
+# deno .zip olarak gelir (Windows'ta FFmpeg de).
+zip = { version = "4", default-features = false, features = ["deflate"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
@@ -43,7 +45,6 @@ liblzma = { version = "0.4", features = ["static"] }
 tar = "0.4"
 
 [target.'cfg(windows)'.dependencies]
-zip = { version = "4", default-features = false, features = ["deflate"] }
 windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading"] }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]

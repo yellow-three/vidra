@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // yt-dlp, LGPL FFmpeg ve deno'yu Tauri sidecar adlariyla
 // (src-tauri/binaries/ytd-<ad>-<target-triple>[.exe]) indirir ve checksum dogrular.
+// Normal paketler bunlari icermez (uygulama ilk acilista indirir, src-tauri/src/tools.rs);
+// sidecar'lar yalnizca `--config src-tauri/tauri.bundled.conf.json` ile paketlenir.
 //
 //   node scripts/fetch-sidecars.mjs [--target <triple>] [--force]
 //
@@ -22,11 +24,15 @@ import { pipeline } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
 import AdmZip from 'adm-zip';
 
-// Surumleri guncellemek icin yalnizca burayi degistirin.
-const YTDLP_VERSION = '2026.10.21';
-const DENO_VERSION = 'v2.9.8';
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const OUT_DIR = join(ROOT, 'src-tauri', 'binaries');
+
+// Surumler uygulamanin ilk acilis indirmesiyle ortak: src-tauri/tools.json.
 // BtbN yalnizca dallarin "latest" build'lerini tutar; eski build'ler silinir.
-const FFMPEG_BRANCH = { tag: 'n9.0', short: '9.0' };
+const PINS = JSON.parse(await readFile(join(ROOT, 'src-tauri', 'tools.json'), 'utf8'));
+const YTDLP_VERSION = PINS.ytdlp;
+const DENO_VERSION = PINS.deno;
+const FFMPEG_BRANCH = PINS.ffmpeg;
 
 const TARGETS = {
   'x86_64-unknown-linux-gnu': { ytdlp: 'yt-dlp_linux', deno: 'x86_64-unknown-linux-gnu', ffmpeg: 'linux64' },
@@ -36,9 +42,6 @@ const TARGETS = {
   'x86_64-apple-darwin': { ytdlp: 'yt-dlp_macos', deno: 'x86_64-apple-darwin', ffmpeg: null },
   'aarch64-apple-darwin': { ytdlp: 'yt-dlp_macos', deno: 'aarch64-apple-darwin', ffmpeg: null },
 };
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const OUT_DIR = join(ROOT, 'src-tauri', 'binaries');
 
 function parseArgs(argv) {
   const args = { target: null, force: false };

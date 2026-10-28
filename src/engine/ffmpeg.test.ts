@@ -16,6 +16,7 @@ describe('buildConvertArgs', () => {
     const { args, outputPath } = buildConvertArgs('C:\\v\\Klip.mov', 'xyz', 'low');
     expect(outputPath).toBe('C:\\v\\Klip_converted.mp4');
     expect(args.join(' ')).toContain('-c:v libopenh264 -b:v 1500k -c:a aac');
+    expect(buildConvertArgs('/v/a.webm', 'mp4', 'low', 'libx264').args.join(' ')).toContain('-c:v libx264 -b:v 1500k');
     expect(args).not.toContain('libx264');
   });
 });

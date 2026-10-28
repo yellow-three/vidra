@@ -1,33 +1,34 @@
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Download, Scissors, Trash2 } from 'lucide-react';
-import { queryClient } from '../../app/queryClient';
 import { useT } from '../../i18n';
 import { appApi } from '../../lib/appApi';
+import { refreshTools, useToolsStatus } from '../setup/tools';
 import { useSaveSettings, useSettings } from './queries';
 import { Section, SelectField } from './SettingsParts';
 
-const depsKey = ['dependencies'] as const;
-
-/** SponsorBlock yt-dlp'de ffprobe ister; ffprobe paketlenmedigi icin istenirse indirilir. */
+/** SponsorBlock yt-dlp'de ffprobe ister; ffprobe varsayilan olarak kurulmadigi icin istenirse indirilir. */
 export default function SponsorBlockSettings() {
   const m = useT().sponsorBlock;
   const settings = useSettings().data ?? {};
   const save = useSaveSettings();
-  const deps = useQuery({ queryKey: depsKey, queryFn: () => appApi.checkDependencies() });
+  const deps = useQuery({ queryKey: ['dependencies'], queryFn: () => appApi.checkDependencies() });
+  const proxy = settings.proxy;
   const [percent, setPercent] = useState(0);
-  const refresh = () => queryClient.invalidateQueries({ queryKey: depsKey });
+  const refresh = refreshTools;
 
   const install = useMutation({
     mutationFn: () => {
       setPercent(0);
-      return appApi.installFfprobe(setPercent);
+      return appApi.installTool('ffprobe', { proxy }, setPercent);
     },
     onSettled: refresh,
   });
   const remove = useMutation({ mutationFn: () => appApi.removeFfprobe(), onSettled: refresh });
 
   const installed = deps.data?.ffprobe ?? false;
+  // Sistemdeki ffprobe uygulamaya ait degil; kaldirilamaz.
+  const fromSystem = useToolsStatus().data?.find((t) => t.id === 'ffprobe')?.system ?? false;
 
   return (
     <Section title={m.title} icon={<Scissors size={18} />}>
@@ -46,9 +47,11 @@ export default function SponsorBlockSettings() {
           <div className="flex items-center gap-2 text-xs text-base-content/60">
             <span className="status status-success" aria-hidden />
             <span>{m.installed}</span>
-            <button onClick={() => remove.mutate()} disabled={remove.isPending} className="btn btn-ghost btn-xs gap-1 ml-auto">
-              <Trash2 size={12} /> {m.uninstall}
-            </button>
+            {!fromSystem && (
+              <button onClick={() => remove.mutate()} disabled={remove.isPending} className="btn btn-ghost btn-xs gap-1 ml-auto">
+                <Trash2 size={12} /> {m.uninstall}
+              </button>
+            )}
           </div>
         </>
       ) : (

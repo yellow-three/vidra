@@ -1,5 +1,6 @@
 // Donustur sayfasi: FFmpeg'i surec calistirici uzerinden calistirir.
 
+import { invoke } from '@tauri-apps/api/core';
 import { buildConvertArgs, convertPercent, parseDuration, parseProgressLine } from './ffmpeg';
 import { killProcess, spawnProcess } from './process';
 import { msg } from '../i18n';
@@ -7,7 +8,8 @@ import { msg } from '../i18n';
 export type ConvertResult = { status: 'complete'; outputPath: string } | { status: 'cancelled' } | { status: 'error'; message: string };
 
 export async function startConvert(inputPath: string, format: string, quality: string, onPercent: (percent: number) => void) {
-  const { args, outputPath } = buildConvertArgs(inputPath, format, quality);
+  const { h264Encoder } = await invoke<{ h264Encoder?: string }>('check_dependencies');
+  const { args, outputPath } = buildConvertArgs(inputPath, format, quality, h264Encoder);
   const stderr: string[] = [];
   let duration: number | null = null;
   let lastPercent = -1;
