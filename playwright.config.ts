@@ -8,7 +8,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'github' : 'list',
-  use: { baseURL: 'http://localhost:1420', trace: 'retain-on-failure' },
+  // Arayuz dili sistem dilinden gelir; testler Turkce metinleri bekler.
+  use: { baseURL: 'http://localhost:1420', trace: 'retain-on-failure', locale: 'tr-TR' },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     command: 'npm run dev',

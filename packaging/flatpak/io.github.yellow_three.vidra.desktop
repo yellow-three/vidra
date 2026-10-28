@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Vidra
+Comment=Download YouTube video and audio
+Comment[tr]=YouTube video ve ses indirin
+Exec=vidra
+Icon=io.github.yellow_three.vidra
+StartupWMClass=vidra
+Terminal=false
+Categories=AudioVideo;Video;
+Keywords=youtube;download;video;audio;mp3;yt-dlp;

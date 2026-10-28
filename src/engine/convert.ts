@@ -2,6 +2,7 @@
 
 import { buildConvertArgs, convertPercent, parseDuration, parseProgressLine } from './ffmpeg';
 import { killProcess, spawnProcess } from './process';
+import { msg } from '../i18n';
 
 export type ConvertResult = { status: 'complete'; outputPath: string } | { status: 'cancelled' } | { status: 'error'; message: string };
 
@@ -27,7 +28,7 @@ export async function startConvert(inputPath: string, format: string, quality: s
   const result: Promise<ConvertResult> = proc.exit.then((exit) => {
     if (exit.killed) return { status: 'cancelled' };
     if (exit.code === 0) return { status: 'complete', outputPath };
-    return { status: 'error', message: stderr.filter((l) => l.trim()).slice(-1)[0] ?? 'Dönüştürme hatası' };
+    return { status: 'error', message: stderr.filter((l) => l.trim()).slice(-1)[0] ?? msg().convert.failed };
   });
   return { result, cancel: () => killProcess(proc.id) };
 }

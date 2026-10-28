@@ -7,9 +7,21 @@ import HistoryPage from '../features/history/HistoryPage';
 import SettingsPage from '../features/settings/SettingsPage';
 import ConvertPage from '../features/convert/ConvertPage';
 import { startApp } from '../features/queue/bootstrap';
+import { detectLanguage, setLanguage } from '../i18n';
+import { useSettings } from '../features/settings/queries';
+
+/** Ayarlardaki dil secimini uygular; ayarlar gelene kadar sistem dili kullanilir. */
+function useLanguageSetting() {
+  const language = useSettings().data?.language;
+  useEffect(() => {
+    setLanguage(language);
+    document.documentElement.lang = language ?? detectLanguage();
+  }, [language]);
+}
 
 export default function App() {
   useEffect(startApp, []);
+  useLanguageSetting();
 
   return (
     <BrowserRouter>

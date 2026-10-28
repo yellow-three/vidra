@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link2, X } from 'lucide-react';
-import { useAppStatus } from '../queue/bootstrap';
+import { useAppStatus } from '../queue/appStatus';
 import { useQueueStore } from '../queue/store';
+import { useT } from '../../i18n';
 
 /** Link kutusu: indirmeler surerken de yeni link eklenebilir (kuyruk eszamanliligi sinirlar). */
 export default function AddUrlForm() {
+  const m = useT();
   const url = useQueueStore((s) => s.url);
   const setUrl = useQueueStore((s) => s.setUrl);
   const analyze = useQueueStore((s) => s.analyze);
@@ -29,7 +31,7 @@ export default function AddUrlForm() {
           <Link2 size={18} className="opacity-50 shrink-0" />
           <input
             type="text"
-            aria-label="YouTube linki"
+            aria-label={m.addUrl.label}
             value={url}
             onChange={(e) => { setUrl(e.target.value); setUrlError(false); }}
             placeholder="https://www.youtube.com/watch?v=…"
@@ -37,21 +39,19 @@ export default function AddUrlForm() {
             autoFocus
           />
           {url && (
-            <button type="button" onClick={() => setUrl('')} aria-label="Linki temizle" className="btn btn-ghost btn-xs btn-circle">
+            <button type="button" onClick={() => setUrl('')} aria-label={m.addUrl.clear} className="btn btn-ghost btn-xs btn-circle">
               <X size={14} />
             </button>
           )}
         </label>
         <button type="submit" disabled={!depsReady || !url.trim()} className="btn btn-primary btn-lg join-item px-8">
-          {depsReady ? 'Analiz Et' : 'Hazırlanıyor...'}
+          {depsReady ? m.addUrl.analyze : m.addUrl.preparing}
         </button>
       </div>
       {urlError ? (
-        <p className="text-xs text-error px-1">Lütfen geçerli bir URL girin.</p>
+        <p className="text-xs text-error px-1">{m.addUrl.invalid}</p>
       ) : (
-        <p className="text-xs text-base-content/50 px-1">
-          Kopyaladığınız YouTube linkleri kutuya kendiliğinden gelir. Video veya ses formatını analizden sonra seçersiniz.
-        </p>
+        <p className="text-xs text-base-content/50 px-1">{m.addUrl.hint}</p>
       )}
     </form>
   );

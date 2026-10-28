@@ -1,8 +1,9 @@
 // yt-dlp'ye ozgu saf mantik: secenekler, arguman uretimi, cikti ayristirma.
 // Platformdan bagimsizdir; masaustu ve Android motorlari ayni kodu kullanir.
 
+import { msg } from '../i18n';
 import { joinPath, splitPath, stem } from './paths';
-import type { DownloadOption, FormatOption, NetworkOptions, PlaylistEntry, VideoInfo } from './types';
+import type { DownloadOption, FormatOption, NetworkOptions, PlaylistEntry, SponsorBlockMode, TimeRange, VideoInfo } from './types';
 
 /** `yt-dlp -J` ciktisindaki format nesnesinin kullandigimiz alanlari. */
 export interface YtdlpFormat {
@@ -30,14 +31,14 @@ export function parseOption(id: string): DownloadOption | null {
 export function optionLabel(option: DownloadOption): string {
   switch (option.kind) {
     case 'video': return `${option.height}p`;
-    case 'best-video': return 'En iyi';
+    case 'best-video': return msg().formats.best;
     case 'mp3': return 'MP3';
     case 'm4a': return 'M4A';
   }
 }
 
 export function formatFilesize(bytes: number | null | undefined): string {
-  if (bytes == null) return 'Bilinmiyor';
+  if (bytes == null) return msg().formats.unknownSize;
   if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
   if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
   if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -54,6 +55,7 @@ const maxOf = (values: (number | undefined)[]) => {
 
 /** Ham format listesini sade seceneklere indirger: her cozunurluk icin bir video, arti MP3/M4A. */
 export function buildOptions(formats: YtdlpFormat[]): FormatOption[] {
+  const m = msg().formats;
   const bestAudio = maxOf(formats.filter((f) => isAudioOnly(f) && f.ext === 'm4a').map(sizeOf));
   const heights = [...new Set(formats.filter(isVideo).map((f) => f.height).filter((h): h is number => h != null))]
     .sort((a, b) => b - a);
@@ -64,17 +66,17 @@ export function buildOptions(formats: YtdlpFormat[]): FormatOption[] {
       formatId: `video-${h}`,
       resolution: `${h}p`,
       ext: 'mp4',
-      note: 'Video + ses',
+      note: msg().formats.videoAndAudio,
       filesize: formatFilesize(video == null ? null : video + (bestAudio ?? 0)),
     };
   });
 
   if (options.length === 0) {
-    options.push({ formatId: 'video-best', resolution: 'En iyi', ext: 'mp4', note: 'Video + ses', filesize: formatFilesize(null) });
+    options.push({ formatId: 'video-best', resolution: msg().formats.best, ext: 'mp4', note: msg().formats.videoAndAudio, filesize: formatFilesize(null) });
   }
   options.push(
-    { formatId: 'audio-mp3', resolution: 'Ses', ext: 'mp3', note: 'En iyi kalite', filesize: formatFilesize(bestAudio) },
-    { formatId: 'audio-m4a', resolution: 'Ses', ext: 'm4a', note: 'Dönüştürmesiz', filesize: formatFilesize(bestAudio) },
+    { formatId: 'audio-mp3', resolution: m.audio, ext: 'mp3', note: m.bestQuality, filesize: formatFilesize(bestAudio) },
+    { formatId: 'audio-m4a', resolution: m.audio, ext: 'm4a', note: m.noConversion, filesize: formatFilesize(bestAudio) },
   );
   return options;
 }
@@ -83,11 +85,12 @@ export function buildOptions(formats: YtdlpFormat[]): FormatOption[] {
 const PLAYLIST_HEIGHTS = [2160, 1440, 1080, 720, 480, 360];
 
 export function playlistOptions(): FormatOption[] {
+  const m = msg().formats;
   const unknown = formatFilesize(null);
   return [
-    ...PLAYLIST_HEIGHTS.map((h) => ({ formatId: `video-${h}`, resolution: `${h}p`, ext: 'mp4', note: 'en fazla bu kalite', filesize: unknown })),
-    { formatId: 'audio-mp3', resolution: 'Ses', ext: 'mp3', note: 'En iyi kalite', filesize: unknown },
-    { formatId: 'audio-m4a', resolution: 'Ses', ext: 'm4a', note: 'Dönüştürmesiz', filesize: unknown },
+    ...PLAYLIST_HEIGHTS.map((h) => ({ formatId: `video-${h}`, resolution: `${h}p`, ext: 'mp4', note: m.upTo, filesize: unknown })),
+    { formatId: 'audio-mp3', resolution: m.audio, ext: 'mp3', note: m.bestQuality, filesize: unknown },
+    { formatId: 'audio-m4a', resolution: m.audio, ext: 'm4a', note: m.noConversion, filesize: unknown },
   ];
 }
 
@@ -117,14 +120,14 @@ export function parseInfo(json: string, url: string): VideoInfo {
       .filter((e) => (e.url || e.id) && !UNAVAILABLE_TITLES.has(e.title ?? ''))
       .map((e) => ({
         url: e.url ?? `https://www.youtube.com/watch?v=${e.id}`,
-        title: e.title ?? 'Bilinmeyen video',
+        title: e.title ?? msg().formats.unknownVideo,
         duration: e.duration ?? undefined,
         thumbnail: e.thumbnails?.[e.thumbnails.length - 1]?.url,
       }));
-    return { title: data.title ?? 'Oynatma listesi', url, formats: playlistOptions(), entries };
+    return { title: data.title ?? msg().formats.playlist, url, formats: playlistOptions(), entries };
   }
   return {
-    title: data.title ?? 'Bilinmeyen video',
+    title: data.title ?? msg().formats.unknownVideo,
     url,
     duration: data.duration,
     thumbnail: data.thumbnail,
@@ -176,14 +179,53 @@ export const FILENAME_TEMPLATES: Record<string, string> = {
   'title-id': '%(title)s [%(id)s]',
 };
 
+/** `12:05` / `1:02:03` ya da saniye; dosya adlarinda `:` kullanilamadigi icin `.` ile yazilir. */
+export function formatClock(seconds: number, sep = ':'): string {
+  const s = Math.floor(seconds);
+  const parts = [Math.floor(s / 3600), Math.floor((s % 3600) / 60), s % 60];
+  const [h, m, sec] = parts.map((n) => String(n).padStart(2, '0'));
+  return parts[0] ? [h, m, sec].join(sep) : [m, sec].join(sep);
+}
+
+/** `90`, `1:30`, `01:02:03` -> saniye; gecersizse null. */
+export function parseClock(value: string): number | null {
+  const text = value.trim();
+  if (!/^\d+(?::\d{1,2}){0,2}(?:\.\d+)?$/.test(text)) return null;
+  const parts = text.split(':').map(Number);
+  if (parts.slice(1).some((n) => n >= 60)) return null;
+  return parts.reduce((total, n) => total * 60 + n, 0);
+}
+
+/** Klasor adi olarak guvenli metin; `%` yt-dlp sablonunda kacirilir. */
+export function safeFolderName(name: string): string {
+  const cleaned = name
+    .replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^\.+|[. ]+$/g, '')
+    .slice(0, 100)
+    .trim();
+  return (cleaned || msg().formats.playlist).replace(/%/g, '%%');
+}
+
+export interface TemplateExtras {
+  subfolder?: string;
+  section?: TimeRange;
+}
+
 /**
  * Ayni videonun farkli kalitesi ayni ada yazilsaydi yt-dlp "already downloaded" deyip
- * eskisini dondururdu; cozunurluk ekiyle her kalite ayri dosyadir.
+ * eskisini dondururdu; cozunurluk ve bolum ekiyle her secim ayri dosyadir.
  */
-export function outputTemplate(option: DownloadOption, template?: string): string {
+export function outputTemplate(option: DownloadOption, template?: string, extras: TemplateExtras = {}): string {
   const base = FILENAME_TEMPLATES[template ?? ''] ?? FILENAME_TEMPLATES.title;
   const quality = option.kind === 'video' || option.kind === 'best-video' ? ' [%(height)sp]' : '';
-  return `${base}${quality}.%(ext)s`;
+  const { section, subfolder } = extras;
+  const clip = section
+    ? ` [${formatClock(section.start, '.')}-${section.end != null ? formatClock(section.end, '.') : msg().formats.sectionEnd}]`
+    : '';
+  const file = `${base}${quality}${clip}.%(ext)s`;
+  return subfolder ? `${safeFolderName(subfolder)}/${file}` : file;
 }
 
 export interface DownloadArgsInput extends NetworkOptions {
@@ -196,14 +238,22 @@ export interface DownloadArgsInput extends NetworkOptions {
   filenameTemplate?: string;
   rateLimit?: string;
   denoPath?: string | null;
+  subtitleLangs?: string;
+  subfolder?: string;
+  section?: TimeRange;
+  sponsorBlock?: SponsorBlockMode;
 }
 
+/** Kesilince videonun konusu bozulmayan SponsorBlock kategorileri; isaretlemede hepsi bolum olur. */
+const SPONSOR_REMOVE = 'sponsor,selfpromo,interaction';
+
 export function buildDownloadArgs({
-  url, option, outDir, ffmpegPath, subtitles, embedMetadata, filenameTemplate, rateLimit, denoPath, ...network
+  url, option, outDir, ffmpegPath, subtitles, embedMetadata, filenameTemplate, rateLimit, denoPath,
+  subtitleLangs, subfolder, section, sponsorBlock, ...network
 }: DownloadArgsInput): string[] {
   const args = [
     url,
-    '-o', joinPath(outDir, outputTemplate(option, filenameTemplate)),
+    '-o', joinPath(outDir, outputTemplate(option, filenameTemplate, { subfolder, section })),
     '--no-playlist',
     '--newline',
     '--progress',
@@ -235,8 +285,14 @@ export function buildDownloadArgs({
 
   if (subtitles && option.kind !== 'mp3' && option.kind !== 'm4a') {
     // `--write-subs` eklenirse gomulduktan sonra .vtt dosyasi da diskte kalir.
-    args.push('--embed-subs', '--sub-langs', 'tr,en');
+    args.push('--embed-subs', '--sub-langs', subtitleLangs?.trim() || 'tr,en');
   }
+  if (section) {
+    args.push('--download-sections', `*${section.start}-${section.end ?? 'inf'}`);
+  }
+  if (sponsorBlock === 'mark') args.push('--sponsorblock-mark', 'all');
+  if (sponsorBlock === 'remove') args.push('--sponsorblock-remove', SPONSOR_REMOVE);
+
   // MP4/MP3/M4A'da ffprobe olmadan calisir (webp kapak ffmpeg ile PNG'ye cevrilir).
   if (embedMetadata) args.push('--embed-thumbnail', '--embed-metadata');
   if (rateLimit) args.push('--limit-rate', rateLimit);

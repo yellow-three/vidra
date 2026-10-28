@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { Channel, invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { AppSettings, HistoryItem } from '../types';
 import type { AppApi, IpcResult } from '../types/app-api';
@@ -16,7 +16,6 @@ async function subscribe<T>(event: string, callback: (payload: T) => void): Prom
 }
 
 export const appApi: AppApi = {
-  onStatusUpdate: (callback) => subscribe<string>('dependency-status', callback),
   onClipboardLink: (callback) => subscribe<string>('clipboard-link-detected', callback),
   onClipboardMonitorStopped: (callback) => subscribe<void>('clipboard-monitor-stopped', callback),
 
@@ -33,7 +32,15 @@ export const appApi: AppApi = {
   getLegacyHistory: () => invoke<HistoryItem[]>('get_legacy_history'),
   clearLegacyHistory: () => invokeResult('clear_legacy_history'),
   openFileLocation: (filePath) => invokeResult('open_file_location', { filePath }),
+  openFile: (filePath) => invokeResult('open_file', { filePath }),
+  filesExist: (paths) => invoke<boolean[]>('files_exist', { paths }),
 
   checkDependencies: () => invoke('check_dependencies'),
+  installFfprobe: async (onProgress) => {
+    const channel = new Channel<number>();
+    channel.onmessage = onProgress;
+    await invoke('install_ffprobe', { onProgress: channel });
+  },
+  removeFfprobe: () => invoke('remove_ffprobe'),
   getPlatform: () => invoke<string>('get_platform'),
 };

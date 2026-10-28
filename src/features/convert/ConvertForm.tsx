@@ -4,6 +4,7 @@ import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { CircleAlert, FileUp, FolderOpen, RotateCcw, X } from 'lucide-react';
 import { appApi } from '../../lib/appApi';
 import { startConvert as runConvert } from '../../engine/convert';
+import { useT } from '../../i18n';
 
 const EXTENSIONS = ['mp4', 'webm', 'mkv', 'avi', 'mov', 'flv', 'wmv', 'mp3', 'wav', 'flac', 'ogg', 'm4a'];
 
@@ -22,6 +23,7 @@ interface ConvertTask {
 const fileNameOf = (path: string) => path.split(/[\\/]/).pop() ?? path;
 
 export default function ConvertForm() {
+  const m = useT().convert;
   const [tasks, setTasks] = useState<ConvertTask[]>([]);
   const [dragging, setDragging] = useState(false);
   const cancels = useRef(new Map<string, () => Promise<unknown>>());
@@ -53,7 +55,7 @@ export default function ConvertForm() {
   }, []);
 
   const handleBrowse = async () => {
-    const selected = await open({ multiple: true, filters: [{ name: 'Medya', extensions: EXTENSIONS }] });
+    const selected = await open({ multiple: true, filters: [{ name: m.media, extensions: EXTENSIONS }] });
     if (selected) addPaths(Array.isArray(selected) ? selected : [selected]);
   };
 
@@ -90,7 +92,7 @@ export default function ConvertForm() {
       >
         <span className="card-body items-center text-center gap-2 py-10">
           <FileUp size={32} strokeWidth={1.5} className="opacity-50" />
-          <span className="font-medium">{dragging ? 'Bırakın…' : 'Dosyaları sürükleyin veya seçmek için tıklayın'}</span>
+          <span className="font-medium">{dragging ? m.drop : m.pick}</span>
           <span className="text-xs text-base-content/50">MP4, WebM, MKV, AVI, MOV, MP3, WAV, FLAC</span>
         </span>
       </button>
@@ -101,19 +103,19 @@ export default function ConvertForm() {
             <li key={task.id} className="list-row flex flex-col gap-3">
               <div className="flex items-center gap-3">
                 <h3 className="font-medium truncate flex-1" title={task.inputPath}>{task.fileName}</h3>
-                {task.status === 'complete' && <span className="badge badge-success badge-soft badge-sm">Tamamlandı</span>}
-                {task.status === 'error' && <span className="badge badge-error badge-soft badge-sm">Hata</span>}
+                {task.status === 'complete' && <span className="badge badge-success badge-soft badge-sm">{m.complete}</span>}
+                {task.status === 'error' && <span className="badge badge-error badge-soft badge-sm">{m.error}</span>}
                 {task.status === 'complete' && (
-                  <button onClick={() => void appApi.openFileLocation(task.outputPath || task.inputPath)} className="btn btn-ghost btn-sm btn-square" aria-label="Klasörde göster">
+                  <button onClick={() => void appApi.openFileLocation(task.outputPath || task.inputPath)} className="btn btn-ghost btn-sm btn-square" aria-label={m.reveal}>
                     <FolderOpen size={16} />
                   </button>
                 )}
                 {task.status === 'error' && (
-                  <button onClick={() => startConvert(task)} className="btn btn-ghost btn-sm btn-square" aria-label="Tekrar dene">
+                  <button onClick={() => startConvert(task)} className="btn btn-ghost btn-sm btn-square" aria-label={m.retry}>
                     <RotateCcw size={16} />
                   </button>
                 )}
-                <button onClick={() => remove(task.id)} className="btn btn-ghost btn-sm btn-square" aria-label={task.status === 'converting' ? 'İptal et' : 'Kaldır'}>
+                <button onClick={() => remove(task.id)} className="btn btn-ghost btn-sm btn-square" aria-label={task.status === 'converting' ? m.cancel : m.remove}>
                   <X size={16} />
                 </button>
               </div>
@@ -121,28 +123,28 @@ export default function ConvertForm() {
               {task.status === 'idle' && (
                 <div className="flex flex-wrap items-end gap-3">
                   <fieldset className="fieldset py-0">
-                    <legend className="fieldset-legend pt-0">Format</legend>
+                    <legend className="fieldset-legend pt-0">{m.format}</legend>
                     <select value={task.outputFormat} onChange={(e) => patch(task.id, { outputFormat: e.target.value })} className="select select-sm">
-                      <option value="mp4">MP4 (Video)</option>
-                      <option value="mp3">MP3 (Ses)</option>
-                      <option value="webm">WebM (Video)</option>
+                      <option value="mp4">{m.mp4}</option>
+                      <option value="mp3">{m.mp3}</option>
+                      <option value="webm">{m.webm}</option>
                     </select>
                   </fieldset>
                   <fieldset className="fieldset py-0">
-                    <legend className="fieldset-legend pt-0">Kalite</legend>
+                    <legend className="fieldset-legend pt-0">{m.quality}</legend>
                     <select value={task.quality} onChange={(e) => patch(task.id, { quality: e.target.value })} className="select select-sm">
-                      <option value="high">Yüksek</option>
-                      <option value="medium">Orta</option>
-                      <option value="low">Düşük</option>
+                      <option value="high">{m.high}</option>
+                      <option value="medium">{m.medium}</option>
+                      <option value="low">{m.low}</option>
                     </select>
                   </fieldset>
-                  <button onClick={() => startConvert(task)} className="btn btn-sm btn-neutral ml-auto">Dönüştür</button>
+                  <button onClick={() => startConvert(task)} className="btn btn-sm btn-neutral ml-auto">{m.start}</button>
                 </div>
               )}
 
               {task.status === 'converting' && (
                 <div className="flex items-center gap-3">
-                  <progress className="progress progress-primary flex-1" value={task.percent} max={100} aria-label="Dönüştürme ilerlemesi" />
+                  <progress className="progress progress-primary flex-1" value={task.percent} max={100} aria-label={m.progress} />
                   <span className="text-xs font-semibold w-10 text-right">%{task.percent}</span>
                 </div>
               )}

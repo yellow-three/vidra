@@ -3,8 +3,10 @@ import { isVideoInPlaylist } from '../../engine/ytdlp';
 import type { Task } from '../../types';
 import DownloadProgress from './DownloadProgress';
 import FormatSelector from './FormatSelector';
+import SectionPicker from './SectionPicker';
 import StatusBadge from './StatusBadge';
 import Thumbnail from '../../app/Thumbnail';
+import { useT } from '../../i18n';
 
 interface TaskCardProps {
   task: Task;
@@ -23,6 +25,7 @@ interface TaskCardProps {
 export default function TaskCard({
   task, selected, onToggleSelect, onFormatChange, onStartDownload, onCancel, onRetry, onMove, onExpandPlaylist, isFirst, isLast,
 }: TaskCardProps) {
+  const m = useT();
   const analyzing = task.status === 'analyzing';
   const canCancel = analyzing || task.status === 'ready-to-select';
   const canRetry = task.status === 'error' || task.status === 'cancelled';
@@ -33,7 +36,7 @@ export default function TaskCard({
 
   return (
     <article
-      aria-label={analyzing ? 'Analiz ediliyor' : task.title}
+      aria-label={analyzing ? m.task.analyzing : task.title}
       data-status={task.status}
       className={`card bg-base-100 border transition-colors ${selected ? 'border-primary/60' : 'border-base-300'}`}
     >
@@ -44,7 +47,7 @@ export default function TaskCard({
             className="checkbox checkbox-sm mt-1"
             checked={selected}
             onChange={() => onToggleSelect(task.id)}
-            aria-label="Seç"
+            aria-label={m.task.select}
           />
 
           <Thumbnail
@@ -70,7 +73,7 @@ export default function TaskCard({
               )}
               {canExpand && (
                 <button onClick={() => onExpandPlaylist(task.id)} className="btn btn-ghost btn-xs gap-1">
-                  <ListPlus size={14} /> Listenin tamamını ekle
+                  <ListPlus size={14} /> {m.task.expandPlaylist}
                 </button>
               )}
             </div>
@@ -79,21 +82,21 @@ export default function TaskCard({
           <div className="flex items-center gap-1 shrink-0">
             {canMove && (
               <div className="join join-vertical">
-                <button onClick={() => onMove(task.id, 'up')} disabled={isFirst} className="btn btn-ghost btn-xs btn-square join-item" aria-label="Yukarı taşı">
+                <button onClick={() => onMove(task.id, 'up')} disabled={isFirst} className="btn btn-ghost btn-xs btn-square join-item" aria-label={m.task.moveUp}>
                   <ChevronUp size={14} />
                 </button>
-                <button onClick={() => onMove(task.id, 'down')} disabled={isLast} className="btn btn-ghost btn-xs btn-square join-item" aria-label="Aşağı taşı">
+                <button onClick={() => onMove(task.id, 'down')} disabled={isLast} className="btn btn-ghost btn-xs btn-square join-item" aria-label={m.task.moveDown}>
                   <ChevronDown size={14} />
                 </button>
               </div>
             )}
             {canRetry && (
-              <button onClick={() => onRetry(task)} className="btn btn-ghost btn-sm btn-square" aria-label="Tekrar dene">
+              <button onClick={() => onRetry(task)} className="btn btn-ghost btn-sm btn-square" aria-label={m.task.retry}>
                 <RotateCcw size={16} />
               </button>
             )}
             {canCancel && (
-              <button onClick={() => onCancel(task.id)} className="btn btn-ghost btn-sm btn-square" aria-label="Kaldır">
+              <button onClick={() => onCancel(task.id)} className="btn btn-ghost btn-sm btn-square" aria-label={m.task.remove}>
                 <X size={16} />
               </button>
             )}
@@ -101,6 +104,7 @@ export default function TaskCard({
         </div>
 
         <FormatSelector task={task} onFormatChange={onFormatChange} onStartDownload={onStartDownload} />
+        {ready && task.formats && <SectionPicker task={task} />}
         {(task.status === 'downloading' || task.status === 'queued') && <DownloadProgress task={task} onCancel={onCancel} />}
         {ready && task.message && (
           <div role="status" className="alert alert-info alert-soft py-2 text-sm">
@@ -115,7 +119,7 @@ export default function TaskCard({
               <span className="break-words">{task.message}</span>
               {task.detail && (
                 <details className="text-xs opacity-70">
-                  <summary className="cursor-pointer">Ayrıntı</summary>
+                  <summary className="cursor-pointer">{m.task.detail}</summary>
                   <p className="font-mono break-words whitespace-pre-wrap mt-1">{task.detail}</p>
                 </details>
               )}

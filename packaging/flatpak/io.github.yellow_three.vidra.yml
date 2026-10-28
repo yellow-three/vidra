@@ -1,0 +1,57 @@
+# Flatpak tarifi: release'deki .deb paketini GNOME runtime'ina aktarir.
+# Yerelde: flatpak-builder --user --install --force-clean build io.github.yellow_three.vidra.yml
+# Yeni surumde: url ve sha256'yi guncelleyin, metainfo'ya <release> ekleyin.
+# Flatpak app ID'sinde tire olamaz; Tauri kimligi io.github.yellow-three.vidra olarak kalir.
+id: io.github.yellow_three.vidra
+runtime: org.gnome.Platform
+runtime-version: '51'
+sdk: org.gnome.Sdk
+command: vidra
+finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  - --share=network
+  - --device=dri
+  - --filesystem=xdg-download
+  - --talk-name=org.freedesktop.Notifications
+  # "Tarayici cerezleri" ayari: profiller salt okunur, Chromium cerez anahtari icin anahtarlik.
+  - --filesystem=~/.mozilla:ro
+  - --filesystem=~/.config/google-chrome:ro
+  - --filesystem=~/.config/chromium:ro
+  - --filesystem=~/.config/microsoft-edge:ro
+  - --filesystem=~/.config/BraveSoftware:ro
+  - --filesystem=~/.config/opera:ro
+  - --filesystem=~/.config/vivaldi:ro
+  - --filesystem=~/.var/app/org.mozilla.firefox:ro
+  - --filesystem=~/.var/app/com.google.Chrome:ro
+  - --filesystem=~/.var/app/org.chromium.Chromium:ro
+  - --filesystem=~/.var/app/com.brave.Browser:ro
+  - --filesystem=~/.var/app/com.microsoft.Edge:ro
+  - --talk-name=org.freedesktop.secrets
+  - --talk-name=org.kde.kwalletd5
+  - --talk-name=org.kde.kwalletd6
+modules:
+  - name: vidra
+    buildsystem: simple
+    sources:
+      - type: file
+        url: https://github.com/yellow-three/vidra/releases/download/v0.2.0/Vidra_0.2.0_amd64.deb
+        sha256: REPLACE_WITH_RELEASE_DEB_SHA256
+        dest-filename: vidra.deb
+        only-arches: [x86_64]
+      - type: file
+        path: io.github.yellow_three.vidra.desktop
+      - type: file
+        path: io.github.yellow_three.vidra.metainfo.xml
+    build-commands:
+      - ar x vidra.deb data.tar.gz
+      - tar -xzf data.tar.gz
+      # Sidecar'lar (ytd-yt-dlp, ytd-ffmpeg, ytd-deno) uygulamanin yaninda olmali; lisanslar ../lib/Vidra altinda aranir.
+      - install -Dm755 -t /app/bin usr/bin/vidra usr/bin/ytd-yt-dlp usr/bin/ytd-ffmpeg usr/bin/ytd-deno
+      - mkdir -p /app/lib && cp -r usr/lib/Vidra /app/lib/Vidra
+      - install -Dm644 usr/share/icons/hicolor/32x32/apps/vidra.png /app/share/icons/hicolor/32x32/apps/io.github.yellow_three.vidra.png
+      - install -Dm644 usr/share/icons/hicolor/128x128/apps/vidra.png /app/share/icons/hicolor/128x128/apps/io.github.yellow_three.vidra.png
+      - install -Dm644 usr/share/icons/hicolor/256x256@2/apps/vidra.png /app/share/icons/hicolor/256x256/apps/io.github.yellow_three.vidra.png
+      - install -Dm644 io.github.yellow_three.vidra.desktop -t /app/share/applications
+      - install -Dm644 io.github.yellow_three.vidra.metainfo.xml -t /app/share/metainfo

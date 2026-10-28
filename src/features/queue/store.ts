@@ -4,16 +4,18 @@
 import { create } from 'zustand';
 import { engine } from '../../engine';
 import { EngineError } from '../../engine/errors';
-import type { InfoOptions, NetworkOptions, VideoInfo } from '../../engine/types';
+import type { InfoOptions, NetworkOptions, TimeRange, VideoInfo } from '../../engine/types';
 import { formatFilesize, optionLabel, parseOption } from '../../engine/ytdlp';
 import { appApi } from '../../lib/appApi';
 import type { AppSettings, Task } from '../../types';
-import { addHistory } from '../history/queries';
+import { addHistory, fetchHistory } from '../history/queries';
 import { fetchSettings } from '../settings/queries';
 import { pickDefaultFormat } from './defaultFormat';
+import { splitUrls, videoKey } from './duplicates';
 import { createLimiter } from './limiter';
 import { notifyComplete } from './notify';
 import { loadTasks, saveTasks } from './persistence';
+import { msg } from '../../i18n';
 
 export const DEFAULT_CONCURRENT_DOWNLOADS = 2;
 const limiter = createLimiter(DEFAULT_CONCURRENT_DOWNLOADS);
@@ -32,11 +34,13 @@ interface QueueState {
   url: string;
   tasks: Task[];
   setUrl(url: string): void;
-  /** URL kutusundaki linki analiz eder; olusan gorevin kimligini dondurur. */
+  /** URL kutusundaki linkleri (birden fazla olabilir) analiz eder; ilk gorevin kimligini dondurur. */
   analyze(): Promise<string | null>;
   /** `watch?v=..&list=..` gorevini listenin tum videolariyla degistirir. */
   expandPlaylist(id: string): Promise<void>;
   selectFormat(id: string, formatId: string): void;
+  /** Yalnizca bir araligi indirmek icin; `undefined` tum videoyu secer. */
+  setSection(id: string, section: TimeRange | undefined): void;
   startDownload(id: string): Promise<void>;
   /** Format secimini bekleyen tum gorevleri listedeki sirayla kuyruga alir. */
   startAll(): Promise<void>;
@@ -56,6 +60,18 @@ function newId(): string {
 
 const isActive = (t: Task) => t.status === 'queued' || t.status === 'downloading';
 
+
+/**
+ * Bir arada baslatilan indirmeler bitince tek bildirim ve tek klasor penceresi:
+ * 50 videoluk listede her dosya icin pencere acilmasin.
+ */
+interface Batch {
+  count: number;
+  lastTitle: string;
+  lastPath: string;
+}
+let batch: Batch = { count: 0, lastTitle: '', lastPath: '' };
+
 export const useQueueStore = create<QueueState>()((set, get) => {
   /** Iptal edilmis gorevler gec gelen sonuclarla geri acilmaz. */
   const update = (id: string, patch: Partial<Task>) =>
@@ -64,14 +80,24 @@ export const useQueueStore = create<QueueState>()((set, get) => {
     set((s) => ({ tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)) }));
   const find = (id: string) => get().tasks.find((t) => t.id === id);
 
+  /** Kuyrukta ya da gecmiste ayni video varsa karta yazilacak uyari. */
+  async function duplicateMessage(id: string, url: string): Promise<string | undefined> {
+    const key = videoKey(url);
+    const inQueue = get().tasks.some((t) => t.id !== id && t.status !== 'cancelled' && t.status !== 'error' && videoKey(t.url) === key);
+    if (inQueue) return msg().queue.duplicateInQueue;
+    const history = await fetchHistory().catch(() => []);
+    return history.some((h) => videoKey(h.url) === key) ? msg().queue.duplicateInHistory : undefined;
+  }
+
   /** Liste analizinin yer tutucusunu, listedeki videolarla ayni yerde degistirir. */
-  function replaceWithEntries(id: string, info: VideoInfo, settings: AppSettings | null) {
+  async function replaceWithEntries(id: string, info: VideoInfo, settings: AppSettings | null) {
     const entries = info.entries ?? [];
     if (entries.length === 0) {
-      update(id, { status: 'error', title: info.title, message: 'Listede indirilebilir video yok.' });
+      update(id, { status: 'error', title: info.title, message: msg().queue.emptyPlaylist });
       return;
     }
     const selectedFormatId = pickDefaultFormat(info.formats, settings);
+    const downloaded = new Set((await fetchHistory().catch(() => [])).map((h) => videoKey(h.url)));
     const tasks: Task[] = entries.map((e) => ({
       id: newId(),
       url: e.url,
@@ -84,6 +110,7 @@ export const useQueueStore = create<QueueState>()((set, get) => {
       speed: '',
       eta: '',
       status: 'ready-to-select',
+      message: downloaded.has(videoKey(e.url)) ? msg().queue.duplicateInHistory : undefined,
     }));
     set((s) => ({
       tasks: s.tasks.flatMap((t) => (t.id === id && t.status !== 'cancelled' ? tasks : [t])),
@@ -95,16 +122,17 @@ export const useQueueStore = create<QueueState>()((set, get) => {
       const settings = await fetchSettings().catch(() => null);
       const info = await engine.getInfo(url, { ...networkOptions(settings), ...options });
       if (info.entries) {
-        replaceWithEntries(id, info, settings);
+        await replaceWithEntries(id, info, settings);
         return;
       }
+      const message = await duplicateMessage(id, url);
       update(id, {
         status: 'ready-to-select',
         title: info.title,
         thumbnail: info.thumbnail,
         formats: info.formats,
         selectedFormatId: pickDefaultFormat(info.formats, settings),
-        message: undefined,
+        message,
         detail: undefined,
       });
     } catch (error) {
@@ -128,6 +156,15 @@ export const useQueueStore = create<QueueState>()((set, get) => {
     });
   }
 
+  /** Son indirme de bitince toplu bildirim ve klasor; hata/iptal de topluluk icindedir. */
+  function finishBatchIfIdle(autoOpenFolder: boolean) {
+    if (get().tasks.some(isActive) || batch.count === 0) return;
+    const done = batch;
+    batch = { count: 0, lastTitle: '', lastPath: '' };
+    notifyComplete(done.count === 1 ? done.lastTitle : msg().notify.batch(done.count));
+    if (autoOpenFolder) void appApi.openFileLocation(done.lastPath);
+  }
+
   return {
     url: '',
     tasks: loadTasks(),
@@ -135,25 +172,27 @@ export const useQueueStore = create<QueueState>()((set, get) => {
     setUrl: (url) => set({ url }),
 
     async analyze() {
-      const url = get().url.trim();
-      if (!url) return null;
-      const id = newId();
-      set((s) => ({
-        url: '',
-        tasks: [{ id, url, title: 'Video kaynakları analiz ediliyor...', percent: 0, speed: '', eta: '', status: 'analyzing' }, ...s.tasks],
+      const urls = splitUrls(get().url);
+      if (urls.length === 0) return null;
+      const added: Task[] = urls.map((url) => ({
+        id: newId(), url, title: msg().queue.analyzingTitle, percent: 0, speed: '', eta: '', status: 'analyzing',
       }));
-      await runAnalysis(id, url);
-      return id;
+      set((s) => ({ url: '', tasks: [...added, ...s.tasks] }));
+      // Sirayla: ayni anda onlarca yt-dlp acilmaz, tekrar uyarisi da onceki linkleri gorur.
+      for (const t of added) await runAnalysis(t.id, t.url);
+      return added[0].id;
     },
 
     async expandPlaylist(id) {
       const task = find(id);
       if (!task) return;
-      force(id, { status: 'analyzing', title: 'Oynatma listesi analiz ediliyor...', message: undefined, detail: undefined });
+      force(id, { status: 'analyzing', title: msg().queue.analyzingPlaylist, message: undefined, detail: undefined });
       await runAnalysis(id, task.url, { playlist: true });
     },
 
     selectFormat: (id, formatId) => update(id, { selectedFormatId: formatId }),
+
+    setSection: (id, section) => update(id, { section }),
 
     async startDownload(id) {
       const task = find(id);
@@ -176,6 +215,10 @@ export const useQueueStore = create<QueueState>()((set, get) => {
               formatId,
               outDir,
               subtitles: settings.downloadSubtitles ?? false,
+              subtitleLangs: settings.subtitleLangs,
+              subfolder: (settings.playlistSubfolder ?? true) ? task.playlist : undefined,
+              section: task.section,
+              sponsorBlock: settings.sponsorBlock,
               embedMetadata: settings.embedMetadata ?? true,
               filenameTemplate: settings.filenameTemplate,
               rateLimit: settings.rateLimit || undefined,
@@ -191,10 +234,10 @@ export const useQueueStore = create<QueueState>()((set, get) => {
           update(id, { status: 'error', message: result.message, detail: result.detail });
         } else {
           update(id, { status: 'complete', percent: 100 });
+          batch = { count: batch.count + 1, lastTitle: task.title, lastPath: result.filePath };
           await saveCompleted(find(id) ?? task, formatId, result.filePath, result.fileSize);
-          notifyComplete(task.title);
-          if (settings.autoOpenFolder ?? true) void appApi.openFileLocation(result.filePath);
         }
+        finishBatchIfIdle(settings.autoOpenFolder ?? true);
       } catch (error) {
         update(id, { status: 'error', ...errorFields(error) });
       }

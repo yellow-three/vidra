@@ -4,6 +4,7 @@ pub mod legacy;
 mod cookies;
 mod dependencies;
 mod events;
+mod ffprobe;
 mod process;
 
 use events::ClipboardMonitor;
@@ -196,6 +197,25 @@ fn open_file_location(file_path: String) -> Value {
     ok()
 }
 
+/// Dosyayi varsayilan uygulamasiyla acar (video oynatici, muzik calar).
+#[tauri::command]
+fn open_file(app: AppHandle, file_path: String) -> CommandResult<Value> {
+    use tauri_plugin_opener::OpenerExt;
+    app.opener()
+        .open_path(&file_path, None::<&str>)
+        .map_err(|e| e.to_string())?;
+    Ok(ok())
+}
+
+/// Gecmisteki dosyalardan hangilerinin hala diskte oldugu; yollarla ayni sirada.
+#[tauri::command]
+fn files_exist(paths: Vec<String>) -> Vec<bool> {
+    paths
+        .iter()
+        .map(|p| !p.is_empty() && std::path::Path::new(p).is_file())
+        .collect()
+}
+
 #[tauri::command]
 fn start_clipboard_monitor(app: AppHandle, state: State<'_, AppState>) -> CommandResult<Value> {
     let mut monitor = state.clipboard_monitor.lock().map_err(|e| e.to_string())?;
@@ -269,6 +289,8 @@ pub fn run() {
             get_legacy_history,
             clear_legacy_history,
             open_file_location,
+            open_file,
+            files_exist,
             start_clipboard_monitor,
             stop_clipboard_monitor,
             process_spawn,
@@ -277,6 +299,9 @@ pub fn run() {
             dependencies::update_ytdlp,
             dependencies::get_ytdlp_version,
             dependencies::get_platform,
+            dependencies::is_flatpak,
+            ffprobe::install_ffprobe,
+            ffprobe::remove_ffprobe,
             cookies::cookie_source,
         ])
         .build(tauri::generate_context!())
@@ -286,4 +311,25 @@ pub fn run() {
                 app.state::<AppState>().processes.kill_all();
             }
         });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::files_exist;
+
+    #[test]
+    fn files_exist_reports_each_path() {
+        let dir = std::env::temp_dir().join(format!("vidra-exist-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("a.mp4");
+        std::fs::write(&file, b"x").unwrap();
+        let result = files_exist(vec![
+            file.to_string_lossy().into_owned(),
+            dir.join("yok.mp4").to_string_lossy().into_owned(),
+            dir.to_string_lossy().into_owned(),
+            String::new(),
+        ]);
+        assert_eq!(result, vec![true, false, false, false]);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 }

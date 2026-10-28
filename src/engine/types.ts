@@ -63,6 +63,22 @@ export interface DownloadRequest extends NetworkOptions {
   filenameTemplate?: string;
   /** yt-dlp `--limit-rate` degeri, orn. `5M`. */
   rateLimit?: string;
+  /** `--sub-langs` degeri, orn. `tr,en`; bos ise `tr,en`. */
+  subtitleLangs?: string;
+  /** Dosyanin indirme klasoru icindeki alt klasoru (orn. oynatma listesinin adi). */
+  subfolder?: string;
+  /** Yalnizca bu araligi indirir (saniye); `end` yoksa videonun sonuna kadar. */
+  section?: TimeRange;
+  /** ffprobe kurulu degilse motor yok sayar (src-tauri/src/ffprobe.rs). */
+  sponsorBlock?: SponsorBlockMode;
+}
+
+/** `mark`: sponsor bolumleri dosyaya bolum olarak eklenir; `remove`: dosyadan kesilir. */
+export type SponsorBlockMode = 'off' | 'mark' | 'remove';
+
+export interface TimeRange {
+  start: number;
+  end?: number;
 }
 
 export type DownloadResult =

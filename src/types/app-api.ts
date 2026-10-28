@@ -3,7 +3,6 @@ export type IpcResult<T = {}> =
   | { success: false; error: string };
 
 export interface AppApi {
-  onStatusUpdate(callback: (msg: string) => void): Promise<() => void>;
   startClipboardMonitor(): Promise<void>;
   stopClipboardMonitor(): Promise<void>;
   onClipboardMonitorStopped(callback: () => void): Promise<() => void>;
@@ -16,6 +15,11 @@ export interface AppApi {
   getLegacyHistory(): Promise<import('.').HistoryItem[]>;
   clearLegacyHistory(): Promise<IpcResult>;
   openFileLocation(filePath: string): Promise<IpcResult>;
-  checkDependencies(): Promise<{ ytdlp: boolean; ffmpeg: boolean; deno: boolean; ytdlpPath: string | null; ffmpegPath: string | null; denoPath: string | null }>;
+  openFile(filePath: string): Promise<IpcResult>;
+  filesExist(paths: string[]): Promise<boolean[]>;
+  checkDependencies(): Promise<{ ytdlp: boolean; ffmpeg: boolean; deno: boolean; ffprobe: boolean; ytdlpPath: string | null; ffmpegPath: string | null; denoPath: string | null }>;
+  /** SponsorBlock icin ffprobe'u indirir; ilerleme 0-100. */
+  installFfprobe(onProgress: (percent: number) => void): Promise<void>;
+  removeFfprobe(): Promise<void>;
   getPlatform(): Promise<string>;
 }

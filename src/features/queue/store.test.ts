@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DownloadProgress, DownloadRequest, DownloadResult, VideoInfo } from '../../engine';
 import { EngineError } from '../../engine/errors';
+import tr from '../../i18n/tr';
 import { buildOptions, playlistOptions } from '../../engine/ytdlp';
 
 const settings = { downloadDir: '/out', autoOpenFolder: false, downloadSubtitles: true } as Record<string, unknown>;
@@ -10,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   download: vi.fn(),
   cancel: vi.fn(),
   addHistory: vi.fn(),
+  fetchHistory: vi.fn(),
   openFileLocation: vi.fn(),
   notify: vi.fn(),
 }));
@@ -18,7 +20,7 @@ vi.mock('../../engine', () => ({
   engine: { getInfo: mocks.getInfo, download: mocks.download, cancel: mocks.cancel },
 }));
 vi.mock('../settings/queries', () => ({ fetchSettings: async () => settings }));
-vi.mock('../history/queries', () => ({ addHistory: mocks.addHistory }));
+vi.mock('../history/queries', () => ({ addHistory: mocks.addHistory, fetchHistory: mocks.fetchHistory }));
 vi.mock('../../lib/appApi', () => ({
   appApi: { openFileLocation: mocks.openFileLocation, getDownloadFolder: async () => '/default' },
 }));
@@ -53,7 +55,11 @@ async function addReadyTask(url: string, title = 'Video') {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  for (const key of ['defaultFormat', 'maxConcurrentDownloads', 'cookiesFromBrowser', 'proxy', 'rateLimit']) delete settings[key];
+  mocks.fetchHistory.mockResolvedValue([]);
+  settings.autoOpenFolder = false;
+  for (const key of ['defaultFormat', 'maxConcurrentDownloads', 'cookiesFromBrowser', 'proxy', 'rateLimit', 'subtitleLangs', 'playlistSubfolder']) {
+    delete settings[key];
+  }
   useQueueStore.setState({ tasks: [], url: '' });
 });
 
@@ -233,5 +239,67 @@ describe('queue store', () => {
     await addReadyTask('b');
     useQueueStore.getState().clearFinished();
     expect(useQueueStore.getState().tasks.map((t) => t.url)).toEqual(['b']);
+  });
+
+  it('toplu indirmede tek bildirim ve tek klasor penceresi acar', async () => {
+    settings.autoOpenFolder = true;
+    const calls = controllableDownload();
+    const [a, b] = [await addReadyTask('https://youtu.be/a', 'A'), await addReadyTask('https://youtu.be/b', 'B')];
+    const runs = [a, b].map((id) => useQueueStore.getState().startDownload(id));
+    await flush();
+
+    calls[0].finish({ status: 'complete', filePath: '/out/A.mp4' });
+    await flush();
+    expect(mocks.notify).not.toHaveBeenCalled();
+    calls[1].finish({ status: 'complete', filePath: '/out/B.mp4' });
+    await Promise.all(runs);
+
+    expect(mocks.notify).toHaveBeenCalledTimes(1);
+    expect(mocks.notify).toHaveBeenCalledWith('2 indirme tamamlandı.');
+    expect(mocks.openFileLocation).toHaveBeenCalledTimes(1);
+    expect(mocks.openFileLocation).toHaveBeenCalledWith('/out/B.mp4');
+  });
+
+  it('kuyrukta ya da gecmiste olan videoyu uyariyla ekler', async () => {
+    await addReadyTask('https://www.youtube.com/watch?v=aaaaaaaaaaa');
+    const again = await addReadyTask('https://youtu.be/aaaaaaaaaaa');
+    expect(task(again).message).toBe(tr.queue.duplicateInQueue);
+
+    mocks.fetchHistory.mockResolvedValue([{ url: 'https://youtu.be/bbbbbbbbbbb' }]);
+    const old = await addReadyTask('https://www.youtube.com/watch?v=bbbbbbbbbbb&t=10');
+    expect(task(old).message).toBe(tr.queue.duplicateInHistory);
+  });
+
+  it('birden fazla linki ayri gorevler olarak sirayla analiz eder', async () => {
+    mocks.getInfo.mockResolvedValueOnce(info('Bir')).mockResolvedValueOnce(info('Iki'));
+    useQueueStore.getState().setUrl('https://youtu.be/1\nhttps://youtu.be/2https://youtu.be/1');
+    await useQueueStore.getState().analyze();
+    expect(mocks.getInfo.mock.calls.map((c) => c[0])).toEqual(['https://youtu.be/1', 'https://youtu.be/2']);
+    expect(useQueueStore.getState().tasks.map((t) => t.title)).toEqual(['Bir', 'Iki']);
+  });
+
+  it('liste klasorunu, bolumu ve altyazi dillerini indirmeye verir', async () => {
+    settings.subtitleLangs = 'de';
+    mocks.getInfo.mockResolvedValueOnce({
+      title: 'Liste', url: 'L', formats: playlistOptions(), entries: [{ url: 'https://youtu.be/1', title: 'Bir' }],
+    } satisfies VideoInfo);
+    useQueueStore.getState().setUrl('https://www.youtube.com/playlist?list=PL');
+    await useQueueStore.getState().analyze();
+    const id = useQueueStore.getState().tasks[0].id;
+    useQueueStore.getState().setSection(id, { start: 5, end: 20 });
+
+    const calls = controllableDownload();
+    let run = useQueueStore.getState().startDownload(id);
+    await flush();
+    expect(calls[0].req).toMatchObject({ subfolder: 'Liste', section: { start: 5, end: 20 }, subtitleLangs: 'de' });
+    calls[0].finish({ status: 'cancelled' });
+    await run;
+
+    settings.playlistSubfolder = false;
+    run = useQueueStore.getState().startDownload(id);
+    await flush();
+    expect(calls[1].req.subfolder).toBeUndefined();
+    calls[1].finish({ status: 'cancelled' });
+    await run;
   });
 });

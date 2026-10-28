@@ -3,15 +3,16 @@ import { ClipboardCheck, FolderOpen, Sparkles } from 'lucide-react';
 import TaskList from './TaskList';
 import AddUrlForm from '../add/AddUrlForm';
 import PageHeader from '../../app/PageHeader';
-import { LEGAL_TEXT } from '../../app/LegalNotice';
-import { useAppStatus } from './bootstrap';
+import { useAppStatus } from './appStatus';
 import { useQueueStore } from './store';
 import { useSettings } from '../settings/queries';
 import { useAppUpdate } from '../settings/appUpdate';
+import { useT } from '../../i18n';
 
 const shortenHome = (path: string) => path.replace(/^\/home\/[^/]+/, '~').replace(/^C:\\Users\\[^\\]+/i, '~');
 
 export default function QueuePage() {
+  const m = useT();
   const queue = useQueueStore((s) => s.tasks);
   const { selectFormat, startDownload, startAll, cancel, retry, move, expandPlaylist, clearFinished } = useQueueStore.getState();
   const { status, depsReady } = useAppStatus();
@@ -20,20 +21,20 @@ export default function QueuePage() {
 
   const count = (pred: (s: string) => boolean) => queue.filter((t) => pred(t.status)).length;
   const stats = [
-    { label: 'Bekleyen', value: count((s) => s === 'ready-to-select' || s === 'analyzing' || s === 'queued') },
-    { label: 'İniyor', value: count((s) => s === 'downloading') },
-    { label: 'Tamamlanan', value: count((s) => s === 'complete') },
-    { label: 'Hatalı', value: count((s) => s === 'error') },
+    { label: m.queue.stats.pending, value: count((s) => s === 'ready-to-select' || s === 'analyzing' || s === 'queued') },
+    { label: m.queue.stats.downloading, value: count((s) => s === 'downloading') },
+    { label: m.queue.stats.complete, value: count((s) => s === 'complete') },
+    { label: m.queue.stats.error, value: count((s) => s === 'error') },
   ];
 
   return (
     <div className="flex flex-col gap-6 flex-1">
       <PageHeader
-        title="İndir"
-        subtitle="YouTube videolarını video veya ses olarak indirin."
+        title={m.queue.title}
+        subtitle={m.queue.subtitle}
         actions={
-          <span className="badge badge-ghost gap-1.5" title="Kopyalanan YouTube linkleri kutuya otomatik gelir">
-            <ClipboardCheck size={14} /> Pano izleniyor
+          <span className="badge badge-ghost gap-1.5" title={m.queue.clipboardTip}>
+            <ClipboardCheck size={14} /> {m.queue.clipboard}
           </span>
         }
       />
@@ -70,19 +71,19 @@ export default function QueuePage() {
         <div className="flex items-center justify-between gap-4">
           <span className="flex-1 flex items-center gap-2 min-w-0">
             <span className={`status shrink-0 ${depsReady ? 'status-success' : 'status-warning'}`} aria-hidden />
-            <span className="truncate">{status}</span>
+            <span className="truncate">{status(m)}</span>
             {appUpdate && (
               <Link to="/settings" className="link link-hover text-secondary inline-flex items-center gap-1 shrink-0">
-                <Sparkles size={12} /> Yeni sürüm {appUpdate.version} hazır
+                <Sparkles size={12} /> {m.queue.newVersion(appUpdate.version)}
               </Link>
             )}
           </span>
-          <span className="flex items-center gap-1.5 min-w-0 max-w-[45%]" title={downloadDir || 'İndirilenler klasörü'}>
+          <span className="flex items-center gap-1.5 min-w-0 max-w-[45%]" title={downloadDir || m.queue.downloadsFolderTip}>
             <FolderOpen size={14} className="shrink-0" />
-            <span className="truncate">{downloadDir ? shortenHome(downloadDir) : 'İndirilenler'}</span>
+            <span className="truncate">{downloadDir ? shortenHome(downloadDir) : m.queue.downloadsFolder}</span>
           </span>
         </div>
-        <p className="text-[11px] text-base-content/40">{LEGAL_TEXT}</p>
+        <p className="text-[11px] text-base-content/40">{m.legal.text}</p>
       </footer>
     </div>
   );

@@ -157,6 +157,25 @@ test('eksik sidecar durum cubugunda gosterilir ve analiz kapali kalir', async ({
   await expect(page.getByRole('button', { name: 'Hazırlanıyor...' })).toBeDisabled();
 });
 
+test('videonun yalnizca secilen bolumu indirilir', async ({ page }) => {
+  await mockTauri(page, { settings: accepted });
+  await page.goto('/');
+  await analyze(page);
+  await page.getByRole('button', { name: 'Bölüm seç' }).click();
+  await page.getByLabel('Başlangıç').fill('0:10');
+  await page.getByLabel('Bitiş').fill('0:05');
+  await page.getByLabel('Başlangıç').click();
+  await expect(page.getByText('Bitiş, başlangıçtan sonra olmalı.')).toBeVisible();
+  await page.getByLabel('Bitiş').fill('1:00');
+  await page.getByLabel('Başlangıç').click();
+  await page.getByRole('button', { name: 'İndir', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).__mock.state.downloads.length)).toBe(1);
+
+  const spawned = (await calls(page, 'process_spawn')).map((a: any) => a.args.join(' '));
+  expect(spawned[1]).toContain('--download-sections *10-60');
+  expect(spawned[1]).toContain('[00.10-01.00].%(ext)s');
+});
+
 test('gecmis sayfasi SQLite kayitlarini listeler ve siler', async ({ page }) => {
   await mockTauri(page, {
     settings: accepted,
@@ -165,8 +184,32 @@ test('gecmis sayfasi SQLite kayitlarini listeler ve siler', async ({ page }) => 
   await page.goto('/downloads');
   await expect(page.getByText('Eski video')).toBeVisible();
   await expect(page.getByText('3.0 MB')).toBeVisible();
-  await page.getByRole('button', { name: 'Sil' }).click();
+  await page.getByRole('button', { name: 'Geçmişten sil' }).click();
   await expect(page.getByText('Henüz indirme geçmişi yok.')).toBeVisible();
+});
+
+test('gecmiste arar, silinmis dosyayi isaretler, yeniden indirir', async ({ page }) => {
+  const row = (id: string, title: string, path: string) => ({
+    id, title, url: URL, thumbnail: null, format_id: 'audio-mp3', quality: 'MP3', ext: 'mp3', file_size: '1 MB', file_path: path, completed_at: 1780000000,
+  });
+  await mockTauri(page, {
+    settings: accepted,
+    history: [row('1', 'Kedi videosu', '/kedi.mp3'), row('2', 'Köpek videosu', '/silinmis/kopek.mp3')],
+  });
+  await page.goto('/downloads');
+
+  const dog = page.getByRole('listitem').filter({ hasText: 'Köpek videosu' });
+  await expect(dog.getByText('Dosya bulunamadı')).toBeVisible();
+  await expect(dog.getByRole('button', { name: 'Oynat' })).toBeDisabled();
+  await expect(page.getByRole('listitem').filter({ hasText: 'Kedi videosu' }).getByText('Dosya bulunamadı')).toHaveCount(0);
+
+  await page.getByLabel('Geçmişte ara').fill('KEDİ');
+  await expect(page.getByText('Köpek videosu')).toHaveCount(0);
+  await expect(page.getByText('Kedi videosu')).toBeVisible();
+
+  await page.getByRole('listitem').filter({ hasText: 'Kedi videosu' }).getByRole('button', { name: 'Yeniden indir' }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByText('Bu video daha önce indirildi')).toBeVisible();
 });
 
 test('ayarlar: yt-dlp surumu ve guncelleme', async ({ page }) => {
@@ -227,4 +270,38 @@ test('tema: kenar cubugundaki dugme acik/koyu Vidra temalari arasinda gecer', as
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'vidra-light');
   await page.getByLabel('Koyu temaya geç').click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'vidra-dark');
+});
+
+test('dil: sistem dili Ingilizceyse arayuz Ingilizce, ayardan Turkceye gecer', async ({ browser }) => {
+  const context = await browser.newContext({ locale: 'en-US' });
+  const page = await context.newPage();
+  await mockTauri(page, { settings: accepted });
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Analyze' })).toBeVisible();
+  await expect(page.getByText('Download YouTube videos as video or audio.')).toBeVisible();
+
+  await page.getByRole('link', { name: 'Settings' }).click();
+  await page.getByRole('combobox').filter({ has: page.getByRole('option', { name: 'Türkçe' }) }).selectOption('tr');
+  expect(await calls(page, 'save_settings')).toContainEqual({ settings: { language: 'tr' } });
+  await expect(page.getByRole('heading', { name: 'Ayarlar' })).toBeVisible();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
+  await context.close();
+});
+
+test('SponsorBlock: ffprobe indirilince secilir ve indirmeye eklenir', async ({ page }) => {
+  await mockTauri(page, { settings: accepted });
+  await page.goto('/settings');
+  await expect(page.getByText('SponsorBlock için ffprobe gerekir')).toBeVisible();
+  await page.getByRole('button', { name: 'ffprobe\'u indir ve kur' }).click();
+  await expect(page.getByText('ffprobe kurulu.')).toBeVisible();
+
+  await page.getByRole('combobox').filter({ has: page.getByRole('option', { name: 'Videodan kes' }) }).selectOption('remove');
+  expect(await calls(page, 'save_settings')).toContainEqual({ settings: { sponsorBlock: 'remove' } });
+
+  await page.getByRole('link', { name: 'İndir' }).click();
+  await analyze(page);
+  await page.getByRole('button', { name: 'İndir', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).__mock.state.downloads.length)).toBe(1);
+  const spawned = (await calls(page, 'process_spawn')).map((a: any) => a.args.join(' '));
+  expect(spawned[1]).toContain('--sponsorblock-remove sponsor,selfpromo,interaction');
 });

@@ -2,6 +2,7 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { readDir, remove, stat } from '@tauri-apps/plugin-fs';
+import { msg } from '../i18n';
 import { joinPath, splitPath, stem } from './paths';
 import { killProcess, runProcess, spawnProcess } from './process';
 import { EngineError, friendlyError } from './errors';
@@ -21,6 +22,8 @@ import {
 interface Dependencies {
   ytdlp: boolean;
   ffmpeg: boolean;
+  /** Varsa `ffmpegPath` ffmpeg + ffprobe klasorudur. */
+  ffprobe: boolean;
   ffmpegPath: string | null;
   denoPath: string | null;
 }
@@ -56,16 +59,16 @@ export class DesktopEngine implements DownloadEngine {
 
   async getInfo(url: string, options: InfoOptions = {}): Promise<VideoInfo> {
     const deps = await getDependencies();
-    if (!deps.ytdlp) throw new Error('yt-dlp bulunamadı; uygulama eksik kurulmuş olabilir.');
+    if (!deps.ytdlp) throw new Error(msg().engine.noYtdlp);
 
     const result = await runProcess('yt-dlp', buildInfoArgs({ url, denoPath: deps.denoPath, ...(await resolveNetwork(options)) }));
-    if (result.code !== 0) throw new EngineError(friendlyError(lastErrorLines(result.stderr) || 'Analiz hatası'));
+    if (result.code !== 0) throw new EngineError(friendlyError(lastErrorLines(result.stderr) || msg().engine.analysisError));
     return parseInfo(result.stdout, url);
   }
 
   async download(request: DownloadRequest, onProgress: (p: DownloadProgress) => void): Promise<DownloadResult> {
     const option = parseOption(request.formatId);
-    if (!option) return { status: 'error', message: `Bilinmeyen format: ${request.formatId}` };
+    if (!option) return { status: 'error', message: msg().engine.unknownFormat(request.formatId) };
     this.processes.set(request.id, 'starting');
     try {
       return await this.runDownload(request, option, onProgress);
@@ -80,11 +83,18 @@ export class DesktopEngine implements DownloadEngine {
     onProgress: (p: DownloadProgress) => void,
   ): Promise<DownloadResult> {
     const deps = await getDependencies();
-    if (!deps.ytdlp) return { status: 'error', message: 'yt-dlp bulunamadı.' };
-    if (!deps.ffmpeg) return { status: 'error', message: 'FFmpeg bulunamadı; video birleştirme ve MP3 için gerekli.' };
+    if (!deps.ytdlp) return { status: 'error', message: msg().engine.noYtdlp };
+    if (!deps.ffmpeg) return { status: 'error', message: msg().engine.noFfmpeg };
 
-    const { id: _id, formatId: _formatId, ...rest } = await resolveNetwork(request);
-    const args = buildDownloadArgs({ ...rest, option, ffmpegPath: deps.ffmpegPath, denoPath: deps.denoPath });
+    const { id: _id, formatId: _formatId, sponsorBlock, ...rest } = await resolveNetwork(request);
+    const args = buildDownloadArgs({
+      ...rest,
+      option,
+      // ffprobe olmadan yt-dlp SponsorBlock'ta "Unable to determine video duration" ile durur.
+      sponsorBlock: deps.ffprobe ? sponsorBlock : undefined,
+      ffmpegPath: deps.ffmpegPath,
+      denoPath: deps.denoPath,
+    });
 
     let destination = '';
     let filePath = '';
@@ -119,7 +129,7 @@ export class DesktopEngine implements DownloadEngine {
       const fileSize = await stat(filePath).then((s) => s.size, () => undefined);
       return { status: 'complete', filePath, fileSize };
     }
-    return { status: 'error', ...friendlyError(lastErrorLines(stderr.join('\n')) || 'İndirme hatası') };
+    return { status: 'error', ...friendlyError(lastErrorLines(stderr.join('\n')) || msg().engine.downloadError) };
   }
 
   async cancel(id: string): Promise<void> {

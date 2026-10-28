@@ -4,15 +4,17 @@ import BrandMark from './BrandMark';
 import { APP_THEMES, isDarkTheme, useTheme } from './ThemeContext';
 import { useQueueStore } from '../features/queue/store';
 import { useAppVersion } from '../features/settings/appUpdate';
+import { useT } from '../i18n';
 
-const LINKS: { to: string; label: string; icon: LucideIcon }[] = [
-  { to: '/', label: 'İndir', icon: Download },
-  { to: '/downloads', label: 'Geçmiş', icon: History },
-  { to: '/convert', label: 'Dönüştür', icon: Repeat },
-  { to: '/settings', label: 'Ayarlar', icon: Settings },
+const LINKS: { to: string; label: 'queue' | 'history' | 'convert' | 'settings'; icon: LucideIcon }[] = [
+  { to: '/', label: 'queue', icon: Download },
+  { to: '/downloads', label: 'history', icon: History },
+  { to: '/convert', label: 'convert', icon: Repeat },
+  { to: '/settings', label: 'settings', icon: Settings },
 ];
 
 export default function Sidebar({ drawerId }: { drawerId: string }) {
+  const m = useT().nav;
   const { resolved, setTheme } = useTheme();
   const active = useQueueStore((s) => s.tasks.filter((t) => t.status === 'downloading').length);
   const version = useAppVersion().data;
@@ -30,15 +32,15 @@ export default function Sidebar({ drawerId }: { drawerId: string }) {
         <BrandMark />
       </div>
 
-      <nav aria-label="Ana menü" className="flex-1">
+      <nav aria-label={m.menu} className="flex-1">
         <ul className="menu w-full gap-1 px-3">
           {LINKS.map(({ to, label, icon: Icon }) => (
             <li key={to}>
               <NavLink to={to} end={to === '/'} onClick={closeDrawer} className={({ isActive }) => (isActive ? 'menu-active' : '')}>
                 <Icon size={18} />
-                {label}
+                {m[label]}
                 {to === '/' && active > 0 && (
-                  <span className="badge badge-sm badge-primary ml-auto" aria-label={`${active} indirme sürüyor`}>{active}</span>
+                  <span className="badge badge-sm badge-primary ml-auto" aria-label={m.activeDownloads(active)}>{active}</span>
                 )}
               </NavLink>
             </li>
@@ -48,7 +50,7 @@ export default function Sidebar({ drawerId }: { drawerId: string }) {
 
       <div className="p-3 border-t border-base-300 flex items-center justify-between">
         <span className="text-xs text-base-content/50">{version ? `v${version}` : ''}</span>
-        <label className="swap swap-rotate btn btn-ghost btn-sm btn-circle" aria-label={dark ? 'Açık temaya geç' : 'Koyu temaya geç'}>
+        <label className="swap swap-rotate btn btn-ghost btn-sm btn-circle" aria-label={dark ? m.toLight : m.toDark}>
           <input
             type="checkbox"
             checked={!dark}

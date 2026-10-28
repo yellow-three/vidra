@@ -1,14 +1,12 @@
 import { Scale } from 'lucide-react';
 import { useSaveSettings, useSettings } from '../features/settings/queries';
-
-export const LEGAL_TEXT =
-  'Bu uygulama yalnızca indirme hakkına sahip olduğunuz içerikler için tasarlanmıştır. ' +
-  'İndirilen içeriklerin telif haklarına ve YouTube Hizmet Şartları’na uygun kullanılması tamamen kullanıcının sorumluluğundadır.';
+import { useT } from '../i18n';
 
 /** Ilk acilista bir kez gosterilir; kabul ayarlara yazilir. */
 export default function LegalNotice() {
   const { data: settings, isSuccess } = useSettings();
   const save = useSaveSettings();
+  const m = useT().legal;
 
   if (!isSuccess || settings.legalAccepted) return null;
 
@@ -19,12 +17,12 @@ export default function LegalNotice() {
           <span className="grid place-items-center size-10 rounded-full bg-base-200">
             <Scale size={20} />
           </span>
-          <h2 id="legal-title" className="text-lg font-bold">Kullanım koşulları</h2>
+          <h2 id="legal-title" className="text-lg font-bold">{m.title}</h2>
         </div>
-        <p className="text-sm text-base-content/80 leading-relaxed">{LEGAL_TEXT}</p>
+        <p className="text-sm text-base-content/80 leading-relaxed">{m.text}</p>
         <div className="modal-action">
           <button onClick={() => save.mutate({ legalAccepted: true })} className="btn btn-primary btn-block" autoFocus>
-            Anladım, kabul ediyorum
+            {m.accept}
           </button>
         </div>
       </div>

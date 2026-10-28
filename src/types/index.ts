@@ -1,3 +1,5 @@
+import type { SponsorBlockMode, TimeRange } from '../engine/types';
+
 export interface VideoFormat {
   formatId: string;
   resolution: string;
@@ -22,6 +24,8 @@ export interface Task {
   message?: string;
   /** Hata mesajinin cevrilmeden onceki ham hali. */
   detail?: string;
+  /** Yalnizca bu aralik indirilir. */
+  section?: TimeRange;
 }
 
 export type TaskStatus = 'analyzing' | 'ready-to-select' | 'queued' | 'downloading' | 'complete' | 'cancelled' | 'error';
@@ -34,6 +38,12 @@ export interface AppSettings {
   theme?: string;
   autoOpenFolder?: boolean;
   downloadSubtitles?: boolean;
+  /** `--sub-langs` degeri (varsayilan `tr,en`). */
+  subtitleLangs?: string;
+  /** Oynatma listesi videolari liste adiyla bir alt klasore iner (varsayilan acik). */
+  playlistSubfolder?: boolean;
+  /** ffprobe kurulu degilse uygulanmaz. */
+  sponsorBlock?: SponsorBlockMode;
   /** Kapak resmi ve baslik/kanal bilgilerini dosyaya gomer (varsayilan acik). */
   embedMetadata?: boolean;
   /** Ayni anda calisan indirme sayisi (varsayilan 2). */
@@ -50,6 +60,8 @@ export interface AppSettings {
   /** Son basarili otomatik yt-dlp guncellemesi, Unix ms. */
   ytdlpCheckedAt?: number;
   legalAccepted?: boolean;
+  /** Arayuz dili; bos ise sistem dili. */
+  language?: 'tr' | 'en';
 }
 
 export interface HistoryItem {
