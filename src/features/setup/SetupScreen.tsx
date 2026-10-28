@@ -144,7 +144,7 @@ function ToolRow({ id, tool, progress }: { id: ToolId; tool?: ToolStatus; progre
         {progress?.state === 'running'
           ? `%${progress.percent}`
           : ready || progress?.state === 'done'
-            ? m.done
+            ? tool?.system && progress?.state !== 'done' ? m.system : m.done
             : progress?.state === 'waiting'
               ? m.waiting
               : tool?.downloadable

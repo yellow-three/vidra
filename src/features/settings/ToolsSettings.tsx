@@ -18,7 +18,7 @@ export default function ToolsSettings() {
       ? <span className="badge badge-soft badge-error">{m.missing}</span>
       : tool.outdated
         ? <span className="badge badge-soft badge-warning">{m.outdated}</span>
-        : <span className="badge badge-ghost">{tool.bundled ? m.bundled : m.downloaded}</span>;
+        : <span className="badge badge-ghost">{tool.bundled ? m.bundled : tool.system ? m.system : m.downloaded}</span>;
 
   return (
     <div className="flex flex-col gap-2">
@@ -44,8 +44,8 @@ export default function ToolsSettings() {
                   disabled={installer.running}
                   className="btn btn-sm gap-1.5"
                 >
-                  {tool.installed && !tool.outdated ? <RefreshCw size={14} /> : <Download size={14} />}
-                  {tool.installed && !tool.outdated ? m.reinstall : m.install}
+                  {tool.installed && !tool.outdated && !tool.system ? <RefreshCw size={14} /> : <Download size={14} />}
+                  {tool.system ? m.downloadAnyway : tool.installed && !tool.outdated ? m.reinstall : m.install}
                 </button>
               )}
             </li>

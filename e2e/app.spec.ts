@@ -360,3 +360,24 @@ test('yalnizca surumu eskiyen bilesen varsa kurulum atlanabilir', async ({ page 
   await expect(row).toContainText('İndirildi');
   expect((await calls(page, 'install_tool')).map((a: any) => a.tool)).toEqual(['deno']);
 });
+
+test('sistemde bulunan FFmpeg indirilmez, istenirse yine de indirilir', async ({ page }) => {
+  await mockTauri(page, { settings: accepted, deps: { ytdlp: false, ffmpeg: false, deno: false }, system: ['ffmpeg', 'ffprobe'] });
+  await page.goto('/');
+  const dialog = page.getByRole('dialog', { name: 'Kurulum' });
+  await expect(dialog.getByRole('listitem').filter({ hasText: 'FFmpeg' })).toContainText('Sistemde bulundu');
+  await expect(dialog.getByText(/SponsorBlock desteğini de kur/)).toHaveCount(0);
+  await expect(dialog).toContainText('Toplam yaklaşık 80 MB');
+  await dialog.getByRole('button', { name: 'İndir ve kur' }).click();
+  await expect(dialog).toBeHidden();
+  expect((await calls(page, 'install_tool')).map((a: any) => a.tool)).toEqual(['yt-dlp', 'deno']);
+
+  await page.getByRole('link', { name: 'Ayarlar' }).click();
+  const row = page.getByRole('listitem').filter({ hasText: 'FFmpeg' });
+  await expect(row).toContainText('Sistemde bulundu');
+  await expect(page.getByText('ffprobe kurulu.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Kaldır' })).toHaveCount(0);
+  await row.getByRole('button', { name: 'Yine de indir' }).click();
+  await expect(row).toContainText('İndirildi');
+  expect((await calls(page, 'install_tool')).at(-1)).toMatchObject({ tool: 'ffmpeg', withFfprobe: true });
+});

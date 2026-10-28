@@ -13,6 +13,7 @@
 //! symlink; AppImage her acilista baska yere baglandigi icin baglanti her seferinde dogrulanir).
 
 use crate::dependencies::{override_dir, sidecar, EXE_SUFFIX};
+use crate::system_tools::{self, SystemFfmpeg};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs;
@@ -87,32 +88,66 @@ fn has_downloaded_ffmpeg(tools: &Path) -> bool {
     tools.join(FFMPEG_STAMP).is_file() && tools.join(exe("ffmpeg")).is_file()
 }
 
-pub fn is_ffprobe_installed(app: &AppHandle) -> bool {
-    tools_dir(app).map(|d| d.join(exe("ffprobe")).is_file()).unwrap_or(false)
+/// ffmpeg'in geldigi yer; oncelik sirasi indirilen > paketlenmis > sistemdeki.
+enum FfmpegSource {
+    Downloaded(PathBuf),
+    Bundled(PathBuf),
+    System(&'static SystemFfmpeg),
 }
 
-/// Calistirilacak ffmpeg (Donustur sayfasi): indirilen kopya, yoksa paketlenmis sidecar.
-pub fn ffmpeg_program(app: &AppHandle) -> Option<PathBuf> {
-    tools_dir(app)
-        .ok()
-        .filter(|d| has_downloaded_ffmpeg(d))
-        .map(|d| d.join(exe("ffmpeg")))
-        .or_else(|| sidecar("ffmpeg"))
-}
-
-/// `--ffmpeg-location` degeri: ffmpeg (+ varsa ffprobe) iceren klasor ya da paketlenmis ffmpeg.
-pub fn ffmpeg_location(app: &AppHandle) -> Option<PathBuf> {
-    let dir = tools_dir(app).ok();
-    if let Some(dir) = dir.as_ref().filter(|d| has_downloaded_ffmpeg(d)) {
-        return Some(dir.clone());
+fn ffmpeg_source(app: &AppHandle) -> Option<FfmpegSource> {
+    let tools = tools_dir(app).ok();
+    if let Some(dir) = tools.filter(|d| has_downloaded_ffmpeg(d)) {
+        return Some(FfmpegSource::Downloaded(dir));
     }
-    let bundled = sidecar("ffmpeg")?;
-    if let Some(dir) = dir.filter(|d| d.join(exe("ffprobe")).is_file()) {
-        if link_ffmpeg(&bundled, &dir.join(exe("ffmpeg"))).is_ok() {
+    sidecar("ffmpeg")
+        .map(FfmpegSource::Bundled)
+        .or_else(|| system_tools::ffmpeg().map(FfmpegSource::System))
+}
+
+pub fn is_ffprobe_installed(app: &AppHandle) -> bool {
+    is_ffprobe_downloaded(app) || matches!(ffmpeg_source(app), Some(FfmpegSource::System(s)) if s.ffprobe.is_some())
+}
+
+/// Calistirilacak ffmpeg (Donustur sayfasi).
+pub fn ffmpeg_program(app: &AppHandle) -> Option<PathBuf> {
+    Some(match ffmpeg_source(app)? {
+        FfmpegSource::Downloaded(dir) => dir.join(exe("ffmpeg")),
+        FfmpegSource::Bundled(path) => path,
+        FfmpegSource::System(s) => s.ffmpeg.clone(),
+    })
+}
+
+/// Donustur sayfasinin MP4 icin kullanacagi encoder (LGPL build'lerde libx264 yok).
+pub fn h264_encoder(app: &AppHandle) -> &'static str {
+    match ffmpeg_source(app) {
+        Some(FfmpegSource::System(s)) => s.h264_encoder,
+        _ => "libopenh264",
+    }
+}
+
+/// `--ffmpeg-location` degeri: ffmpeg (+ varsa ffprobe) iceren klasor ya da tek ffmpeg dosyasi.
+pub fn ffmpeg_location(app: &AppHandle) -> Option<PathBuf> {
+    let external = match ffmpeg_source(app)? {
+        FfmpegSource::Downloaded(dir) => return Some(dir),
+        FfmpegSource::Bundled(path) => path,
+        // Sistem ffprobe'u ffmpeg ile ayni klasordedir.
+        FfmpegSource::System(s) if s.ffprobe.is_some() && !is_ffprobe_downloaded(app) => {
+            return s.ffmpeg.parent().map(Path::to_path_buf);
+        }
+        FfmpegSource::System(s) => s.ffmpeg.clone(),
+    };
+    // Indirilen ffprobe kullanilacaksa ffmpeg ayni klasore baglanir.
+    if let Some(dir) = tools_dir(app).ok().filter(|d| d.join(exe("ffprobe")).is_file()) {
+        if link_ffmpeg(&external, &dir.join(exe("ffmpeg"))).is_ok() {
             return Some(dir);
         }
     }
-    Some(bundled)
+    Some(external)
+}
+
+fn is_ffprobe_downloaded(app: &AppHandle) -> bool {
+    tools_dir(app).map(|d| d.join(exe("ffprobe")).is_file()).unwrap_or(false)
 }
 
 pub fn deno_path(app: &AppHandle) -> Option<PathBuf> {
@@ -121,6 +156,7 @@ pub fn deno_path(app: &AppHandle) -> Option<PathBuf> {
         .map(|d| d.join(exe("deno")))
         .filter(|p| p.is_file())
         .or_else(|| sidecar("deno"))
+        .or_else(|| system_tools::deno().cloned())
 }
 
 #[cfg(unix)]
@@ -149,10 +185,12 @@ fn link_ffmpeg(bundled: &Path, link: &Path) -> std::io::Result<()> {
 #[serde(rename_all = "camelCase")]
 pub struct ToolStatus {
     id: &'static str,
-    /// Kullanilabilir bir kopya var (indirilmis ya da paketlenmis).
+    /// Kullanilabilir bir kopya var (indirilmis, paketlenmis ya da sistemde).
     installed: bool,
     /// Uygulamayla paketlenmis sidecar kullaniliyor; indirme gerekmez.
     bundled: bool,
+    /// Sistemde kurulu (PATH) uygun bir surum kullaniliyor; indirme gerekmez.
+    system: bool,
     /// Indirilen kopya uygulamanin istedigi surumden farkli; calisir ama yenilenmeli.
     outdated: bool,
     /// Bu platform icin indirme kaynagi var.
@@ -161,16 +199,25 @@ pub struct ToolStatus {
     download_mb: u32,
 }
 
-fn statuses(bin: &Path, bundled: &dyn Fn(&str) -> bool) -> Vec<ToolStatus> {
+/// `bundled` / `system`: o bilesenin paketlenmis ya da sistemde uygun bir kopyasi var mi.
+fn statuses(bin: &Path, bundled: &dyn Fn(&str) -> bool, system: &dyn Fn(&str) -> bool) -> Vec<ToolStatus> {
     let platform = platform();
     let windows = cfg!(windows);
     let tools = tools_dir_in(bin);
     let ffmpeg_downloadable = platform.as_ref().is_some_and(|p| p.ffmpeg.is_some());
     let deno_stamp = fs::read_to_string(bin.join(DENO_VERSION_FILE)).ok();
     let deno_downloaded = bin.join(exe("deno")).is_file();
+    let ffmpeg_downloaded = has_downloaded_ffmpeg(&tools);
+    // Sistem ffprobe'u yalnizca sistem ffmpeg'i kullaniliyorsa onunla birlikte kullanilir.
+    let ffmpeg_from_system = !ffmpeg_downloaded && !bundled("ffmpeg") && system("ffmpeg");
     let status = |id, downloaded: bool, outdated, downloadable, download_mb| {
         let bundled = !downloaded && id != "ffprobe" && bundled(id);
-        ToolStatus { id, installed: downloaded || bundled, bundled, outdated, downloadable, download_mb }
+        let system = !downloaded && !bundled && match id {
+            "ffprobe" => ffmpeg_from_system && system("ffprobe"),
+            "yt-dlp" => false,
+            _ => system(id),
+        };
+        ToolStatus { id, installed: downloaded || bundled || system, bundled, system, outdated, downloadable, download_mb }
     };
     vec![
         status("yt-dlp", bin.join(exe("yt-dlp")).is_file(), false, platform.is_some(), if windows { 18 } else { 40 }),
@@ -181,7 +228,7 @@ fn statuses(bin: &Path, bundled: &dyn Fn(&str) -> bool) -> Vec<ToolStatus> {
             platform.is_some(),
             45,
         ),
-        status("ffmpeg", has_downloaded_ffmpeg(&tools), false, ffmpeg_downloadable, 135),
+        status("ffmpeg", ffmpeg_downloaded, false, ffmpeg_downloadable, 135),
         status("ffprobe", tools.join(exe("ffprobe")).is_file(), false, ffmpeg_downloadable, 135),
     ]
 }
@@ -449,7 +496,13 @@ async fn install(bin: &Path, tool: &str, with_ffprobe: bool, proxy: Option<&str>
 #[tauri::command]
 pub fn tools_status(app: AppHandle) -> Result<Vec<ToolStatus>, String> {
     let bin = override_dir(&app)?;
-    Ok(statuses(&bin, &|id| sidecar(id).is_some()))
+    let system = |id: &str| match id {
+        "ffmpeg" => system_tools::ffmpeg().is_some(),
+        "ffprobe" => system_tools::ffmpeg().is_some_and(|s| s.ffprobe.is_some()),
+        "deno" => system_tools::deno().is_some(),
+        _ => false,
+    };
+    Ok(statuses(&bin, &|id| sidecar(id).is_some(), &system))
 }
 
 /// Bileseni indirip kurar. `ffmpeg` icin `with_ffprobe` ayni arsivden ffprobe'u da cikarir.
@@ -523,17 +576,18 @@ mod tests {
         let bin = temp_dir("status");
         let get = |list: &[ToolStatus], id: &str| list.iter().find(|s| s.id == id).map(|s| (s.installed, s.bundled, s.outdated)).unwrap();
 
-        let empty = statuses(&bin, &|_| false);
+        let none = |_: &str| false;
+        let empty = statuses(&bin, &none, &none);
         assert!(empty.iter().all(|s| !s.installed));
-        let bundled = statuses(&bin, &|id| id != "ffmpeg");
+        let bundled = statuses(&bin, &|id| id != "ffmpeg", &none);
         assert_eq!(get(&bundled, "yt-dlp"), (true, true, false));
         assert_eq!(get(&bundled, "ffmpeg"), (false, false, false));
 
         fs::write(bin.join(exe("deno")), "").unwrap();
         fs::write(bin.join(DENO_VERSION_FILE), "v1.0.0").unwrap();
-        assert_eq!(get(&statuses(&bin, &|_| true), "deno"), (true, false, true));
+        assert_eq!(get(&statuses(&bin, &|_| true, &none), "deno"), (true, false, true));
         fs::write(bin.join(DENO_VERSION_FILE), &pins().deno).unwrap();
-        assert_eq!(get(&statuses(&bin, &|_| false), "deno"), (true, false, false));
+        assert_eq!(get(&statuses(&bin, &none, &none), "deno"), (true, false, false));
 
         // Paketlenmis ffmpeg'e baglanti indirilmis ffmpeg sayilmaz.
         let tools = tools_dir_in(&bin);
@@ -542,6 +596,31 @@ mod tests {
         assert!(!has_downloaded_ffmpeg(&tools));
         fs::write(tools.join(FFMPEG_STAMP), "x").unwrap();
         assert!(has_downloaded_ffmpeg(&tools));
+        fs::remove_dir_all(&bin).unwrap();
+    }
+
+    #[test]
+    fn system_tools_count_only_without_download_or_bundle() {
+        let bin = temp_dir("system");
+        let none = |_: &str| false;
+        let all = |id: &str| id != "yt-dlp";
+        let sys = |list: &[ToolStatus], id: &str| list.iter().find(|s| s.id == id).map(|s| (s.installed, s.system)).unwrap();
+
+        let found = statuses(&bin, &none, &all);
+        assert_eq!(sys(&found, "yt-dlp"), (false, false));
+        assert_eq!(sys(&found, "deno"), (true, true));
+        assert_eq!(sys(&found, "ffmpeg"), (true, true));
+        assert_eq!(sys(&found, "ffprobe"), (true, true));
+
+        // Paketlenmis ffmpeg onde; sistem ffprobe'u onunla kullanilmaz.
+        let with_bundle = statuses(&bin, &|id| id == "ffmpeg", &all);
+        assert_eq!(sys(&with_bundle, "ffmpeg"), (true, false));
+        assert_eq!(sys(&with_bundle, "ffprobe"), (false, false));
+
+        // Indirilen deno sistemdekinin onune gecer.
+        fs::write(bin.join(exe("deno")), "").unwrap();
+        fs::write(bin.join(DENO_VERSION_FILE), &pins().deno).unwrap();
+        assert_eq!(sys(&statuses(&bin, &none, &all), "deno"), (true, false));
         fs::remove_dir_all(&bin).unwrap();
     }
 
@@ -631,7 +710,8 @@ mod tests {
         assert!(run_version(&tools.join(exe("ffmpeg")), "-version").starts_with("ffmpeg version"));
         assert!(run_version(&tools.join(exe("ffprobe")), "-version").starts_with("ffprobe version"));
         assert!(tools.join("FFmpeg-LICENSE.txt").is_file());
-        let status = statuses(&bin, &|_| false);
+        let none = |_: &str| false;
+        let status = statuses(&bin, &none, &none);
         assert!(status.iter().all(|s| s.installed && !s.outdated), "{status:?}");
         fs::remove_dir_all(&bin).unwrap();
     }

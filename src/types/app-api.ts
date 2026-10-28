@@ -10,6 +10,8 @@ export interface ToolStatus {
   installed: boolean;
   /** Uygulamayla paketlenmis kopya kullaniliyor. */
   bundled: boolean;
+  /** Sistemde kurulu uygun bir surum kullaniliyor. */
+  system: boolean;
   /** Calisir ama uygulamanin istedigi surum degil; yeniden indirilmeli. */
   outdated: boolean;
   downloadable: boolean;

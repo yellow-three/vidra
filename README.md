@@ -42,7 +42,7 @@ AppImage `libfuse2` istemez, yalnızca sistemde `fusermount` olmalıdır; masaü
 - Fedora: `sudo dnf install fuse3`
 - Arch: `sudo pacman -S fuse3`
 
-Paketi küçük tutmak için yt-dlp, FFmpeg ve deno pakete eklenmez. İlk açılışta bir kurulum ekranı bunları resmi kaynaklarından indirir ve doğrular (yaklaşık 220 MB; internet bağlantısı gerekir, kurumsal ağlar için ekranda proxy alanı vardır). Bileşenler kullanıcının veri klasörüne kurulur; Ayarlar > Sistem > Bileşenler'den yeniden indirilebilir.
+Paketi küçük tutmak için yt-dlp, FFmpeg ve deno pakete eklenmez. İlk açılışta bir kurulum ekranı bunları resmi kaynaklarından indirir ve doğrular (yaklaşık 220 MB; internet bağlantısı gerekir, kurumsal ağlar için ekranda proxy alanı vardır). Bileşenler kullanıcının veri klasörüne kurulur; Ayarlar > Sistem > Bileşenler'den yeniden indirilebilir. Bilgisayarda uygun bir FFmpeg (5 ve üstü) ya da deno (2 ve üstü) zaten kuruluysa onlar kullanılır ve indirilmez (Linux'ta FFmpeg çoğu zaman kuruludur; o durumda indirme ~85 MB'tır).
 
 ## Güncelleme
 
@@ -114,6 +114,7 @@ Paketler araç içermez. İlk açılışta kurulum ekranı (`src/features/setup/
 
 - Sürümler tek yerde sabittir: `src-tauri/tools.json` (uygulama ve `scripts/fetch-sidecars.mjs` ortak okur). Uygulama yeni bir deno sürümü isterse kurulum ekranı yalnızca deno'yu yeniden indirir (atlanabilir; eski sürüm çalışmaya devam eder). yt-dlp'yi haftalık `-U` güncellemesi güncel tutar.
 - FFmpeg, BtbN'in `n9.0` dalının en güncel LGPL build'idir; BtbN eski build'leri sildiği için sabitlenemez.
+- Sistemde (`PATH`) kurulu ffmpeg / ffprobe / deno uygunsa kullanılır (`src-tauri/src/system_tools.rs`); öncelik sırası indirilen > paketlenmiş > sistemdeki. ffmpeg için sürüm 5+, `libmp3lame`, `aac`, `libvpx`, `libvorbis` ve bir H.264 encoder'ı (`libopenh264` ya da `libx264`) aranır; Dönüştür sayfası MP4 için bulunanı kullanır. Sistem ffprobe'u yalnızca sistem ffmpeg'iyle birlikte kullanılır (`--ffmpeg-location` ikisinin klasörü). deno için 2+ aranır. yt-dlp bilerek sistemden alınmaz: dağıtım paketleri çoğu zaman eskidir ve `/usr/bin` altındaki kopya güncellenemez. Ayarlar'daki "Yine de indir" uygulamanın kendi kopyasına geçirir.
 - Sidecar'larla paketlenmiş kurulumda (Flatpak ya da `--config src-tauri/tauri.bundled.conf.json` ile derlenen paket) uygulamanın yanındaki `ytd-` önekli kopyalar kullanılır ve kurulum ekranı çıkmaz. İndirilen kopya varsa önceliklidir. `ytd-` öneki şart: Linux paketleri sidecar'ları `/usr/bin`'e kurar ve önek olmadan sistemdeki `ffmpeg` / `yt-dlp` paketleriyle çakışır.
 
 ```bash

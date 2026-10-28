@@ -171,6 +171,7 @@ pub fn check_dependencies(app: AppHandle) -> serde_json::Value {
         "ffmpeg": ffmpeg.is_some(),
         "deno": deno.is_some(),
         "ffprobe": crate::tools::is_ffprobe_installed(&app),
+        "h264Encoder": crate::tools::h264_encoder(&app),
         "ytdlpPath": path_str(ytdlp),
         "ffmpegPath": path_str(ffmpeg),
         "denoPath": path_str(deno),

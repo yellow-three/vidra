@@ -8,7 +8,8 @@ function crf(quality: ConvertQuality): string {
   return quality === 'high' ? '18' : quality === 'medium' ? '28' : '35';
 }
 
-function codecArgs(format: string, quality: ConvertQuality): { ext: string; args: string[] } {
+/** `h264Encoder`: paketlenen/indirilen LGPL FFmpeg'de libopenh264, sistemdeki FFmpeg'de genelde libx264. */
+function codecArgs(format: string, quality: ConvertQuality, h264Encoder: string): { ext: string; args: string[] } {
   switch (format) {
     case 'mp3': {
       const bitrate = quality === 'high' ? '320k' : quality === 'medium' ? '192k' : '96k';
@@ -17,16 +18,18 @@ function codecArgs(format: string, quality: ConvertQuality): { ext: string; args
     case 'webm':
       return { ext: 'webm', args: ['-c:v', 'libvpx', '-crf', crf(quality), '-b:v', '0', '-c:a', 'libvorbis'] };
     default: {
-      // Paketlenen FFmpeg LGPL'dir; GPL'li libx264 yerine OpenH264 (CRF yok, bit hizi var).
+      // Indirilen FFmpeg LGPL'dir; GPL'li libx264 yerine OpenH264 (CRF yok, bit hizi var).
       const bitrate = quality === 'high' ? '8000k' : quality === 'medium' ? '4000k' : '1500k';
-      return { ext: 'mp4', args: ['-c:v', 'libopenh264', '-b:v', bitrate, '-c:a', 'aac'] };
+      return { ext: 'mp4', args: ['-c:v', h264Encoder, '-b:v', bitrate, '-c:a', 'aac'] };
     }
   }
 }
 
-export function buildConvertArgs(inputPath: string, format: string, quality: ConvertQuality): { args: string[]; outputPath: string } {
+export function buildConvertArgs(
+  inputPath: string, format: string, quality: ConvertQuality, h264Encoder = 'libopenh264',
+): { args: string[]; outputPath: string } {
   const { dir, name } = splitPath(inputPath);
-  const { ext, args } = codecArgs(format, quality);
+  const { ext, args } = codecArgs(format, quality, h264Encoder);
   const outputPath = joinPath(dir, `${stem(name)}_converted.${ext}`);
   // -progress makinece okunur ilerlemeyi stdout'a yazar; -nostats stderr'i sade tutar.
   return { args: ['-i', inputPath, '-y', '-progress', 'pipe:1', '-nostats', ...args, outputPath], outputPath };

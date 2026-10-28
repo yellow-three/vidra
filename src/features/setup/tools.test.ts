@@ -3,7 +3,7 @@ import type { ToolStatus } from '../../types/app-api';
 import { installSteps, missingTools, outdatedTools } from './tools';
 
 const tool = (id: ToolStatus['id'], patch: Partial<ToolStatus> = {}): ToolStatus => ({
-  id, installed: false, bundled: false, outdated: false, downloadable: true, downloadMb: 10, ...patch,
+  id, installed: false, bundled: false, system: false, outdated: false, downloadable: true, downloadMb: 10, ...patch,
 });
 
 describe('kurulum adimlari', () => {
