@@ -1,15 +1,21 @@
 // Donustur sayfasi: FFmpeg'i surec calistirici uzerinden calistirir.
 
 import { invoke } from '@tauri-apps/api/core';
-import { buildConvertArgs, convertPercent, parseDuration, parseProgressLine } from './ffmpeg';
+import { buildConvertArgs, convertPercent, outputCandidates, parseDuration, parseProgressLine } from './ffmpeg';
 import { killProcess, spawnProcess } from './process';
 import { msg } from '../i18n';
+import { appApi } from '../lib/appApi';
 
 export type ConvertResult = { status: 'complete'; outputPath: string } | { status: 'cancelled' } | { status: 'error'; message: string };
 
 export async function startConvert(inputPath: string, format: string, quality: string, onPercent: (percent: number) => void) {
   const { h264Encoder } = await invoke<{ h264Encoder?: string }>('check_dependencies');
-  const { args, outputPath } = buildConvertArgs(inputPath, format, quality, h264Encoder);
+  // Onceki donusturmelerin ciktilari ezilmez; ilk bos ad secilir.
+  const candidates = outputCandidates(inputPath, format);
+  const taken = await appApi.filesExist(candidates);
+  const free = candidates.find((_, i) => !taken[i]);
+  if (!free) throw new Error(msg().convert.noFreeName);
+  const { args, outputPath } = buildConvertArgs(inputPath, format, quality, h264Encoder, free);
   const stderr: string[] = [];
   let duration: number | null = null;
   let lastPercent = -1;

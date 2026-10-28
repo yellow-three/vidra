@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { buildConvertArgs, convertPercent, parseDuration, parseProgressLine } from './ffmpeg';
+import { buildConvertArgs, convertPercent, outputCandidates, parseDuration, parseProgressLine } from './ffmpeg';
 
 describe('buildConvertArgs', () => {
   it('MP3 icin kaliteye gore bit hizi secer ve ciktiyi girdinin yanina yazar', () => {
     const { args, outputPath } = buildConvertArgs('/v/Klip.webm', 'mp3', 'high');
     expect(outputPath).toBe('/v/Klip_converted.mp3');
     expect(args).toEqual([
-      '-i', '/v/Klip.webm', '-y', '-progress', 'pipe:1', '-nostats',
+      '-i', '/v/Klip.webm', '-n', '-progress', 'pipe:1', '-nostats',
       '-vn', '-acodec', 'libmp3lame', '-ab', '320k', '/v/Klip_converted.mp3',
     ]);
   });
@@ -18,6 +18,14 @@ describe('buildConvertArgs', () => {
     expect(args.join(' ')).toContain('-c:v libopenh264 -b:v 1500k -c:a aac');
     expect(buildConvertArgs('/v/a.webm', 'mp4', 'low', 'libx264').args.join(' ')).toContain('-c:v libx264 -b:v 1500k');
     expect(args).not.toContain('libx264');
+  });
+});
+
+describe('outputCandidates', () => {
+  it('onceki ciktilarin uzerine yazmamak icin numarali adlar onerir', () => {
+    const names = outputCandidates('/v/Klip.webm', 'mp3');
+    expect(names.slice(0, 3)).toEqual(['/v/Klip_converted.mp3', '/v/Klip_converted (2).mp3', '/v/Klip_converted (3).mp3']);
+    expect(buildConvertArgs('/v/Klip.webm', 'mp3', 'high', 'libopenh264', names[1]).args.slice(-1)[0]).toBe('/v/Klip_converted (2).mp3');
   });
 });
 
