@@ -112,7 +112,7 @@ const tr = {
     clear: 'Linki temizle',
     analyze: 'Analiz Et',
     preparing: 'Hazırlanıyor...',
-    invalid: 'Lütfen geçerli bir URL girin.',
+    invalid: 'Lütfen geçerli bir link girin (http:// ya da https:// ile başlamalı).',
     hint: 'Kopyaladığınız YouTube linkleri kutuya kendiliğinden gelir. Birden fazla link de yapıştırabilirsiniz; formatı analizden sonra seçersiniz.',
   },
 
@@ -226,6 +226,7 @@ const tr = {
     start: 'Dönüştür',
     progress: 'Dönüştürme ilerlemesi',
     failed: 'Dönüştürme hatası',
+    noFreeName: 'Bu klasörde çok fazla dönüştürülmüş kopya var; birkaçını silin ya da taşıyın.',
   },
 
   settings: {

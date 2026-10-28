@@ -112,7 +112,7 @@ const en: Messages = {
     clear: 'Clear link',
     analyze: 'Analyze',
     preparing: 'Preparing...',
-    invalid: 'Please enter a valid URL.',
+    invalid: 'Please enter a valid link (starting with http:// or https://).',
     hint: 'Copied YouTube links appear here automatically. You can paste several links at once; pick the format after the lookup.',
   },
 
@@ -225,6 +225,7 @@ const en: Messages = {
     start: 'Convert',
     progress: 'Conversion progress',
     failed: 'Conversion failed',
+    noFreeName: 'This folder has too many converted copies; delete or move some of them.',
   },
 
   settings: {

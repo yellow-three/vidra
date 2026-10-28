@@ -18,7 +18,9 @@ export default function AddUrlForm() {
       setUrlError(true);
       return;
     }
+    // Kutu analiz baslarken (ilk await'ten once) bosaltilir; link olmayan parcalar kutuda kalir.
     void analyze();
+    if (useQueueStore.getState().url.trim()) setUrlError(true);
   };
 
   return (

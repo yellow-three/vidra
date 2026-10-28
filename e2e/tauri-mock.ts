@@ -74,7 +74,7 @@ function install(options: MockOptions) {
     const pid = nextProcess++;
     if (args.args.includes('-J')) {
       setTimeout(() => {
-        const isPlaylist = args.args[0].includes('playlist?list=') || args.args.includes('--yes-playlist');
+        const isPlaylist = args.args[args.args.length - 1].includes('playlist?list=') || args.args.includes('--yes-playlist');
         args.onEvent.onmessage({ type: 'stdout', line: JSON.stringify(isPlaylist ? playlist : info) });
         args.onEvent.onmessage({ type: 'exit', code: 0, killed: false });
       }, 50);

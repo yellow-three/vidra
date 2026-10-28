@@ -116,7 +116,7 @@ describe('queue store', () => {
 
   it('ayni anda en fazla iki indirme calistirir; siradakini iptal etmek onu hic baslatmaz', async () => {
     const calls = controllableDownload();
-    const ids = [await addReadyTask('a'), await addReadyTask('b'), await addReadyTask('c')];
+    const ids = [await addReadyTask('https://v.test/a'), await addReadyTask('https://v.test/b'), await addReadyTask('https://v.test/c')];
     const runs = ids.map((id) => useQueueStore.getState().startDownload(id));
     await flush();
     expect(calls).toHaveLength(2);
@@ -190,11 +190,11 @@ describe('queue store', () => {
   it('yukari tasinan siradaki indirme once baslar; ayardaki eszamanlilik uygulanir', async () => {
     settings.maxConcurrentDownloads = 1;
     const calls = controllableDownload();
-    const [a, b, c] = [await addReadyTask('a'), await addReadyTask('b'), await addReadyTask('c')];
+    const [a, b, c] = [await addReadyTask('https://v.test/a'), await addReadyTask('https://v.test/b'), await addReadyTask('https://v.test/c')];
     // Liste en yeni ustte: c, b, a. Indirmeler a, b, c sirasiyla baslatilir.
     const runs = [a, b, c].map((id) => useQueueStore.getState().startDownload(id));
     await flush();
-    expect(calls.map((x) => x.req.url)).toEqual(['a']);
+    expect(calls.map((x) => x.req.url)).toEqual(['https://v.test/a']);
     expect([task(b).status, task(c).status]).toEqual(['queued', 'queued']);
 
     // b ve c yukari tasininca liste c, b, a olur; siradakiler bu sirayla baslar (FIFO olsaydi b, c).
@@ -202,28 +202,28 @@ describe('queue store', () => {
     useQueueStore.getState().move(c, 'up');
     calls[0].finish({ status: 'cancelled' });
     await flush();
-    expect(calls.map((x) => x.req.url)).toEqual(['a', 'c']);
+    expect(calls.map((x) => x.req.url)).toEqual(['https://v.test/a', 'https://v.test/c']);
 
     calls[1].finish({ status: 'cancelled' });
     await flush();
     calls[2].finish({ status: 'cancelled' });
     await Promise.all(runs);
-    expect(calls.map((x) => x.req.url)).toEqual(['a', 'c', 'b']);
+    expect(calls.map((x) => x.req.url)).toEqual(['https://v.test/a', 'https://v.test/c', 'https://v.test/b']);
   });
 
   it('hepsini indir, secim bekleyenleri listedeki sirayla kuyruga alir', async () => {
     settings.maxConcurrentDownloads = 1;
     const calls = controllableDownload();
-    await addReadyTask('a');
-    await addReadyTask('b');
+    await addReadyTask('https://v.test/a');
+    await addReadyTask('https://v.test/b');
     const all = useQueueStore.getState().startAll();
     await flush();
-    expect(calls.map((x) => x.req.url)).toEqual(['b']);
+    expect(calls.map((x) => x.req.url)).toEqual(['https://v.test/b']);
     calls[0].finish({ status: 'cancelled' });
     await flush();
     calls[1].finish({ status: 'cancelled' });
     await all;
-    expect(calls.map((x) => x.req.url)).toEqual(['b', 'a']);
+    expect(calls.map((x) => x.req.url)).toEqual(['https://v.test/b', 'https://v.test/a']);
   });
 
   it('analiz hatasinin ham metnini ayrinti olarak saklar', async () => {
@@ -234,11 +234,11 @@ describe('queue store', () => {
   });
 
   it('bitenleri temizler', async () => {
-    const id = await addReadyTask('a');
+    const id = await addReadyTask('https://v.test/a');
     await useQueueStore.getState().cancel(id);
-    await addReadyTask('b');
+    await addReadyTask('https://v.test/b');
     useQueueStore.getState().clearFinished();
-    expect(useQueueStore.getState().tasks.map((t) => t.url)).toEqual(['b']);
+    expect(useQueueStore.getState().tasks.map((t) => t.url)).toEqual(['https://v.test/b']);
   });
 
   it('toplu indirmede tek bildirim ve tek klasor penceresi acar', async () => {
@@ -300,6 +300,42 @@ describe('queue store', () => {
     await flush();
     expect(calls[1].req.subfolder).toBeUndefined();
     calls[1].finish({ status: 'cancelled' });
+    await run;
+  });
+
+  it('link olmayan parcalari analiz etmez, kutuda birakir', async () => {
+    mocks.getInfo.mockResolvedValueOnce(info('Bir'));
+    useQueueStore.getState().setUrl('--exec=rm https://youtu.be/1 merhaba');
+    await useQueueStore.getState().analyze();
+    expect(mocks.getInfo.mock.calls.map((c) => c[0])).toEqual(['https://youtu.be/1']);
+    expect(useQueueStore.getState().url).toBe('--exec=rm merhaba');
+
+    useQueueStore.getState().setUrl('yalnizca metin');
+    expect(await useQueueStore.getState().analyze()).toBeNull();
+    expect(mocks.getInfo).toHaveBeenCalledTimes(1);
+  });
+
+  it('pano metnini kutudakinin uzerine yazmaz', () => {
+    useQueueStore.getState().setUrl('https://youtu.be/aaaaaaaaaaa');
+    useQueueStore.getState().addClipboardText('bak: https://youtu.be/bbbbbbbbbbb');
+    expect(useQueueStore.getState().url).toBe('https://youtu.be/aaaaaaaaaaa https://youtu.be/bbbbbbbbbbb');
+  });
+
+  it('kapanista yarida kalan indirmeleri acilista yeniden baslatir', async () => {
+    const calls = controllableDownload();
+    const base = { title: 'T', percent: 0, speed: '', eta: '', formats: info('T').formats, selectedFormatId: 'video-720' };
+    useQueueStore.setState({
+      tasks: [
+        { ...base, id: 'r1', url: 'https://v.test/a', status: 'ready-to-select', resume: true, message: tr.queue.interrupted },
+        { ...base, id: 'n1', url: 'https://v.test/b', status: 'ready-to-select' },
+      ],
+    });
+    const run = useQueueStore.getState().resumeInterrupted();
+    await flush();
+    expect(calls.map((c) => c.req.url)).toEqual(['https://v.test/a']);
+    expect(task('r1')).toMatchObject({ status: 'downloading', resume: undefined, message: undefined });
+    expect(task('n1').status).toBe('ready-to-select');
+    calls[0].finish({ status: 'cancelled' });
     await run;
   });
 });

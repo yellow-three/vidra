@@ -39,6 +39,8 @@ export async function refreshDependencyStatus(): Promise<void> {
     useAppStatus.setState({ status: (m) => m.status.ready, depsReady: true });
     if (!ytdlpUpdateStarted) {
       ytdlpUpdateStarted = true;
+      // Once yarida kalan indirmeler: yt-dlp guncellemesi calisan yt-dlp'yi beklemeden ayri kopyada yapilir.
+      void useQueueStore.getState().resumeInterrupted();
       void autoUpdateYtdlp();
     }
   } catch (error) {
@@ -53,7 +55,7 @@ export function startApp(): void {
   started = true;
 
   void refreshDependencyStatus();
-  void appApi.onClipboardLink((link) => useQueueStore.getState().setUrl(link));
+  void appApi.onClipboardLink((text) => useQueueStore.getState().addClipboardText(text));
   void appApi.startClipboardMonitor();
   checkForAppUpdateInBackground();
   confirmCloseWithActiveDownloads();

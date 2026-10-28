@@ -14,8 +14,9 @@ export function restoreTasks(saved: Task[]): Task[] {
     .filter((t) => t.status !== 'complete')
     .map((t): Task => {
       if (t.status === 'queued' || t.status === 'downloading') {
-        // yt-dlp `.part` dosyasindan devam eder (varsayilan --continue).
-        return { ...t, status: 'ready-to-select', percent: 0, speed: '', eta: '', message: msg().queue.interrupted };
+        // yt-dlp `.part` dosyasindan devam eder (varsayilan --continue). Bilesenler hazir olunca
+        // bootstrap kendiliginden baslatir; olmazsa kullanici Indir ile surdurur.
+        return { ...t, status: 'ready-to-select', resume: true, percent: 0, speed: '', eta: '', message: msg().queue.interrupted };
       }
       if (t.status === 'analyzing') {
         return { ...t, status: 'error', title: t.url, message: msg().queue.analysisInterrupted };
