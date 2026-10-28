@@ -5,11 +5,18 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
+    "core:window:allow-destroy",
     "opener:default",
     "dialog:default",
     "dialog:allow-open",
     "dialog:allow-ask",
     "clipboard-manager:default",
-    "clipboard-manager:allow-read-text"
+    "clipboard-manager:allow-read-text",
+    "fs:allow-read-dir",
+    "fs:allow-stat",
+    "fs:allow-remove",
+    "notification:default",
+    "sql:default",
+    "sql:allow-execute"
   ]
 }

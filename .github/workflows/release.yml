@@ -1,0 +1,67 @@
+name: Release
+
+# `v0.2.0` gibi bir etiket push edilince imzali paketler ve updater'in okudugu
+# latest.json bu repoda taslak (draft) bir release'e yuklenir.
+# Taslak yayinlanana kadar kurulu uygulamalar guncellemeyi gormez.
+# Etiket, src-tauri/tauri.conf.json'daki "version" ile ayni olmali.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tauri sistem bagimliliklari
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential file libxdo-dev libssl-dev \
+            libayatana-appindicator3-dev librsvg2-dev
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - name: Sidecar'lar (yt-dlp, LGPL FFmpeg, deno)
+        run: npm run sidecars
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # ~/.tauri/youtube-downloader.key icerigi ve parolasi (repo Settings > Secrets).
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: Vidra ${{ github.ref_name }}
+          # Kurulum notu README'deki "Kurulum" bolumuyle ayni tutulur.
+          releaseBody: |
+            ## Kurulum
+
+            - **Windows:** `x64-setup.exe` dosyasını çalıştırın. İmzasız olduğu için SmartScreen uyarı verebilir: **Ek bilgi > Yine de çalıştır**.
+            - **Ubuntu / Debian / Mint:** `.deb` → `sudo apt install ./Vidra_*_amd64.deb`
+            - **Fedora:** `.rpm` → `sudo dnf install ./Vidra-*.x86_64.rpm` (openSUSE: `sudo zypper install ...`)
+            - **Diğer Linux dağıtımları:** `.AppImage` → `chmod +x` ile çalıştırılabilir yapıp açın. "No suitable fusermount binary found" hatasında `fuse3` paketini kurun.
+
+            yt-dlp, FFmpeg ve deno uygulamayla birlikte gelir. Ayrıntılar, güncelleme ve kaldırma: https://github.com/yellow-three/vidra#kurulum
+
+            İndirilen içeriklerin telif haklarına ve YouTube Hizmet Şartları'na uygun kullanılması kullanıcının sorumluluğundadır.
+
+            Paketlenen bileşenler: yt-dlp (Unlicense), deno (MIT), FFmpeg (LGPL, BtbN build'i; kaynak: https://github.com/BtbN/FFmpeg-Builds ve https://ffmpeg.org). FFmpeg lisans metni uygulamanın `licenses/` klasöründedir.
+          releaseDraft: true
+          includeUpdaterJson: true
+          # Yerel `tauri build` imza anahtari istemesin diye updater dosyalari yalnizca burada uretilir.
+          args: --config '{"bundle":{"createUpdaterArtifacts":true}}'

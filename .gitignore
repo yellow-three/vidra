@@ -3,3 +3,6 @@ dist/
 *.log
 .env
 .env.*
+src-tauri/binaries/
+test-results/
+playwright-report/
