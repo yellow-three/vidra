@@ -11,7 +11,7 @@ import type { AppSettings, Task } from '../../types';
 import { addHistory, fetchHistory } from '../history/queries';
 import { fetchSettings } from '../settings/queries';
 import { pickDefaultFormat } from './defaultFormat';
-import { splitUrls, videoKey } from './duplicates';
+import { isHttpUrl, mergeClipboardLinks, splitUrls, videoKey } from './duplicates';
 import { createLimiter } from './limiter';
 import { notifyComplete } from './notify';
 import { loadTasks, saveTasks } from './persistence';
@@ -34,8 +34,15 @@ interface QueueState {
   url: string;
   tasks: Task[];
   setUrl(url: string): void;
-  /** URL kutusundaki linkleri (birden fazla olabilir) analiz eder; ilk gorevin kimligini dondurur. */
+  /**
+   * URL kutusundaki linkleri (birden fazla olabilir) analiz eder; ilk gorevin kimligini dondurur.
+   * Link olmayan parcalar kutuda birakilir.
+   */
   analyze(): Promise<string | null>;
+  /** Panoda yakalanan metnin linklerini kutuya ekler. */
+  addClipboardText(text: string): void;
+  /** Uygulama kapanirken suren ya da siradaki indirmeleri yeniden baslatir. */
+  resumeInterrupted(): Promise<void>;
   /** `watch?v=..&list=..` gorevini listenin tum videolariyla degistirir. */
   expandPlaylist(id: string): Promise<void>;
   selectFormat(id: string, formatId: string): void;
@@ -171,13 +178,25 @@ export const useQueueStore = create<QueueState>()((set, get) => {
 
     setUrl: (url) => set({ url }),
 
+    addClipboardText: (text) => set((s) => ({ url: mergeClipboardLinks(s.url, text) })),
+
+    async resumeInterrupted() {
+      const interrupted = get().tasks.filter((t) => t.resume && t.status === 'ready-to-select');
+      await Promise.all(interrupted.map((t) => get().startDownload(t.id)));
+    },
+
     async analyze() {
-      const urls = splitUrls(get().url);
-      if (urls.length === 0) return null;
+      const parts = splitUrls(get().url);
+      const urls = parts.filter(isHttpUrl);
+      const rest = parts.filter((p) => !isHttpUrl(p)).join(' ');
+      if (urls.length === 0) {
+        set({ url: rest });
+        return null;
+      }
       const added: Task[] = urls.map((url) => ({
         id: newId(), url, title: msg().queue.analyzingTitle, percent: 0, speed: '', eta: '', status: 'analyzing',
       }));
-      set((s) => ({ url: '', tasks: [...added, ...s.tasks] }));
+      set((s) => ({ url: rest, tasks: [...added, ...s.tasks] }));
       // Sirayla: ayni anda onlarca yt-dlp acilmaz, tekrar uyarisi da onceki linkleri gorur.
       for (const t of added) await runAnalysis(t.id, t.url);
       return added[0].id;
@@ -198,7 +217,7 @@ export const useQueueStore = create<QueueState>()((set, get) => {
       const task = find(id);
       const formatId = task?.selectedFormatId || task?.formats?.[0]?.formatId;
       if (!task || !formatId) return;
-      force(id, { status: 'queued', selectedFormatId: formatId, percent: 0, speed: '', eta: '', message: undefined, detail: undefined });
+      force(id, { status: 'queued', selectedFormatId: formatId, resume: undefined, percent: 0, speed: '', eta: '', message: undefined, detail: undefined });
 
       try {
         const settings = await fetchSettings();

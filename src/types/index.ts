@@ -26,6 +26,8 @@ export interface Task {
   detail?: string;
   /** Yalnizca bu aralik indirilir. */
   section?: TimeRange;
+  /** Uygulama kapanirken indiriliyordu ya da siradaydi; acilista kendiliginden surer. */
+  resume?: boolean;
 }
 
 export type TaskStatus = 'analyzing' | 'ready-to-select' | 'queued' | 'downloading' | 'complete' | 'cancelled' | 'error';

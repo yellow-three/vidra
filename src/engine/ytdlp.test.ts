@@ -176,6 +176,8 @@ describe('buildDownloadArgs', () => {
 
   it('video dosya adina cozunurluk ekler; ayni videonun farkli kaliteleri cakismaz', () => {
     const args = buildDownloadArgs({ url: 'U', option: { kind: 'video', height: 720 }, outDir: '/out', subtitles: false });
+    // `-` ile baslayan bir link yt-dlp secenegi olarak okunmasin.
+    expect(args.slice(-2)).toEqual(['--', 'U']);
     expect(args).toContain('/out/%(title)s [%(height)sp].%(ext)s');
     expect(outputTemplate({ kind: 'best-video' }, 'uploader-title')).toBe('%(uploader)s - %(title)s [%(height)sp].%(ext)s');
     expect(outputTemplate({ kind: 'm4a' }, 'title-id')).toBe('%(title)s [%(id)s].%(ext)s');
@@ -186,9 +188,9 @@ describe('buildDownloadArgs', () => {
 describe('buildInfoArgs', () => {
   it('listeleri hizli (flat) okur, deno yolunu ve ag seceneklerini ekler', () => {
     expect(buildInfoArgs({ url: 'U', denoPath: '/app/deno' }))
-      .toEqual(['U', '-J', '--flat-playlist', '--no-playlist', '--js-runtimes', 'deno:/app/deno']);
+      .toEqual(['-J', '--flat-playlist', '--no-playlist', '--js-runtimes', 'deno:/app/deno', '--', 'U']);
     expect(buildInfoArgs({ url: 'U', playlist: true, cookiesFromBrowser: 'chrome:/p' }))
-      .toEqual(['U', '-J', '--flat-playlist', '--yes-playlist', '--cookies-from-browser', 'chrome:/p']);
+      .toEqual(['-J', '--flat-playlist', '--yes-playlist', '--cookies-from-browser', 'chrome:/p', '--', 'U']);
   });
 });
 

@@ -18,7 +18,9 @@ describe('restoreTasks', () => {
     expect(restored.map((t) => [t.id, t.status])).toEqual([
       ['1', 'ready-to-select'], ['2', 'ready-to-select'], ['4', 'error'], ['5', 'error'],
     ]);
-    expect(restored[0]).toMatchObject({ percent: 0, speed: '', selectedFormatId: 'video-720', message: tr.queue.interrupted });
+    expect(restored[0]).toMatchObject({ percent: 0, speed: '', selectedFormatId: 'video-720', resume: true, message: tr.queue.interrupted });
+    expect(restored[1].resume).toBe(true);
+    expect(restored[3].resume).toBeUndefined();
     expect(restored[3].message).toBe('x');
   });
 });

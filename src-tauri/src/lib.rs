@@ -258,7 +258,25 @@ fn process_kill(id: u32, state: State<'_, AppState>) -> bool {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    // Ikinci acilis yeni pencere yerine mevcut pencereyi one getirir: iki kopya ayni kuyrugu,
+    // ayarlari ve pano izleyiciyi paylasip birbirinin uzerine yazardi. Ilk eklenen eklenti olmali.
+    // Linux'ta DBus adi Flatpak kimligiyle ayni: sandbox uygulamanin kendi adini izinsiz alabilir
+    // (tanimlayicidaki `yellow-three` Flatpak'te `yellow_three`).
+    #[cfg(desktop)]
+    let builder = builder.plugin(
+        tauri_plugin_single_instance::Builder::new()
+            .dbus_id("io.github.yellow_three.vidra")
+            .callback(|app, _args, _cwd| {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.unminimize();
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            })
+            .build(),
+    );
+    builder
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())

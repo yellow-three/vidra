@@ -24,3 +24,28 @@ export function splitUrls(text: string): string[] {
   const parts = text.split(/\s+/).flatMap((p) => p.split(/(?=https?:\/\/)/)).filter(Boolean);
   return [...new Set(parts)];
 }
+
+/** Yalnizca http(s) linkleri yt-dlp'ye gider; `-` ile baslayan metin secenek olarak okunurdu. */
+export function isHttpUrl(text: string): boolean {
+  try {
+    const u = new URL(text);
+    return (u.protocol === 'http:' || u.protocol === 'https:') && !!u.hostname;
+  } catch {
+    return false;
+  }
+}
+
+const YOUTUBE_HOST = /^(?:(?:www|m|music)\.)?(?:youtube\.com|youtu\.be)$/;
+
+const isYoutubeUrl = (text: string) => isHttpUrl(text) && YOUTUBE_HOST.test(new URL(text).hostname);
+
+/**
+ * Panodan gelen metnin YouTube linklerini kutudakilere ekler; kutuda yazilani silmez,
+ * kutuda zaten olan link tekrar eklenmez. Eklenecek link yoksa kutu aynen kalir.
+ */
+export function mergeClipboardLinks(box: string, clipboard: string): string {
+  const present = new Set(splitUrls(box).map(videoKey));
+  const fresh = splitUrls(clipboard).filter((u) => isYoutubeUrl(u) && !present.has(videoKey(u)));
+  if (fresh.length === 0) return box;
+  return [box.trim(), ...new Set(fresh)].filter(Boolean).join(' ');
+}

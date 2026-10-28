@@ -155,6 +155,9 @@ export function networkArgs({ cookiesFromBrowser, proxy }: NetworkOptions): stri
   ];
 }
 
+/** Link en sonda ve `--` ardindan: `-` ile baslayan bir metin yt-dlp secenegi olarak okunmaz. */
+const urlArgs = (url: string) => ['--', url];
+
 export interface InfoArgsInput extends NetworkOptions {
   url: string;
   denoPath?: string | null;
@@ -163,12 +166,13 @@ export interface InfoArgsInput extends NetworkOptions {
 
 export function buildInfoArgs({ url, denoPath, playlist, ...network }: InfoArgsInput): string[] {
   return [
-    url, '-J',
+    '-J',
     // Liste girdileri tek tek acilmaz; yuzlerce videoluk listede saniyeler yerine dakikalar surerdi.
     '--flat-playlist',
     playlist ? '--yes-playlist' : '--no-playlist',
     ...networkArgs(network),
     ...jsRuntimeArgs(denoPath),
+    ...urlArgs(url),
   ];
 }
 
@@ -252,7 +256,6 @@ export function buildDownloadArgs({
   subtitleLangs, subfolder, section, sponsorBlock, ...network
 }: DownloadArgsInput): string[] {
   const args = [
-    url,
     '-o', joinPath(outDir, outputTemplate(option, filenameTemplate, { subfolder, section })),
     '--no-playlist',
     '--newline',
@@ -297,7 +300,7 @@ export function buildDownloadArgs({
   if (embedMetadata) args.push('--embed-thumbnail', '--embed-metadata');
   if (rateLimit) args.push('--limit-rate', rateLimit);
   if (ffmpegPath) args.push('--ffmpeg-location', ffmpegPath);
-  args.push(...networkArgs(network), ...jsRuntimeArgs(denoPath));
+  args.push(...networkArgs(network), ...jsRuntimeArgs(denoPath), ...urlArgs(url));
   return args;
 }
 

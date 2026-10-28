@@ -89,7 +89,7 @@ test('oynatma listesi videolarina acilir ve hepsi birden indirilir', async ({ pa
   await expect(page.getByRole('article', { name: 'İkinci video' })).toBeVisible();
   await page.getByRole('button', { name: 'Hepsini indir (2)' }).click();
 
-  await expect.poll(() => page.evaluate(() => (window as any).__mock.state.downloads.map((d: any) => d.args[0])))
+  await expect.poll(() => page.evaluate(() => (window as any).__mock.state.downloads.map((d: any) => d.args[d.args.length - 1])))
     .toEqual(['https://www.youtube.com/watch?v=a1', 'https://www.youtube.com/watch?v=b2']);
 });
 
@@ -134,11 +134,25 @@ test('kapanista yarida kalan indirme acilista devam ettirilebilir', async ({ pag
   await expect.poll(() => page.evaluate(() => (window as any).__mock.state.downloads.length)).toBe(1);
   await expect.poll(() => page.evaluate(() => localStorage.getItem('vidra.queue.v1') ?? '')).toContain('"downloading"');
 
+  // Yeniden acilista bilesenler hazir oldugu icin indirme kendiliginden yeniden baslar.
   await page.reload();
-  const card = page.getByRole('article', { name: 'Me at the zoo' });
-  await expect(card).toContainText('kaldığı yerden devam eder');
-  await card.getByRole('button', { name: 'İndir', exact: true }).click();
   await expect.poll(() => page.evaluate(() => (window as any).__mock.state.downloads.length)).toBe(1);
+  await expect(page.getByRole('article', { name: 'Me at the zoo' })).toContainText('İndiriliyor');
+});
+
+test('bilesen eksikken yarida kalan indirme beklenir ve elle surdurulur', async ({ page }) => {
+  await mockTauri(page, { settings: accepted });
+  await page.goto('/');
+  await analyze(page);
+  await page.getByRole('button', { name: 'İndir', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('vidra.queue.v1') ?? '')).toContain('"downloading"');
+
+  // Ayni tarayici baglami: kuyruk localStorage'da kalir, yeni sayfada yt-dlp kurulu degil.
+  const next = await page.context().newPage();
+  await mockTauri(next, { settings: accepted, deps: { ytdlp: false, ffmpeg: true, deno: true } });
+  await next.goto('/');
+  await expect(next.getByRole('article', { name: 'Me at the zoo' })).toContainText('kaldığı yerden devam eder');
+  expect(await next.evaluate(() => (window as any).__mock.state.downloads.length)).toBe(0);
 });
 
 test('panodan gelen link kutuya yazilir', async ({ page }) => {

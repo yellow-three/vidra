@@ -25,14 +25,27 @@ function codecArgs(format: string, quality: ConvertQuality, h264Encoder: string)
   }
 }
 
+const MAX_OUTPUT_CANDIDATES = 50;
+
+/** Girdinin yanindaki cikti adlari, tercih sirasiyla: `Ad_converted.mp4`, `Ad_converted (2).mp4`, ... */
+export function outputCandidates(inputPath: string, format: string): string[] {
+  const { dir, name } = splitPath(inputPath);
+  const { ext } = codecArgs(format, 'medium', 'libopenh264');
+  return Array.from({ length: MAX_OUTPUT_CANDIDATES }, (_, i) =>
+    joinPath(dir, `${stem(name)}_converted${i ? ` (${i + 1})` : ''}.${ext}`));
+}
+
+/**
+ * `outputPath` verilmezse ilk aday kullanilir. `-n`: ayni adli dosya varsa FFmpeg uzerine yazmak yerine durur;
+ * adi bos olan aday onceden secildigi icin bu yalnizca ayni anda iki donusturmede olur.
+ */
 export function buildConvertArgs(
   inputPath: string, format: string, quality: ConvertQuality, h264Encoder = 'libopenh264',
+  outputPath = outputCandidates(inputPath, format)[0],
 ): { args: string[]; outputPath: string } {
-  const { dir, name } = splitPath(inputPath);
-  const { ext, args } = codecArgs(format, quality, h264Encoder);
-  const outputPath = joinPath(dir, `${stem(name)}_converted.${ext}`);
+  const { args } = codecArgs(format, quality, h264Encoder);
   // -progress makinece okunur ilerlemeyi stdout'a yazar; -nostats stderr'i sade tutar.
-  return { args: ['-i', inputPath, '-y', '-progress', 'pipe:1', '-nostats', ...args, outputPath], outputPath };
+  return { args: ['-i', inputPath, '-n', '-progress', 'pipe:1', '-nostats', ...args, outputPath], outputPath };
 }
 
 /** FFmpeg stderr'indeki `Duration: HH:MM:SS.ss` satirindan toplam sure (ffprobe paketlenmiyor). */
