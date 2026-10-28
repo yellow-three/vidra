@@ -4,7 +4,7 @@ pub mod legacy;
 mod cookies;
 mod dependencies;
 mod events;
-mod ffprobe;
+mod tools;
 mod process;
 
 use events::ClipboardMonitor;
@@ -300,8 +300,9 @@ pub fn run() {
             dependencies::get_ytdlp_version,
             dependencies::get_platform,
             dependencies::is_flatpak,
-            ffprobe::install_ffprobe,
-            ffprobe::remove_ffprobe,
+            tools::tools_status,
+            tools::install_tool,
+            tools::remove_ffprobe,
             cookies::cookie_source,
         ])
         .build(tauri::generate_context!())

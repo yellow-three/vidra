@@ -1,5 +1,5 @@
 pkgbase = vidra-bin
-	pkgdesc = YouTube video and audio downloader (yt-dlp + FFmpeg)
+	pkgdesc = YouTube video and audio downloader (yt-dlp + FFmpeg, downloaded on first run)
 	pkgver = 0.2.0
 	pkgrel = 1
 	url = https://github.com/yellow-three/vidra

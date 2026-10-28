@@ -36,8 +36,6 @@ jobs:
         with:
           workspaces: src-tauri
       - run: npm ci
-      - name: Sidecar'lar (yt-dlp, LGPL FFmpeg, deno)
-        run: npm run sidecars
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -56,11 +54,11 @@ jobs:
             - **Fedora:** `.rpm` → `sudo dnf install ./Vidra-*.x86_64.rpm` (openSUSE: `sudo zypper install ...`)
             - **Diğer Linux dağıtımları:** `.AppImage` → `chmod +x` ile çalıştırılabilir yapıp açın. "No suitable fusermount binary found" hatasında `fuse3` paketini kurun.
 
-            yt-dlp, FFmpeg ve deno uygulamayla birlikte gelir. Ayrıntılar, güncelleme ve kaldırma: https://github.com/yellow-three/vidra#kurulum
+            Paketi küçük tutmak için yt-dlp, FFmpeg ve deno pakete eklenmez: uygulama ilk açılışta bir kurulum ekranıyla bunları resmi kaynaklarından indirir ve SHA-256 ile doğrular (yaklaşık 220 MB, internet bağlantısı gerekir). Ayrıntılar, güncelleme ve kaldırma: https://github.com/yellow-three/vidra#kurulum
 
             İndirilen içeriklerin telif haklarına ve YouTube Hizmet Şartları'na uygun kullanılması kullanıcının sorumluluğundadır.
 
-            Paketlenen bileşenler: yt-dlp (Unlicense), deno (MIT), FFmpeg (LGPL, BtbN build'i; kaynak: https://github.com/BtbN/FFmpeg-Builds ve https://ffmpeg.org). FFmpeg lisans metni uygulamanın `licenses/` klasöründedir.
+            İndirilen bileşenler: yt-dlp (Unlicense), deno (MIT), FFmpeg (LGPL, BtbN build'i; kaynak: https://github.com/BtbN/FFmpeg-Builds ve https://ffmpeg.org). FFmpeg lisans metni FFmpeg ile birlikte uygulamanın veri klasörüne kurulur.
           releaseDraft: true
           includeUpdaterJson: true
           # Yerel `tauri build` imza anahtari istemesin diye updater dosyalari yalnizca burada uretilir.

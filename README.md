@@ -11,7 +11,7 @@ YouTube video ve ses indirme masaüstü uygulaması. Tauri 2 + React 19 + Tailwi
 - Kuyruk: aynı anda kaç indirme yapılacağı ayarlanır, sıradakiler yukarı/aşağı taşınarak öne alınır; uygulama kapansa da kuyruk kalır, yarıda kalan indirme kaldığı yerden sürer
 - Geçmiş: arama, dosyayı oynatma, yeniden indirme; diskten silinen dosyalar işaretlenir
 - Tarayıcı çerezleri, proxy, hız sınırı, dosya adı biçimi, altyazı dilleri
-- SponsorBlock: sponsor bölümlerini işaretleme ya da kesme (gereken ffprobe istenirse uygulama içinden indirilir)
+- SponsorBlock: sponsor bölümlerini işaretleme ya da kesme (gereken ffprobe istenirse kurulumda ya da sonradan Ayarlar'dan indirilir)
 - Türkçe ve İngilizce arayüz (sistem diline göre; Ayarlar > Görünüm'den değiştirilir)
 - yt-dlp haftada bir kendiliğinden güncellenir
 
@@ -42,7 +42,7 @@ AppImage `libfuse2` istemez, yalnızca sistemde `fusermount` olmalıdır; masaü
 - Fedora: `sudo dnf install fuse3`
 - Arch: `sudo pacman -S fuse3`
 
-yt-dlp, FFmpeg ve deno uygulamayla birlikte gelir; ayrıca kurmanız gerekmez.
+Paketi küçük tutmak için yt-dlp, FFmpeg ve deno pakete eklenmez. İlk açılışta bir kurulum ekranı bunları resmi kaynaklarından indirir ve doğrular (yaklaşık 220 MB; internet bağlantısı gerekir, kurumsal ağlar için ekranda proxy alanı vardır). Bileşenler kullanıcının veri klasörüne kurulur; Ayarlar > Sistem > Bileşenler'den yeniden indirilebilir.
 
 ## Güncelleme
 
@@ -65,7 +65,7 @@ YouTube değiştikçe indirmeler bozulabilir; önce Ayarlar'dan yt-dlp'yi günce
 
 v0.1.0'ın paket adı `you-tube-downloader`'dır; Vidra paketi kurulunca onun yerini alır.
 
-Ayarlar ve geçmiş kaldırmadan sonra da kalır; tamamen silmek için Linux'ta `~/.config/io.github.yellow-three.vidra` ve `~/.local/share/io.github.yellow-three.vidra` (v0.1.0: `com.abdurrahman.youtubedownloader`) klasörlerini silin.
+Ayarlar, geçmiş ve indirilen bileşenler kaldırmadan sonra da kalır; tamamen silmek için Linux'ta `~/.config/io.github.yellow-three.vidra` ve `~/.local/share/io.github.yellow-three.vidra` (Windows: `%APPDATA%\io.github.yellow-three.vidra`) (v0.1.0: `com.abdurrahman.youtubedownloader`) klasörlerini silin.
 
 İndirilen içeriklerin telif haklarına ve YouTube Hizmet Şartları'na uygun kullanılması kullanıcının sorumluluğundadır.
 
@@ -82,8 +82,9 @@ Uygulama v0.1.0'da "YouTube Downloader" (`com.abdurrahman.youtubedownloader`) ad
 - Release notlarındaki kısa kurulum metni `.github/workflows/release.yml` içindeki `releaseBody`'dedir; yukarıdaki "Kurulum" bölümüyle birlikte güncellenmelidir.
 - AppImage, AppImage'ın statik runtime'ıyla gelir: `libfuse2` istemez, yalnızca `fusermount` (`fuse3` paketi) gerekir.
 - Windows kurulum dosyaları kod imzalı değildir; SmartScreen uyarı verir.
+- Paketler araç içermez (`.deb` ~10 MB); araçlar ilk açılışta indirilir (aşağıda "Bileşenler").
 - **AUR** (`packaging/aur/`): `vidra-bin`, release'deki `.deb`'i Arch'a aktarır. Yeni sürümde `pkgver`'i artırıp `updpkgsums` ve `makepkg --printsrcinfo > .SRCINFO` çalıştırın, sonra AUR'daki `vidra-bin` reposuna push edin (AUR hesabı ve SSH anahtarı gerekir).
-- **Flatpak** (`packaging/flatpak/`): `.deb`'i GNOME runtime'ına aktaran tarif, `.desktop` ve metainfo. Flatpak app ID'sinde tire kullanılamadığı için `io.github.yellow_three.vidra`'dır (Tauri kimliği ise alt çizgi kabul etmez). Flatpak'te uygulama içi güncelleyici kapalıdır (`is_flatpak`); yt-dlp güncellemesi uygulamanın kendi veri klasöründe çalıştığı için açık kalır. Flathub'a göndermek için tarifteki `sha256`'yı doldurun, metainfo'ya ekran görüntüsü ekleyin ve [flathub/flathub](https://github.com/flathub/flathub)'a PR açın; Flathub kaynaktan derlenmeyen ve kendi kendini güncelleyen (yt-dlp) uygulamaları reddedebilir.
+- **Flatpak** (`packaging/flatpak/`): `.deb`'i GNOME runtime'ına aktaran tarif, `.desktop` ve metainfo. Flathub çalışırken çalıştırılabilir dosya indirmeye izin vermediği için tarif yt-dlp, deno ve FFmpeg'i sidecar adlarıyla pakete ekler; kurulum ekranı Flatpak'te çıkmaz. Sürümler `src-tauri/tools.json` ile aynı tutulmalı; BtbN eski autobuild'leri sildiği için FFmpeg kaynağı her sürümde yenilenmeli. SponsorBlock'un ffprobe indirmesi Flatpak'te de çalışır; Flathub bunu da sorun edebilir. Flatpak app ID'sinde tire kullanılamadığı için `io.github.yellow_three.vidra`'dır (Tauri kimliği ise alt çizgi kabul etmez). Flatpak'te uygulama içi güncelleyici kapalıdır (`is_flatpak`); yt-dlp güncellemesi uygulamanın kendi veri klasöründe çalıştığı için açık kalır. Flathub'a göndermek için tarifteki `sha256`'yı doldurun, metainfo'ya ekran görüntüsü ekleyin ve [flathub/flathub](https://github.com/flathub/flathub)'a PR açın; Flathub kaynaktan derlenmeyen ve kendi kendini güncelleyen (yt-dlp) uygulamaları reddedebilir.
 
 ## Gereksinimler
 
@@ -100,22 +101,32 @@ Uygulama ikonu `src-tauri/app-icon.svg`'den üretilir:
 npx tauri icon src-tauri/app-icon.svg -o src-tauri/icons
 ```
 
-## Sidecar'lar (yt-dlp, FFmpeg, deno)
+## Bileşenler (yt-dlp, FFmpeg, deno)
 
-yt-dlp, LGPL FFmpeg ve deno uygulamayla birlikte paketlenir (`bundle.externalBin`). `npm run sidecars` bunları `src-tauri/binaries/ytd-<ad>-<target-triple>` olarak indirir ve SHA-256 doğrular; `tauri dev` / `tauri build` bunu kendiliğinden çalıştırır, sürümler değişmedikçe tekrar indirmez. `cargo test` / `cargo check` de bu dosyalar olmadan derlenmez.
+Paketler araç içermez. İlk açılışta kurulum ekranı (`src/features/setup/`) eksik bileşenleri `src-tauri/src/tools.rs` ile indirir: dosyalar yayıncıların GitHub release'lerinden gelir, SHA-256'ları yayıncının listesiyle (`SHA2-256SUMS`, `.sha256sum`, `checksums.sha256`) doğrulanır ve app data altındaki `bin/`e kurulur:
+
+| Bileşen | Zorunlu | Kaynak | Kurulduğu yer |
+|---|---|---|---|
+| yt-dlp | evet | yt-dlp release'i (`tools.json` sürümü) | `bin/yt-dlp` |
+| deno | evet | deno release'i (`tools.json` sürümü) | `bin/deno` (+ `deno.version`) |
+| FFmpeg | evet | BtbN `n9.0` LGPL build'i | `bin/ffmpeg-tools/ffmpeg` (+ lisans) |
+| ffprobe | hayır (SponsorBlock) | FFmpeg ile aynı arşiv | `bin/ffmpeg-tools/ffprobe` |
+
+- Sürümler tek yerde sabittir: `src-tauri/tools.json` (uygulama ve `scripts/fetch-sidecars.mjs` ortak okur). Uygulama yeni bir deno sürümü isterse kurulum ekranı yalnızca deno'yu yeniden indirir (atlanabilir; eski sürüm çalışmaya devam eder). yt-dlp'yi haftalık `-U` güncellemesi güncel tutar.
+- FFmpeg, BtbN'in `n9.0` dalının en güncel LGPL build'idir; BtbN eski build'leri sildiği için sabitlenemez.
+- Sidecar'larla paketlenmiş kurulumda (Flatpak ya da `--config src-tauri/tauri.bundled.conf.json` ile derlenen paket) uygulamanın yanındaki `ytd-` önekli kopyalar kullanılır ve kurulum ekranı çıkmaz. İndirilen kopya varsa önceliklidir. `ytd-` öneki şart: Linux paketleri sidecar'ları `/usr/bin`'e kurar ve önek olmadan sistemdeki `ffmpeg` / `yt-dlp` paketleriyle çakışır.
 
 ```bash
-npm run sidecars                                   # host hedefi
-node scripts/fetch-sidecars.mjs --target x86_64-pc-windows-msvc
-FFMPEG_DIR=/yol/lgpl-ffmpeg npm run sidecars        # macOS: hazır LGPL kaynağı yok
+npm run sidecars                                                 # src-tauri/binaries/ altına (host hedefi)
+npm run tauri build -- --config src-tauri/tauri.bundled.conf.json # araçları içeren paket
+FFMPEG_DIR=/yol/lgpl-ffmpeg npm run sidecars                      # macOS: hazır LGPL kaynağı yok
 ```
 
-- `ytd-` öneki şart: Linux paketleri sidecar'ları `/usr/bin`'e kurar ve önek olmadan sistemdeki `ffmpeg` / `yt-dlp` paketleriyle çakışır.
-- Sürümler `scripts/fetch-sidecars.mjs` başında sabittir (yt-dlp, deno). FFmpeg, BtbN'in `n9.0` dalının en güncel LGPL build'idir; BtbN eski build'leri silmediği için sabitlenemez.
-- `ffprobe` bilerek paketlenmez (kurulu boyutta ~140 MB); yalnızca SponsorBlock için gerekir. Kullanıcı Ayarlar > SponsorBlock'tan isterse aynı BtbN LGPL build'i indirilir, `checksums.sha256` ile doğrulanır ve yalnızca ffprobe `<app data>/bin/ffmpeg-tools/`e çıkarılır; paketlenmiş ffmpeg aynı klasöre bağlanır ve yt-dlp'ye `--ffmpeg-location` olarak bu klasör verilir (`src-tauri/src/ffprobe.rs`). yt-dlp birleştirme, MP3/M4A, altyazı/kapak/metadata gömme ve remux'u onsuz aynı çıktıyla yapar; yalnızca HLS (m3u8) indirmelerinde zararsız bir "ffprobe not found" uyarısı yazar. BtbN'in `lgpl-shared` build'i de denendi: ffmpeg + ffprobe + kütüphaneler ~170 MB ve Linux'ta kütüphanelerin `/usr/lib`'e kurulmasını gerektiriyor.
-- FFmpeg LGPL olduğundan GPL'li `libx264` yoktur; Dönüştür sayfası MP4 için `libopenh264` kullanır. FFmpeg lisans metni pakete `licenses/` altında eklenir.
-- yt-dlp sık bozulur: Ayarlar'daki güncelleme, paketlenmiş kopyayı app data `bin/` altına kopyalayıp `yt-dlp -U` çalıştırır (uygulama dizini çoğu kurulumda salt okunurdur). Uygulama daha yeni bir yt-dlp ile güncellenirse eski kopya açılışta silinir.
-- yt-dlp YouTube için JS runtime ister; paketlenmiş deno `--js-runtimes deno:<yol>` ile verilir.
+- `ffprobe` varsayılan olarak kurulmaz (~140 MB); yalnızca SponsorBlock için gerekir. Kurulum ekranındaki onay kutusuyla ya da Ayarlar > SponsorBlock'tan kurulur. Paketlenmiş ffmpeg ile kullanılırken ffmpeg aynı klasöre bağlanır ve yt-dlp'ye `--ffmpeg-location` olarak bu klasör verilir. yt-dlp birleştirme, MP3/M4A, altyazı/kapak/metadata gömme ve remux'u onsuz aynı çıktıyla yapar; yalnızca HLS (m3u8) indirmelerinde zararsız bir "ffprobe not found" uyarısı yazar. BtbN'in `lgpl-shared` build'i de denendi: ffmpeg + ffprobe + kütüphaneler ~170 MB ve Linux'ta kütüphanelerin `/usr/lib`'e kurulmasını gerektiriyor.
+- Gerçek kaynaklardan uçtan uca kurulum testi (~220 MB): `cargo test --manifest-path src-tauri/Cargo.toml -- --ignored real_install`.
+- FFmpeg LGPL olduğundan GPL'li `libx264` yoktur; Dönüştür sayfası MP4 için `libopenh264` kullanır. FFmpeg lisans metni FFmpeg ile birlikte `bin/ffmpeg-tools/FFmpeg-LICENSE.txt` olarak kurulur.
+- yt-dlp sık bozulur: Ayarlar'daki güncelleme app data `bin/` altındaki kopyada `yt-dlp -U` çalıştırır (paketlenmiş kopya varsa önce oraya kopyalanır; uygulama dizini çoğu kurulumda salt okunurdur). Paketlenmiş kurulum daha yeni bir yt-dlp ile güncellenirse eski kopya açılışta silinir.
+- yt-dlp YouTube için JS runtime ister; deno `--js-runtimes deno:<yol>` ile verilir.
 
 ## Komutlar
 
@@ -134,8 +145,10 @@ npm run tauri build   # paket üretimi
 - `src/features/settings/ytdlpAutoUpdate.ts` — açılışta haftada bir `yt-dlp -U`.
 - `src/` diğer — React arayüzü (Home, Downloads, Convert, Settings).
 - `src-tauri/src/process.rs` — programdan bağımsız süreç çalıştırıcı: süreci kendi grubunda başlatır (Unix process group, Windows Job Object), stdout/stderr satırlarını `Channel` ile iletir, iptalde ve uygulama kapanırken tüm grubu öldürür. Webview yalnızca izin verilen programları (yt-dlp, ffmpeg) çalıştırabilir.
-- `src-tauri/src/dependencies.rs` — sidecar yollarının çözümü ve yt-dlp güncellemesi.
-- `scripts/fetch-sidecars.mjs` — sidecar indirme ve checksum doğrulama.
+- `src-tauri/src/tools.rs` — ilk açılıştaki bileşen indirmesi, doğrulama ve arşivden çıkarma.
+- `src-tauri/src/dependencies.rs` — araç yollarının çözümü ve yt-dlp güncellemesi.
+- `src/features/setup/` — kurulum ekranı.
+- `scripts/fetch-sidecars.mjs` — paketlenmiş kurulum için sidecar indirme ve checksum doğrulama.
 - `src-tauri/src/lib.rs` — ayarlar (`<app data>/settings.json`), SQLite migration'ları, klasör seçimi, fs kapsamı.
 - İndirme geçmişi SQLite'tadır: `<app config>/vidra.db` (Linux: `~/.config/io.github.yellow-three.vidra/`).
 - `src-tauri/src/events.rs` — pano (clipboard) izleme.
@@ -164,4 +177,4 @@ cargo test --manifest-path src-tauri/Cargo.toml   # süreç çalıştırıcı (U
 
 ## Lisans
 
-[MIT](LICENSE). Paketlenen bileşenlerin kendi lisansları vardır: yt-dlp (Unlicense), deno (MIT), FFmpeg (LGPL; lisans metni pakette `licenses/` altında).
+[MIT](LICENSE). İndirilen bileşenlerin kendi lisansları vardır: yt-dlp (Unlicense), deno (MIT), FFmpeg (LGPL; lisans metni FFmpeg ile birlikte kurulur).

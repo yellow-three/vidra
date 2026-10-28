@@ -4,9 +4,9 @@
   "version": "0.2.0",
   "identifier": "io.github.yellow-three.vidra",
   "build": {
-    "beforeDevCommand": "npm run sidecars && npm run dev",
+    "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "npm run sidecars && npm run build",
+    "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
   },
   "app": {
@@ -61,14 +61,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "externalBin": [
-      "binaries/ytd-yt-dlp",
-      "binaries/ytd-ffmpeg",
-      "binaries/ytd-deno"
-    ],
-    "resources": {
-      "binaries/licenses/": "licenses/"
-    },
     "linux": {
       "deb": {
         "conflicts": [

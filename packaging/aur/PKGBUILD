@@ -4,14 +4,15 @@
 pkgname=vidra-bin
 pkgver=0.2.0
 pkgrel=1
-pkgdesc='YouTube video and audio downloader (yt-dlp + FFmpeg)'
+pkgdesc='YouTube video and audio downloader (yt-dlp + FFmpeg, downloaded on first run)'
 arch=('x86_64')
 url='https://github.com/yellow-three/vidra'
 license=('MIT')
 depends=('webkit2gtk-4.1' 'gtk3' 'hicolor-icon-theme')
 provides=('vidra')
 conflicts=('vidra')
-# Paketlenen yt-dlp/ffmpeg/deno hazir derlenmis ikili dosyalardir; strip edilmemeli.
+# Hazir derlenmis release ikilisi; yeniden strip edilmez. yt-dlp, FFmpeg ve deno ilk acilista
+# uygulama tarafindan kullanicinin veri klasorune indirilir.
 options=('!strip' '!debug')
 source=("Vidra_${pkgver}_amd64.deb::${url}/releases/download/v${pkgver}/Vidra_${pkgver}_amd64.deb"
         "LICENSE-${pkgver}::https://raw.githubusercontent.com/yellow-three/vidra/v${pkgver}/LICENSE")
@@ -22,5 +23,4 @@ sha256sums=('SKIP'
 package() {
   bsdtar -xOf "Vidra_${pkgver}_amd64.deb" data.tar.gz | bsdtar -xf - -C "$pkgdir"
   install -Dm644 "LICENSE-${pkgver}" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
-  install -Dm644 "$pkgdir/usr/lib/Vidra/licenses/FFmpeg-LICENSE.txt" "$pkgdir/usr/share/licenses/$pkgname/FFmpeg-LICENSE.txt"
 }

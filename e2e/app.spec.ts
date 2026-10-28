@@ -152,7 +152,7 @@ test('panodan gelen link kutuya yazilir', async ({ page }) => {
 test('eksik sidecar durum cubugunda gosterilir ve analiz kapali kalir', async ({ page }) => {
   await mockTauri(page, { settings: accepted, deps: { ytdlp: true, ffmpeg: false, deno: false } });
   await page.goto('/');
-  await expect(page.getByText('Eksik bileşen: FFmpeg, deno bulunamadı')).toBeVisible();
+  await expect(page.getByText('Eksik bileşen: FFmpeg, deno. Ayarlar > Sistem bölümünden indirin.')).toBeVisible();
   await page.getByLabel('YouTube linki').fill(URL);
   await expect(page.getByRole('button', { name: 'Hazırlanıyor...' })).toBeDisabled();
 });
@@ -304,4 +304,59 @@ test('SponsorBlock: ffprobe indirilince secilir ve indirmeye eklenir', async ({ 
   await expect.poll(() => page.evaluate(() => (window as any).__mock.state.downloads.length)).toBe(1);
   const spawned = (await calls(page, 'process_spawn')).map((a: any) => a.args.join(' '));
   expect(spawned[1]).toContain('--sponsorblock-remove sponsor,selfpromo,interaction');
+});
+
+test('kurulum ekrani eksik bilesenleri sirayla indirir', async ({ page }) => {
+  await mockTauri(page, { settings: accepted, deps: { ytdlp: false, ffmpeg: false, deno: false } });
+  await page.goto('/');
+  const dialog = page.getByRole('dialog', { name: 'Kurulum' });
+  await expect(dialog.getByRole('listitem')).toHaveText([/yt-dlp/, /deno/, /FFmpeg/]);
+  await expect(dialog.getByRole('button', { name: 'Şimdilik atla' })).toHaveCount(0);
+  await expect(page.getByText(/Eksik bileşen: yt-dlp, FFmpeg, deno/)).toBeVisible();
+
+  await dialog.getByText('Ağ ayarları').click();
+  await dialog.getByLabel('Proxy (isteğe bağlı)').fill('bozuk adres');
+  await expect(dialog.getByRole('button', { name: 'İndir ve kur' })).toBeDisabled();
+  await dialog.getByLabel('Proxy (isteğe bağlı)').fill('http://127.0.0.1:8080');
+  await dialog.getByLabel(/SponsorBlock desteğini de kur/).check();
+  await dialog.getByRole('button', { name: 'İndir ve kur' }).click();
+
+  await expect(dialog).toBeHidden();
+  const installs = (await calls(page, 'install_tool')).map((a: any) => [a.tool, a.withFfprobe, a.proxy]);
+  expect(installs).toEqual([
+    ['yt-dlp', false, 'http://127.0.0.1:8080'],
+    ['deno', false, 'http://127.0.0.1:8080'],
+    ['ffmpeg', true, 'http://127.0.0.1:8080'],
+  ]);
+  expect(await calls(page, 'save_settings')).toContainEqual({ settings: { proxy: 'http://127.0.0.1:8080' } });
+  await expect(page.getByText('Sistem hazır.')).toBeVisible();
+});
+
+test('kurulum hatasinda tekrar denenir, kurulanlar yeniden inmez', async ({ page }) => {
+  await mockTauri(page, { settings: accepted, deps: { ytdlp: false, ffmpeg: false, deno: false }, failInstall: 'deno' });
+  await page.goto('/');
+  const dialog = page.getByRole('dialog', { name: 'Kurulum' });
+  await dialog.getByRole('button', { name: 'İndir ve kur' }).click();
+  await expect(dialog.getByText('Kurulamadı: İndirilemedi: bağlantı kesildi')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Tekrar dene' }).click();
+  await expect(dialog).toBeHidden();
+  expect((await calls(page, 'install_tool')).map((a: any) => a.tool)).toEqual(['yt-dlp', 'deno', 'deno', 'ffmpeg']);
+});
+
+test('yalnizca surumu eskiyen bilesen varsa kurulum atlanabilir', async ({ page }) => {
+  await mockTauri(page, { settings: accepted, outdated: ['deno'] });
+  await page.goto('/');
+  const dialog = page.getByRole('dialog', { name: 'Kurulum' });
+  await expect(dialog).toContainText('Uygulama güncellendi');
+  await dialog.getByRole('button', { name: 'Şimdilik atla' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText('Sistem hazır.')).toBeVisible();
+  expect(await calls(page, 'install_tool')).toEqual([]);
+
+  await page.getByRole('link', { name: 'Ayarlar' }).click();
+  const row = page.getByRole('listitem').filter({ hasText: 'deno' });
+  await expect(row).toContainText('Yeni sürümü indirilmeli');
+  await row.getByRole('button', { name: 'İndir' }).click();
+  await expect(row).toContainText('İndirildi');
+  expect((await calls(page, 'install_tool')).map((a: any) => a.tool)).toEqual(['deno']);
 });

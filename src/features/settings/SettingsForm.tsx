@@ -10,6 +10,7 @@ import ThemePicker from './ThemePicker';
 import DownloadSettings, { SubtitleLanguages } from './DownloadSettings';
 import NetworkSettings from './NetworkSettings';
 import SponsorBlockSettings from './SponsorBlockSettings';
+import ToolsSettings from './ToolsSettings';
 import { Section, SelectField, ToggleRow } from './SettingsParts';
 import { updateYtdlp as runYtdlpUpdate, ytdlpVersionKey as versionKey } from './ytdlpAutoUpdate';
 
@@ -120,6 +121,8 @@ export default function SettingsForm() {
       </Section>
 
       <Section title={m.system} icon={<Package size={18} />}>
+        <ToolsSettings />
+        <div className="divider my-0" />
         <div className="flex items-center gap-3">
           <span className="text-sm">yt-dlp</span>
           <span className="badge badge-ghost font-mono">{ytdlpVersion.isPending ? '…' : ytdlpVersion.data || m.unknown}</span>

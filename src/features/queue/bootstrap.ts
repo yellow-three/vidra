@@ -11,7 +11,7 @@ import { autoUpdateYtdlp } from '../settings/ytdlpAutoUpdate';
 
 export { useAppStatus };
 
-// Sidecar'lar uygulamayla gelir; burada yalnizca eksik kurulum yakalanir. Eksiklerin adlarini dondurur.
+// Araclar ilk acilista kurulum ekranindan indirilir (features/setup). Eksiklerin adlarini dondurur.
 async function missingDependencies(): Promise<string[]> {
   const deps = await appApi.checkDependencies();
   return [!deps.ytdlp && 'yt-dlp', !deps.ffmpeg && 'FFmpeg', !deps.deno && 'deno'].filter((n): n is string => Boolean(n));
@@ -27,22 +27,32 @@ function confirmCloseWithActiveDownloads(): void {
   });
 }
 
+/** Acilista ve kurulum ekrani bilesenleri indirdikten sonra durum cubugunu gunceller. */
+let ytdlpUpdateStarted = false;
+export async function refreshDependencyStatus(): Promise<void> {
+  try {
+    const missing = await missingDependencies();
+    if (missing.length) {
+      useAppStatus.setState({ status: (m) => m.status.missing(missing.join(', ')), depsReady: false });
+      return;
+    }
+    useAppStatus.setState({ status: (m) => m.status.ready, depsReady: true });
+    if (!ytdlpUpdateStarted) {
+      ytdlpUpdateStarted = true;
+      void autoUpdateYtdlp();
+    }
+  } catch (error) {
+    setStatus(() => (error instanceof Error ? error.message : String(error)));
+  }
+}
+
 /** Uygulama omru boyunca bir kez cagrilir (StrictMode cift efektine karsi korumali). */
 let started = false;
 export function startApp(): void {
   if (started) return;
   started = true;
 
-  missingDependencies()
-    .then((missing) => {
-      if (missing.length) {
-        setStatus((m) => m.status.missing(missing.join(', ')));
-        return;
-      }
-      useAppStatus.setState({ status: (m) => m.status.ready, depsReady: true });
-      void autoUpdateYtdlp();
-    })
-    .catch((error) => setStatus(() => (error instanceof Error ? error.message : String(error))));
+  void refreshDependencyStatus();
   void appApi.onClipboardLink((link) => useQueueStore.getState().setUrl(link));
   void appApi.startClipboardMonitor();
   checkForAppUpdateInBackground();

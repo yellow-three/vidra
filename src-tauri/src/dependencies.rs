@@ -1,16 +1,16 @@
-//! Paketlenmis sidecar'lar (yt-dlp, ffmpeg, deno) ve yt-dlp guncellemesi.
+//! Arac yollari (yt-dlp, ffmpeg, deno) ve yt-dlp guncellemesi.
 //!
-//! Sidecar'lar uygulama ile birlikte gelir (`scripts/fetch-sidecars.mjs`) ve calistirilabilir
-//! dosyanin yanina kurulur; bu dizin cogu kurulumda salt okunurdur (AppImage, imzali macOS
-//! uygulamasi, /usr/bin). Bu yuzden guncellenen yt-dlp app data altindaki `bin/`e yazilir ve
-//! paketlenmis surumden yeniyse o kullanilir.
+//! Araclar ilk acilista app data altindaki `bin/`e indirilir (`tools.rs`). Sidecar'larla
+//! paketlenmis kurulumlarda (`tauri.bundled.conf.json`, ornegin Flatpak) calistirilabilir
+//! dosyanin yanindaki kopyalar kullanilir; bu dizin cogu kurulumda salt okunurdur. Her iki
+//! durumda yt-dlp `bin/` altindaki kopyada guncellenir ve varsa o kullanilir.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use tauri::{AppHandle, Manager};
 
 pub(crate) const EXE_SUFFIX: &str = if cfg!(target_os = "windows") { ".exe" } else { "" };
-const YTDLP_VERSION_FILE: &str = "yt-dlp.version";
+pub(crate) const YTDLP_VERSION_FILE: &str = "yt-dlp.version";
 
 /// Linux paketleri sidecar'lari /usr/bin'e kurar; onek sistemdeki ffmpeg / yt-dlp ile cakismayi onler.
 const SIDECAR_PREFIX: &str = "ytd-";
@@ -46,7 +46,7 @@ pub fn ytdlp_path(app: &AppHandle) -> Option<PathBuf> {
 pub fn resolve_program(app: &AppHandle, name: &str) -> Option<PathBuf> {
     match name {
         "yt-dlp" => ytdlp_path(app),
-        "ffmpeg" => sidecar(name),
+        "ffmpeg" => crate::tools::ffmpeg_program(app),
         _ => None,
     }
 }
@@ -88,13 +88,13 @@ pub fn check_dependencies(app: AppHandle) -> serde_json::Value {
     let path_str = |p: Option<PathBuf>| p.map(|p| p.to_string_lossy().to_string());
     let ytdlp = ytdlp_path(&app);
     // ffprobe kuruluysa yt-dlp'ye ffmpeg + ffprobe iceren klasor verilir (SponsorBlock).
-    let ffmpeg = crate::ffprobe::ffmpeg_location(&app);
-    let deno = sidecar("deno");
+    let ffmpeg = crate::tools::ffmpeg_location(&app);
+    let deno = crate::tools::deno_path(&app);
     serde_json::json!({
         "ytdlp": ytdlp.is_some(),
         "ffmpeg": ffmpeg.is_some(),
         "deno": deno.is_some(),
-        "ffprobe": crate::ffprobe::is_installed(&app),
+        "ffprobe": crate::tools::is_ffprobe_installed(&app),
         "ytdlpPath": path_str(ytdlp),
         "ffmpegPath": path_str(ffmpeg),
         "denoPath": path_str(deno),
@@ -114,7 +114,7 @@ pub async fn update_ytdlp(app: AppHandle) -> Result<serde_json::Value, String> {
 fn update_ytdlp_blocking(app: &AppHandle) -> Result<String, String> {
     let path = ytdlp_override(app)?;
     if !path.is_file() {
-        let bundled = sidecar("yt-dlp").ok_or("Paketlenmis yt-dlp bulunamadi.")?;
+        let bundled = sidecar("yt-dlp").ok_or("yt-dlp kurulu değil; Ayarlar > Sistem'den indirin.")?;
         let part = path.with_extension("part");
         std::fs::copy(&bundled, &part).map_err(|e| format!("yt-dlp kopyalanamadi: {e}"))?;
         std::fs::rename(&part, &path).map_err(|e| format!("yt-dlp kopyalanamadi: {e}"))?;

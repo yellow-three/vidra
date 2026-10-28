@@ -30,7 +30,7 @@ jobs:
       - run: npm run test:ui
 
   # Surec calistirici testleri (Unix process group / Windows Job Object) ve paketleme.
-  # macOS: hazir LGPL FFmpeg kaynagi yok (scripts/fetch-sidecars.mjs), FFMPEG_DIR gerekir.
+  # Paketler araclari icermez; uygulama ilk acilista indirir (src-tauri/src/tools.rs).
   rust:
     strategy:
       fail-fast: false
@@ -58,8 +58,6 @@ jobs:
         with:
           workspaces: src-tauri
       - run: npm ci
-      - name: Sidecar'lar (yt-dlp, LGPL FFmpeg, deno)
-        run: npm run sidecars
       - run: cargo test --manifest-path src-tauri/Cargo.toml
       - name: Paket
         run: npm run tauri build -- --bundles ${{ matrix.bundles }}

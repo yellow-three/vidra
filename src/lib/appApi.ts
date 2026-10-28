@@ -36,10 +36,11 @@ export const appApi: AppApi = {
   filesExist: (paths) => invoke<boolean[]>('files_exist', { paths }),
 
   checkDependencies: () => invoke('check_dependencies'),
-  installFfprobe: async (onProgress) => {
+  toolsStatus: () => invoke('tools_status'),
+  installTool: async (tool, { withFfprobe, proxy }, onProgress) => {
     const channel = new Channel<number>();
     channel.onmessage = onProgress;
-    await invoke('install_ffprobe', { onProgress: channel });
+    await invoke('install_tool', { tool, withFfprobe: withFfprobe ?? false, proxy: proxy || null, onProgress: channel });
   },
   removeFfprobe: () => invoke('remove_ffprobe'),
   getPlatform: () => invoke<string>('get_platform'),
