@@ -242,7 +242,10 @@ fn process_spawn(
 ) -> CommandResult<u32> {
     let path = dependencies::resolve_program(&app, &program)
         .ok_or_else(|| format!("{program} bulunamadi veya izin verilmiyor."))?;
+    // yt-dlp calisirken dosyasi guncellemeyle degistirilmesin (dependencies::YtdlpGate).
+    let run = (program == "yt-dlp").then(|| dependencies::YTDLP_GATE.enter(&path));
     state.processes.spawn(&path, &args, move |event| {
+        let _ = &run;
         let _ = on_event.send(event);
     })
 }

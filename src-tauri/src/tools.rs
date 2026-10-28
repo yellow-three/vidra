@@ -373,7 +373,9 @@ async fn install_ytdlp(client: &reqwest::Client, bin: &Path, progress: Progress<
     let version = pins().ytdlp.clone();
     with_download(client, bin, &format!("{base}/{asset}"), &expected, progress, move |file| {
         make_executable(&file)?;
-        fs::rename(&file, &target).map_err(|e| e.to_string())?;
+        // Calisan bir indirme eski dosyayi kullaniyor olabilir; bos olunca yerine konur.
+        fs::rename(&file, crate::dependencies::staged_ytdlp(&target)).map_err(|e| e.to_string())?;
+        crate::dependencies::YTDLP_GATE.swap_if_idle(&target);
         // dependencies::prune_stale_ytdlp paketlenmis surumle bu dosyayi karsilastirir.
         let _ = fs::write(target.with_file_name(crate::dependencies::YTDLP_VERSION_FILE), version);
         Ok(())
