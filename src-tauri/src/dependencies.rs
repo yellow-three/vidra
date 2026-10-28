@@ -7,7 +7,7 @@
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Manager};
 
 const EXE_SUFFIX: &str = if cfg!(target_os = "windows") { ".exe" } else { "" };
 const YTDLP_VERSION_FILE: &str = "yt-dlp.version";
@@ -102,12 +102,10 @@ pub fn check_dependencies(app: AppHandle) -> serde_json::Value {
 /// yt-dlp'nin kendi guncelleyicisini (`-U`, checksum dogrulamali) app data kopyasinda calistirir.
 #[tauri::command]
 pub async fn update_ytdlp(app: AppHandle) -> Result<serde_json::Value, String> {
-    let _ = app.emit("dependency-status", "yt-dlp güncelleniyor...");
     let app_clone = app.clone();
     let version = tauri::async_runtime::spawn_blocking(move || update_ytdlp_blocking(&app_clone))
         .await
         .map_err(|e| format!("Guncelleme gorevi basarisiz: {e}"))??;
-    let _ = app.emit("dependency-status", format!("yt-dlp güncel: {version}"));
     Ok(serde_json::json!({ "success": true, "version": version }))
 }
 

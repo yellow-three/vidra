@@ -3,7 +3,6 @@ export type IpcResult<T = {}> =
   | { success: false; error: string };
 
 export interface AppApi {
-  onStatusUpdate(callback: (msg: string) => void): Promise<() => void>;
   startClipboardMonitor(): Promise<void>;
   stopClipboardMonitor(): Promise<void>;
   onClipboardMonitorStopped(callback: () => void): Promise<() => void>;

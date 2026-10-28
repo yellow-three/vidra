@@ -7,17 +7,18 @@ import type { HistoryItem } from '../../types';
 import { appApi } from '../../lib/appApi';
 import { useQueueStore } from '../queue/store';
 import { useDeleteHistoryItem, useHistory } from './queries';
+import { useT } from '../../i18n';
 
 // Gecmis Unix saniyesi tutar; eski kayitlar ISO metni olabilir.
-function formatDate(value: string) {
+function formatDate(value: string, locale: string) {
   const seconds = Number(value);
   const d = Number.isFinite(seconds) ? new Date(seconds * 1000) : new Date(value);
-  return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 const isAudio = (item: HistoryItem) => ['mp3', 'm4a', 'opus', 'wav', 'flac'].includes(item.ext?.toLowerCase());
 
-const normalize = (text: string) => text.toLocaleLowerCase('tr-TR');
+const normalize = (text: string, locale: string) => text.toLocaleLowerCase(locale);
 
 /** Diskten silinmis ya da tasinmis dosyalar; bilinmiyorsa (sorgu bitmeden) var sayilir. */
 function useMissingFiles(items: HistoryItem[]): Set<string> {
@@ -46,6 +47,8 @@ function IconButton({ tip, onClick, disabled, children }: {
 }
 
 export default function HistoryList() {
+  const m = useT();
+  const h = m.history;
   const { data: history = [], isPending } = useHistory();
   const deleteItem = useDeleteHistoryItem();
   const navigate = useNavigate();
@@ -53,9 +56,11 @@ export default function HistoryList() {
   const missing = useMissingFiles(history);
 
   const visible = useMemo(() => {
-    const q = normalize(query.trim());
-    return q ? history.filter((h) => normalize(h.title).includes(q) || normalize(h.url).includes(q)) : history;
-  }, [history, query]);
+    // Turkce I/i farki her dilde dogru eslesmesi icin aranan ve aranan yer ayni yerelle kucultulur.
+    const lower = (s: string) => normalize(s, m.locale);
+    const q = lower(query.trim());
+    return q ? history.filter((item) => lower(item.title).includes(q) || lower(item.url).includes(q)) : history;
+  }, [history, query, m.locale]);
 
   const redownload = (item: HistoryItem) => {
     const queue = useQueueStore.getState();
@@ -77,7 +82,7 @@ export default function HistoryList() {
       <div className="grid place-items-center rounded-box border border-dashed border-base-300 py-16 text-center">
         <div className="flex flex-col items-center gap-3 text-base-content/50">
           <History size={40} strokeWidth={1.5} />
-          <p className="text-sm">Henüz indirme geçmişi yok.</p>
+          <p className="text-sm">{h.empty}</p>
         </div>
       </div>
     );
@@ -91,14 +96,14 @@ export default function HistoryList() {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Başlık ya da linkte ara"
-          aria-label="Geçmişte ara"
+          placeholder={h.searchPlaceholder}
+          aria-label={h.search}
           className="grow"
         />
       </label>
 
       {visible.length === 0 ? (
-        <p className="text-sm text-base-content/60 text-center py-8">“{query}” ile eşleşen indirme yok.</p>
+        <p className="text-sm text-base-content/60 text-center py-8">{h.noMatch(query)}</p>
       ) : (
         <ul className="list bg-base-100 rounded-box border border-base-300">
           {visible.map((item) => {
@@ -112,21 +117,21 @@ export default function HistoryList() {
                     <span className="badge badge-sm badge-ghost">{item.quality || item.ext?.toUpperCase() || '-'}</span>
                     {item.fileSize && <span>{item.fileSize}</span>}
                     <span aria-hidden>·</span>
-                    <span>{formatDate(item.completedAt)}</span>
-                    {gone && <span className="badge badge-sm badge-warning badge-soft">Dosya bulunamadı</span>}
+                    <span>{formatDate(item.completedAt, m.locale)}</span>
+                    {gone && <span className="badge badge-sm badge-warning badge-soft">{h.missing}</span>}
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <IconButton tip="Oynat" onClick={() => void appApi.openFile(item.filePath)} disabled={gone}>
+                  <IconButton tip={h.play} onClick={() => void appApi.openFile(item.filePath)} disabled={gone}>
                     <Play size={16} />
                   </IconButton>
-                  <IconButton tip="Klasörde göster" onClick={() => void appApi.openFileLocation(item.filePath)} disabled={gone}>
+                  <IconButton tip={h.reveal} onClick={() => void appApi.openFileLocation(item.filePath)} disabled={gone}>
                     <FolderOpen size={16} />
                   </IconButton>
-                  <IconButton tip="Yeniden indir" onClick={() => redownload(item)}>
+                  <IconButton tip={h.redownload} onClick={() => redownload(item)}>
                     <RotateCcw size={16} />
                   </IconButton>
-                  <IconButton tip="Geçmişten sil" onClick={() => deleteItem.mutate(item.id)}>
+                  <IconButton tip={h.delete} onClick={() => deleteItem.mutate(item.id)}>
                     <Trash2 size={16} />
                   </IconButton>
                 </div>

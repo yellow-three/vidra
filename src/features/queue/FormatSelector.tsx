@@ -1,10 +1,10 @@
 import { Download, FileAudio, FileVideo } from 'lucide-react';
 import { formatFilesize } from '../../engine/ytdlp';
 import type { Task, VideoFormat } from '../../types';
+import { useT } from '../../i18n';
 
-const UNKNOWN_SIZE = formatFilesize(null);
 /** Oynatma listesi girdilerinde boyut bilinmez; yerine secenegin notu gosterilir. */
-const sizeOrNote = (f: VideoFormat) => (f.filesize === UNKNOWN_SIZE ? f.note : f.filesize);
+const sizeOrNote = (f: VideoFormat) => (f.filesize === formatFilesize(null) ? f.note : f.filesize);
 
 interface FormatSelectorProps {
   task: Task;
@@ -13,6 +13,7 @@ interface FormatSelectorProps {
 }
 
 export default function FormatSelector({ task, onFormatChange, onStartDownload }: FormatSelectorProps) {
+  const m = useT();
   if (task.status !== 'ready-to-select' || !task.formats) return null;
 
   const selected = task.selectedFormatId || task.formats[0]?.formatId;
@@ -24,21 +25,21 @@ export default function FormatSelector({ task, onFormatChange, onStartDownload }
     <div className="join w-full">
       <label className="select select-sm join-item w-full">
         {isAudio ? <FileAudio size={14} className="opacity-60" /> : <FileVideo size={14} className="opacity-60" />}
-        <select value={selected} onChange={(e) => onFormatChange(task.id, e.target.value)} aria-label="Format">
-          <optgroup label="Video (MP4)">
+        <select value={selected} onChange={(e) => onFormatChange(task.id, e.target.value)} aria-label={m.task.format}>
+          <optgroup label={m.task.videoGroup}>
             {videos.map((f) => (
               <option key={f.formatId} value={f.formatId}>{f.resolution} · {sizeOrNote(f)}</option>
             ))}
           </optgroup>
-          <optgroup label="Yalnızca ses">
+          <optgroup label={m.task.audioGroup}>
             {audios.map((f) => (
-              <option key={f.formatId} value={f.formatId}>{f.ext.toUpperCase()} · {f.note}{f.filesize === UNKNOWN_SIZE ? '' : ` · ${f.filesize}`}</option>
+              <option key={f.formatId} value={f.formatId}>{f.ext.toUpperCase()} · {f.note}{f.filesize === formatFilesize(null) ? '' : ` · ${f.filesize}`}</option>
             ))}
           </optgroup>
         </select>
       </label>
       <button onClick={() => onStartDownload(task)} className="btn btn-sm btn-neutral join-item gap-1.5">
-        <Download size={14} /> İndir
+        <Download size={14} /> {m.task.download}
       </button>
     </div>
   );

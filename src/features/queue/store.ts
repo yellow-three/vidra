@@ -15,6 +15,7 @@ import { splitUrls, videoKey } from './duplicates';
 import { createLimiter } from './limiter';
 import { notifyComplete } from './notify';
 import { loadTasks, saveTasks } from './persistence';
+import { msg } from '../../i18n';
 
 export const DEFAULT_CONCURRENT_DOWNLOADS = 2;
 const limiter = createLimiter(DEFAULT_CONCURRENT_DOWNLOADS);
@@ -59,8 +60,6 @@ function newId(): string {
 
 const isActive = (t: Task) => t.status === 'queued' || t.status === 'downloading';
 
-export const DUPLICATE_IN_QUEUE = 'Bu video kuyrukta zaten var.';
-export const DUPLICATE_IN_HISTORY = 'Bu video daha önce indirildi; Geçmiş sayfasında bulabilirsiniz.';
 
 /**
  * Bir arada baslatilan indirmeler bitince tek bildirim ve tek klasor penceresi:
@@ -85,16 +84,16 @@ export const useQueueStore = create<QueueState>()((set, get) => {
   async function duplicateMessage(id: string, url: string): Promise<string | undefined> {
     const key = videoKey(url);
     const inQueue = get().tasks.some((t) => t.id !== id && t.status !== 'cancelled' && t.status !== 'error' && videoKey(t.url) === key);
-    if (inQueue) return DUPLICATE_IN_QUEUE;
+    if (inQueue) return msg().queue.duplicateInQueue;
     const history = await fetchHistory().catch(() => []);
-    return history.some((h) => videoKey(h.url) === key) ? DUPLICATE_IN_HISTORY : undefined;
+    return history.some((h) => videoKey(h.url) === key) ? msg().queue.duplicateInHistory : undefined;
   }
 
   /** Liste analizinin yer tutucusunu, listedeki videolarla ayni yerde degistirir. */
   async function replaceWithEntries(id: string, info: VideoInfo, settings: AppSettings | null) {
     const entries = info.entries ?? [];
     if (entries.length === 0) {
-      update(id, { status: 'error', title: info.title, message: 'Listede indirilebilir video yok.' });
+      update(id, { status: 'error', title: info.title, message: msg().queue.emptyPlaylist });
       return;
     }
     const selectedFormatId = pickDefaultFormat(info.formats, settings);
@@ -111,7 +110,7 @@ export const useQueueStore = create<QueueState>()((set, get) => {
       speed: '',
       eta: '',
       status: 'ready-to-select',
-      message: downloaded.has(videoKey(e.url)) ? DUPLICATE_IN_HISTORY : undefined,
+      message: downloaded.has(videoKey(e.url)) ? msg().queue.duplicateInHistory : undefined,
     }));
     set((s) => ({
       tasks: s.tasks.flatMap((t) => (t.id === id && t.status !== 'cancelled' ? tasks : [t])),
@@ -162,7 +161,7 @@ export const useQueueStore = create<QueueState>()((set, get) => {
     if (get().tasks.some(isActive) || batch.count === 0) return;
     const done = batch;
     batch = { count: 0, lastTitle: '', lastPath: '' };
-    notifyComplete(done.count === 1 ? done.lastTitle : `${done.count} indirme tamamlandı.`);
+    notifyComplete(done.count === 1 ? done.lastTitle : msg().notify.batch(done.count));
     if (autoOpenFolder) void appApi.openFileLocation(done.lastPath);
   }
 
@@ -176,7 +175,7 @@ export const useQueueStore = create<QueueState>()((set, get) => {
       const urls = splitUrls(get().url);
       if (urls.length === 0) return null;
       const added: Task[] = urls.map((url) => ({
-        id: newId(), url, title: 'Video kaynakları analiz ediliyor...', percent: 0, speed: '', eta: '', status: 'analyzing',
+        id: newId(), url, title: msg().queue.analyzingTitle, percent: 0, speed: '', eta: '', status: 'analyzing',
       }));
       set((s) => ({ url: '', tasks: [...added, ...s.tasks] }));
       // Sirayla: ayni anda onlarca yt-dlp acilmaz, tekrar uyarisi da onceki linkleri gorur.
@@ -187,7 +186,7 @@ export const useQueueStore = create<QueueState>()((set, get) => {
     async expandPlaylist(id) {
       const task = find(id);
       if (!task) return;
-      force(id, { status: 'analyzing', title: 'Oynatma listesi analiz ediliyor...', message: undefined, detail: undefined });
+      force(id, { status: 'analyzing', title: msg().queue.analyzingPlaylist, message: undefined, detail: undefined });
       await runAnalysis(id, task.url, { playlist: true });
     },
 

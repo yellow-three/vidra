@@ -16,7 +16,6 @@ async function subscribe<T>(event: string, callback: (payload: T) => void): Prom
 }
 
 export const appApi: AppApi = {
-  onStatusUpdate: (callback) => subscribe<string>('dependency-status', callback),
   onClipboardLink: (callback) => subscribe<string>('clipboard-link-detected', callback),
   onClipboardMonitorStopped: (callback) => subscribe<void>('clipboard-monitor-stopped', callback),
 

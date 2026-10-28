@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DownloadProgress, DownloadRequest, DownloadResult, VideoInfo } from '../../engine';
 import { EngineError } from '../../engine/errors';
+import tr from '../../i18n/tr';
 import { buildOptions, playlistOptions } from '../../engine/ytdlp';
 
 const settings = { downloadDir: '/out', autoOpenFolder: false, downloadSubtitles: true } as Record<string, unknown>;
@@ -25,7 +26,7 @@ vi.mock('../../lib/appApi', () => ({
 }));
 vi.mock('./notify', () => ({ notifyComplete: mocks.notify }));
 
-const { useQueueStore, DUPLICATE_IN_HISTORY, DUPLICATE_IN_QUEUE } = await import('./store');
+const { useQueueStore } = await import('./store');
 
 const info = (title: string): VideoInfo => ({
   title,
@@ -262,11 +263,11 @@ describe('queue store', () => {
   it('kuyrukta ya da gecmiste olan videoyu uyariyla ekler', async () => {
     await addReadyTask('https://www.youtube.com/watch?v=aaaaaaaaaaa');
     const again = await addReadyTask('https://youtu.be/aaaaaaaaaaa');
-    expect(task(again).message).toBe(DUPLICATE_IN_QUEUE);
+    expect(task(again).message).toBe(tr.queue.duplicateInQueue);
 
     mocks.fetchHistory.mockResolvedValue([{ url: 'https://youtu.be/bbbbbbbbbbb' }]);
     const old = await addReadyTask('https://www.youtube.com/watch?v=bbbbbbbbbbb&t=10');
-    expect(task(old).message).toBe(DUPLICATE_IN_HISTORY);
+    expect(task(old).message).toBe(tr.queue.duplicateInHistory);
   });
 
   it('birden fazla linki ayri gorevler olarak sirayla analiz eder', async () => {

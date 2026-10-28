@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ListVideo } from 'lucide-react';
 import type { Task } from '../../types';
 import TaskCard from './TaskCard';
+import { useT } from '../../i18n';
 
 interface TaskListProps {
   tasks: Task[];
@@ -18,6 +19,7 @@ interface TaskListProps {
 export default function TaskList({
   tasks, onFormatChange, onStartDownload, onCancel, onRetry, onMove, onExpandPlaylist, onStartAll, onClearFinished,
 }: TaskListProps) {
+  const m = useT();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const selected = tasks.filter((t) => selectedIds.has(t.id));
   const readyCount = tasks.filter((t) => t.status === 'ready-to-select').length;
@@ -37,25 +39,25 @@ export default function TaskList({
       <div className="flex-1 grid place-items-center rounded-box border border-dashed border-base-300 py-16 text-center">
         <div className="flex flex-col items-center gap-3 text-base-content/50">
           <ListVideo size={40} strokeWidth={1.5} />
-          <p className="text-sm">Kuyruk boş. Yukarıya bir link yapıştırarak başlayın.</p>
+          <p className="text-sm">{m.list.empty}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <section aria-label="Kuyruk" className="flex flex-col gap-3">
+    <section aria-label={m.list.label} className="flex flex-col gap-3">
       <div className="flex items-center justify-between min-h-8">
-        <h2 className="text-sm font-semibold text-base-content/70">Kuyruk · {tasks.length}</h2>
+        <h2 className="text-sm font-semibold text-base-content/70">{m.list.heading(tasks.length)}</h2>
         <div className="flex items-center gap-2">
           {selected.length > 0 ? (
             <>
-              <span className="text-xs text-base-content/60">{selected.length} seçili</span>
+              <span className="text-xs text-base-content/60">{m.list.selected(selected.length)}</span>
               <button
                 onClick={() => { selected.forEach((t) => onCancel(t.id)); clearSelection(); }}
                 className="btn btn-xs btn-ghost"
               >
-                Toplu iptal
+                {m.list.cancelSelected}
               </button>
               <button
                 onClick={() => {
@@ -64,20 +66,20 @@ export default function TaskList({
                 }}
                 className="btn btn-xs btn-ghost"
               >
-                Toplu yeniden dene
+                {m.list.retrySelected}
               </button>
-              <button onClick={clearSelection} className="btn btn-xs btn-ghost">Vazgeç</button>
+              <button onClick={clearSelection} className="btn btn-xs btn-ghost">{m.list.clearSelection}</button>
             </>
           ) : (
             <>
               {finishedCount > 0 && (
-                <button onClick={onClearFinished} className="btn btn-xs btn-ghost">Bitenleri temizle</button>
+                <button onClick={onClearFinished} className="btn btn-xs btn-ghost">{m.list.clearFinished}</button>
               )}
               <button onClick={() => setSelectedIds(new Set(tasks.map((t) => t.id)))} className="btn btn-xs btn-ghost">
-                Tümünü seç
+                {m.list.selectAll}
               </button>
               {readyCount > 1 && (
-                <button onClick={onStartAll} className="btn btn-xs btn-neutral">Hepsini indir ({readyCount})</button>
+                <button onClick={onStartAll} className="btn btn-xs btn-neutral">{m.list.startAll(readyCount)}</button>
               )}
             </>
           )}

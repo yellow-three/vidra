@@ -271,3 +271,19 @@ test('tema: kenar cubugundaki dugme acik/koyu Vidra temalari arasinda gecer', as
   await page.getByLabel('Koyu temaya geç').click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'vidra-dark');
 });
+
+test('dil: sistem dili Ingilizceyse arayuz Ingilizce, ayardan Turkceye gecer', async ({ browser }) => {
+  const context = await browser.newContext({ locale: 'en-US' });
+  const page = await context.newPage();
+  await mockTauri(page, { settings: accepted });
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Analyze' })).toBeVisible();
+  await expect(page.getByText('Download YouTube videos as video or audio.')).toBeVisible();
+
+  await page.getByRole('link', { name: 'Settings' }).click();
+  await page.getByRole('combobox').filter({ has: page.getByRole('option', { name: 'Türkçe' }) }).selectOption('tr');
+  expect(await calls(page, 'save_settings')).toContainEqual({ settings: { language: 'tr' } });
+  await expect(page.getByRole('heading', { name: 'Ayarlar' })).toBeVisible();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
+  await context.close();
+});

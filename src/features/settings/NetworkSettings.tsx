@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { Globe } from 'lucide-react';
 import { useSaveSettings, useSettings } from './queries';
 import { Section, SelectField } from './SettingsParts';
+import { useT } from '../../i18n';
 
 // src-tauri/src/cookies.rs BROWSERS ile ayni.
 const BROWSERS: [string, string][] = [
-  ['', 'Kullanma'],
   ['firefox', 'Firefox'],
   ['chrome', 'Google Chrome'],
   ['chromium', 'Chromium'],
@@ -23,6 +23,7 @@ export const isValidProxy = (value: string) => value === '' || PROXY_PATTERN.tes
 export default function NetworkSettings() {
   const settings = useSettings().data ?? {};
   const save = useSaveSettings();
+  const m = useT().network;
   const [proxy, setProxy] = useState(settings.proxy ?? '');
   const proxyValid = isValidProxy(proxy.trim());
 
@@ -35,20 +36,16 @@ export default function NetworkSettings() {
   };
 
   return (
-    <Section title="Ağ ve hesap" icon={<Globe size={18} />}>
+    <Section title={m.title} icon={<Globe size={18} />}>
       <SelectField
-        legend="Tarayıcı çerezleri"
+        legend={m.cookies}
         value={settings.cookiesFromBrowser || ''}
-        options={BROWSERS}
+        options={[['', m.none], ...BROWSERS]}
         onChange={(v) => save.mutate({ cookiesFromBrowser: v })}
-        hint={
-          'YouTube "bot olmadığınızı doğrulayın" derse, yaş kısıtlamalı veya üyelere özel videolar için '
-          + 'YouTube\'a giriş yaptığınız tarayıcıyı seçin. Çerezler yalnızca yt-dlp\'ye verilir, başka yere gönderilmez. '
-          + 'Windows\'ta Chrome ve Edge çerezleri okunamayabilir; Firefox önerilir.'
-        }
+        hint={m.cookiesHint}
       />
       <fieldset className="fieldset">
-        <legend className="fieldset-legend">Proxy</legend>
+        <legend className="fieldset-legend">{m.proxy}</legend>
         <input
           type="text"
           value={proxy}
@@ -57,11 +54,11 @@ export default function NetworkSettings() {
           onKeyDown={(e) => e.key === 'Enter' && saveProxy()}
           placeholder="socks5://127.0.0.1:1080"
           className={`input w-full font-mono ${proxyValid ? '' : 'input-error'}`}
-          aria-label="Proxy"
+          aria-label={m.proxy}
           aria-invalid={!proxyValid}
         />
         <p className={`label whitespace-normal ${proxyValid ? '' : 'text-error'}`}>
-          {proxyValid ? 'Boş bırakılırsa sistem bağlantısı kullanılır. http, https, socks4 ve socks5 desteklenir.' : 'Adres http://, https://, socks4:// veya socks5:// ile başlamalı.'}
+          {proxyValid ? m.proxyHint : m.proxyInvalid}
         </p>
       </fieldset>
     </Section>

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { setLanguage } from '../i18n';
 import { friendlyError } from './errors';
 
 describe('friendlyError', () => {
@@ -22,5 +23,15 @@ describe('friendlyError', () => {
   it('taninmayan hatayi oldugu gibi gosterir', () => {
     expect(friendlyError('ERROR: tuhaf bir sey')).toEqual({ message: 'ERROR: tuhaf bir sey' });
     expect(friendlyError('  ')).toEqual({ message: 'Bilinmeyen hata' });
+  });
+
+  it('secilen dilde mesaj verir', () => {
+    setLanguage('en');
+    try {
+      expect(friendlyError('ERROR: Private video').message).toContain('private');
+      expect(friendlyError('').message).toBe('Unknown error');
+    } finally {
+      setLanguage('tr');
+    }
   });
 });

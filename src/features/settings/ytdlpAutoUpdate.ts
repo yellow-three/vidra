@@ -4,6 +4,7 @@ import { queryClient } from '../../app/queryClient';
 import { engine } from '../../engine';
 import { appApi } from '../../lib/appApi';
 import type { AppSettings } from '../../types';
+import { setStatus } from '../queue/appStatus';
 import { fetchSettings, invalidateSettings } from './queries';
 
 export const ytdlpVersionKey = ['ytdlp-version'] as const;
@@ -15,12 +16,25 @@ export function shouldAutoUpdate(settings: AppSettings, now: number): boolean {
   return now - (settings.ytdlpCheckedAt ?? 0) >= INTERVAL_MS;
 }
 
+/** `yt-dlp -U`; durum cubugu ve Ayarlar'daki surum birlikte guncellenir. */
+export async function updateYtdlp(): Promise<string | null> {
+  setStatus((m) => m.status.ytdlpUpdating);
+  try {
+    const version = await engine.updateEngine();
+    queryClient.setQueryData(ytdlpVersionKey, version);
+    if (version) setStatus((m) => m.status.ytdlpUpdated(version));
+    return version;
+  } catch (error) {
+    setStatus((m) => m.status.ready);
+    throw error;
+  }
+}
+
 /** Basarisiz olursa (orn. cevrimdisi) zaman kaydedilmez; sonraki acilista yeniden denenir. */
 export async function autoUpdateYtdlp(): Promise<void> {
   try {
     if (!shouldAutoUpdate(await fetchSettings(), Date.now())) return;
-    const version = await engine.updateEngine();
-    queryClient.setQueryData(ytdlpVersionKey, version);
+    await updateYtdlp();
     await appApi.saveSettings({ ytdlpCheckedAt: Date.now() });
     await invalidateSettings();
   } catch (error) {

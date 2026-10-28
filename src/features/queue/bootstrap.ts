@@ -1,40 +1,28 @@
 // Uygulama acilisi: sidecar kontrolu ve pano izleme. Durum cubugu bu store'u okur.
 
-import { create } from 'zustand';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { ask } from '@tauri-apps/plugin-dialog';
+import { msg } from '../../i18n';
 import { appApi } from '../../lib/appApi';
+import { setStatus, useAppStatus } from './appStatus';
 import { hasActiveDownloads, useQueueStore } from './store';
 import { checkForAppUpdateInBackground } from '../settings/appUpdate';
 import { autoUpdateYtdlp } from '../settings/ytdlpAutoUpdate';
 
-interface AppStatus {
-  status: string;
-  depsReady: boolean;
-}
+export { useAppStatus };
 
-export const useAppStatus = create<AppStatus>()(() => ({
-  status: 'Bileşenler kontrol ediliyor...',
-  depsReady: false,
-}));
-
-// Sidecar'lar uygulamayla gelir; burada yalnizca eksik kurulum yakalanir.
-async function checkDependencies(): Promise<void> {
+// Sidecar'lar uygulamayla gelir; burada yalnizca eksik kurulum yakalanir. Eksiklerin adlarini dondurur.
+async function missingDependencies(): Promise<string[]> {
   const deps = await appApi.checkDependencies();
-  const missing = [!deps.ytdlp && 'yt-dlp', !deps.ffmpeg && 'FFmpeg', !deps.deno && 'deno'].filter(Boolean);
-  if (missing.length) throw new Error(`${missing.join(', ')} bulunamadı; uygulamayı yeniden kurun.`);
+  return [!deps.ytdlp && 'yt-dlp', !deps.ffmpeg && 'FFmpeg', !deps.deno && 'deno'].filter((n): n is string => Boolean(n));
 }
 
 /** Suren indirme varken pencere kapatilirsa sorar; indirmeler kapaninca durur (process.rs kill_all). */
 function confirmCloseWithActiveDownloads(): void {
   void getCurrentWindow().onCloseRequested(async (event) => {
     if (!hasActiveDownloads()) return;
-    const close = await ask('Süren indirmeler durdurulacak. Bir sonraki açılışta kaldıkları yerden devam ettirebilirsiniz.', {
-      title: 'Vidra kapatılsın mı?',
-      kind: 'warning',
-      okLabel: 'Kapat',
-      cancelLabel: 'Vazgeç',
-    });
+    const m = msg().closeDialog;
+    const close = await ask(m.body, { title: m.title, kind: 'warning', okLabel: m.ok, cancelLabel: m.cancel });
     if (!close) event.preventDefault();
   });
 }
@@ -45,14 +33,16 @@ export function startApp(): void {
   if (started) return;
   started = true;
 
-  checkDependencies()
-    .then(() => {
-      useAppStatus.setState({ status: 'Sistem hazır.', depsReady: true });
+  missingDependencies()
+    .then((missing) => {
+      if (missing.length) {
+        setStatus((m) => m.status.missing(missing.join(', ')));
+        return;
+      }
+      useAppStatus.setState({ status: (m) => m.status.ready, depsReady: true });
       void autoUpdateYtdlp();
     })
-    .catch((error) => useAppStatus.setState({ status: `Eksik bileşen: ${error instanceof Error ? error.message : String(error)}` }));
-
-  void appApi.onStatusUpdate((status) => useAppStatus.setState({ status }));
+    .catch((error) => setStatus(() => (error instanceof Error ? error.message : String(error))));
   void appApi.onClipboardLink((link) => useQueueStore.getState().setUrl(link));
   void appApi.startClipboardMonitor();
   checkForAppUpdateInBackground();

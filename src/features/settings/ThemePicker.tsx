@@ -1,21 +1,19 @@
 import { Check } from 'lucide-react';
 import { APP_THEMES, DAISY_THEMES, useTheme } from '../../app/ThemeContext';
+import { useT } from '../../i18n';
 
-const LABELS: Record<string, string> = {
-  system: 'Sistem',
-  [APP_THEMES.dark]: 'Vidra Koyu',
-  [APP_THEMES.light]: 'Vidra Açık',
-};
-
-const label = (theme: string) => LABELS[theme] ?? theme.charAt(0).toUpperCase() + theme.slice(1);
+const capitalize = (theme: string) => theme.charAt(0).toUpperCase() + theme.slice(1);
 
 /** Her secenek kendi temasiyla (data-theme) cizilir; kullanici rengi secmeden gorur. */
 export default function ThemePicker() {
   const { theme, resolved, setTheme } = useTheme();
   const options = ['system', APP_THEMES.dark, APP_THEMES.light, ...DAISY_THEMES];
+  const m = useT().settings;
+  const labels: Record<string, string> = { system: m.themeSystem, [APP_THEMES.dark]: m.themeDark, [APP_THEMES.light]: m.themeLight };
+  const label = (theme: string) => labels[theme] ?? capitalize(theme);
 
   return (
-    <div role="radiogroup" aria-label="Tema" className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">
+    <div role="radiogroup" aria-label={m.theme} className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">
       {options.map((option) => {
         const active = option === theme;
         const preview = option === 'system' ? resolved : option;

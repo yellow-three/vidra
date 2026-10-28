@@ -1,4 +1,5 @@
 import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification';
+import { msg } from '../../i18n';
 
 let permission: Promise<boolean> | null = null;
 
@@ -7,6 +8,6 @@ export function notifyComplete(title: string): void {
   if (document.hasFocus()) return;
   permission ??= isPermissionGranted().then((granted) => granted || requestPermission().then((p) => p === 'granted'));
   void permission
-    .then((granted) => granted && sendNotification({ title: 'İndirme tamamlandı', body: title }))
+    .then((granted) => granted && sendNotification({ title: msg().notify.title, body: title }))
     .catch((error) => console.warn('Bildirim gönderilemedi:', error));
 }

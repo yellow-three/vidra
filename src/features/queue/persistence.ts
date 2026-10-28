@@ -2,11 +2,11 @@
 // Bitenler zaten gecmiste oldugu icin saklanmaz.
 
 import type { Task } from '../../types';
+import { msg } from '../../i18n';
 
 const KEY = 'vidra.queue.v1';
 const SAVE_DELAY_MS = 500;
 
-export const INTERRUPTED_MESSAGE = 'Uygulama kapandığında yarıda kaldı; İndir ile kaldığı yerden devam eder.';
 
 /** Kapanista yarida kalan gorevleri yeniden baslatilabilir duruma getirir. */
 export function restoreTasks(saved: Task[]): Task[] {
@@ -15,10 +15,10 @@ export function restoreTasks(saved: Task[]): Task[] {
     .map((t): Task => {
       if (t.status === 'queued' || t.status === 'downloading') {
         // yt-dlp `.part` dosyasindan devam eder (varsayilan --continue).
-        return { ...t, status: 'ready-to-select', percent: 0, speed: '', eta: '', message: INTERRUPTED_MESSAGE };
+        return { ...t, status: 'ready-to-select', percent: 0, speed: '', eta: '', message: msg().queue.interrupted };
       }
       if (t.status === 'analyzing') {
-        return { ...t, status: 'error', title: t.url, message: 'Analiz yarıda kaldı; tekrar deneyin.' };
+        return { ...t, status: 'error', title: t.url, message: msg().queue.analysisInterrupted };
       }
       return t;
     });

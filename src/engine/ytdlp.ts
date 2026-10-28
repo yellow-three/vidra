@@ -1,6 +1,7 @@
 // yt-dlp'ye ozgu saf mantik: secenekler, arguman uretimi, cikti ayristirma.
 // Platformdan bagimsizdir; masaustu ve Android motorlari ayni kodu kullanir.
 
+import { msg } from '../i18n';
 import { joinPath, splitPath, stem } from './paths';
 import type { DownloadOption, FormatOption, NetworkOptions, PlaylistEntry, TimeRange, VideoInfo } from './types';
 
@@ -30,14 +31,14 @@ export function parseOption(id: string): DownloadOption | null {
 export function optionLabel(option: DownloadOption): string {
   switch (option.kind) {
     case 'video': return `${option.height}p`;
-    case 'best-video': return 'En iyi';
+    case 'best-video': return msg().formats.best;
     case 'mp3': return 'MP3';
     case 'm4a': return 'M4A';
   }
 }
 
 export function formatFilesize(bytes: number | null | undefined): string {
-  if (bytes == null) return 'Bilinmiyor';
+  if (bytes == null) return msg().formats.unknownSize;
   if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
   if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
   if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -54,6 +55,7 @@ const maxOf = (values: (number | undefined)[]) => {
 
 /** Ham format listesini sade seceneklere indirger: her cozunurluk icin bir video, arti MP3/M4A. */
 export function buildOptions(formats: YtdlpFormat[]): FormatOption[] {
+  const m = msg().formats;
   const bestAudio = maxOf(formats.filter((f) => isAudioOnly(f) && f.ext === 'm4a').map(sizeOf));
   const heights = [...new Set(formats.filter(isVideo).map((f) => f.height).filter((h): h is number => h != null))]
     .sort((a, b) => b - a);
@@ -64,17 +66,17 @@ export function buildOptions(formats: YtdlpFormat[]): FormatOption[] {
       formatId: `video-${h}`,
       resolution: `${h}p`,
       ext: 'mp4',
-      note: 'Video + ses',
+      note: msg().formats.videoAndAudio,
       filesize: formatFilesize(video == null ? null : video + (bestAudio ?? 0)),
     };
   });
 
   if (options.length === 0) {
-    options.push({ formatId: 'video-best', resolution: 'En iyi', ext: 'mp4', note: 'Video + ses', filesize: formatFilesize(null) });
+    options.push({ formatId: 'video-best', resolution: msg().formats.best, ext: 'mp4', note: msg().formats.videoAndAudio, filesize: formatFilesize(null) });
   }
   options.push(
-    { formatId: 'audio-mp3', resolution: 'Ses', ext: 'mp3', note: 'En iyi kalite', filesize: formatFilesize(bestAudio) },
-    { formatId: 'audio-m4a', resolution: 'Ses', ext: 'm4a', note: 'Dönüştürmesiz', filesize: formatFilesize(bestAudio) },
+    { formatId: 'audio-mp3', resolution: m.audio, ext: 'mp3', note: m.bestQuality, filesize: formatFilesize(bestAudio) },
+    { formatId: 'audio-m4a', resolution: m.audio, ext: 'm4a', note: m.noConversion, filesize: formatFilesize(bestAudio) },
   );
   return options;
 }
@@ -83,11 +85,12 @@ export function buildOptions(formats: YtdlpFormat[]): FormatOption[] {
 const PLAYLIST_HEIGHTS = [2160, 1440, 1080, 720, 480, 360];
 
 export function playlistOptions(): FormatOption[] {
+  const m = msg().formats;
   const unknown = formatFilesize(null);
   return [
-    ...PLAYLIST_HEIGHTS.map((h) => ({ formatId: `video-${h}`, resolution: `${h}p`, ext: 'mp4', note: 'en fazla bu kalite', filesize: unknown })),
-    { formatId: 'audio-mp3', resolution: 'Ses', ext: 'mp3', note: 'En iyi kalite', filesize: unknown },
-    { formatId: 'audio-m4a', resolution: 'Ses', ext: 'm4a', note: 'Dönüştürmesiz', filesize: unknown },
+    ...PLAYLIST_HEIGHTS.map((h) => ({ formatId: `video-${h}`, resolution: `${h}p`, ext: 'mp4', note: m.upTo, filesize: unknown })),
+    { formatId: 'audio-mp3', resolution: m.audio, ext: 'mp3', note: m.bestQuality, filesize: unknown },
+    { formatId: 'audio-m4a', resolution: m.audio, ext: 'm4a', note: m.noConversion, filesize: unknown },
   ];
 }
 
@@ -117,14 +120,14 @@ export function parseInfo(json: string, url: string): VideoInfo {
       .filter((e) => (e.url || e.id) && !UNAVAILABLE_TITLES.has(e.title ?? ''))
       .map((e) => ({
         url: e.url ?? `https://www.youtube.com/watch?v=${e.id}`,
-        title: e.title ?? 'Bilinmeyen video',
+        title: e.title ?? msg().formats.unknownVideo,
         duration: e.duration ?? undefined,
         thumbnail: e.thumbnails?.[e.thumbnails.length - 1]?.url,
       }));
-    return { title: data.title ?? 'Oynatma listesi', url, formats: playlistOptions(), entries };
+    return { title: data.title ?? msg().formats.playlist, url, formats: playlistOptions(), entries };
   }
   return {
-    title: data.title ?? 'Bilinmeyen video',
+    title: data.title ?? msg().formats.unknownVideo,
     url,
     duration: data.duration,
     thumbnail: data.thumbnail,
@@ -202,7 +205,7 @@ export function safeFolderName(name: string): string {
     .replace(/^\.+|[. ]+$/g, '')
     .slice(0, 100)
     .trim();
-  return (cleaned || 'Oynatma listesi').replace(/%/g, '%%');
+  return (cleaned || msg().formats.playlist).replace(/%/g, '%%');
 }
 
 export interface TemplateExtras {
@@ -219,7 +222,7 @@ export function outputTemplate(option: DownloadOption, template?: string, extras
   const quality = option.kind === 'video' || option.kind === 'best-video' ? ' [%(height)sp]' : '';
   const { section, subfolder } = extras;
   const clip = section
-    ? ` [${formatClock(section.start, '.')}-${section.end != null ? formatClock(section.end, '.') : 'son'}]`
+    ? ` [${formatClock(section.start, '.')}-${section.end != null ? formatClock(section.end, '.') : msg().formats.sectionEnd}]`
     : '';
   const file = `${base}${quality}${clip}.%(ext)s`;
   return subfolder ? `${safeFolderName(subfolder)}/${file}` : file;

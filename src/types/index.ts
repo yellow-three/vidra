@@ -58,6 +58,8 @@ export interface AppSettings {
   /** Son basarili otomatik yt-dlp guncellemesi, Unix ms. */
   ytdlpCheckedAt?: number;
   legalAccepted?: boolean;
+  /** Arayuz dili; bos ise sistem dili. */
+  language?: 'tr' | 'en';
 }
 
 export interface HistoryItem {
