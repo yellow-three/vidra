@@ -222,6 +222,7 @@ const en: Messages = {
     checkFailed: (e) => `Check failed: ${e}`,
     newVersion: (v) => `New version: ${v}`,
     upToDate: 'Up to date',
+    flatpakUpdates: 'The Flatpak version is updated from your software center (Flathub).',
     installing: (p) => `Downloading ${p}%`,
     install: 'Download and restart',
     check: 'Check for updates',

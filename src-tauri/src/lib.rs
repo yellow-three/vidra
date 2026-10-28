@@ -298,6 +298,7 @@ pub fn run() {
             dependencies::update_ytdlp,
             dependencies::get_ytdlp_version,
             dependencies::get_platform,
+            dependencies::is_flatpak,
             cookies::cookie_source,
         ])
         .build(tauri::generate_context!())

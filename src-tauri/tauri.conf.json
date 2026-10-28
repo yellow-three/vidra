@@ -50,6 +50,10 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "category": "Video",
+    "shortDescription": "YouTube video and audio downloader",
+    "longDescription": "Download YouTube videos (up to 4K, MP4) and audio (MP3, M4A) with yt-dlp and FFmpeg: playlists, clip sections, browser cookies, download history.",
+    "publisher": "yellow three",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

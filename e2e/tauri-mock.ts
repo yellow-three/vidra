@@ -97,6 +97,7 @@ function install(options: MockOptions) {
     clear_legacy_history: () => ({ success: true }),
     open_file_location: () => ({ success: true }),
     open_file: () => ({ success: true }),
+    is_flatpak: () => false,
     files_exist: (args: { paths: string[] }) => args.paths.map((p) => !p.includes('silinmis')),
     process_spawn: spawn,
     process_kill: ({ id }) => {

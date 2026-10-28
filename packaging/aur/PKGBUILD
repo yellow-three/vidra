@@ -1,0 +1,26 @@
+# Maintainer: yellow three <39539862+yellow-three@users.noreply.github.com>
+# Release'deki .deb paketini Arch'a aktarir. Yeni surumde: pkgver'i artirin, `updpkgsums`, `makepkg --printsrcinfo > .SRCINFO`.
+
+pkgname=vidra-bin
+pkgver=0.2.0
+pkgrel=1
+pkgdesc='YouTube video and audio downloader (yt-dlp + FFmpeg)'
+arch=('x86_64')
+url='https://github.com/yellow-three/vidra'
+license=('MIT')
+depends=('webkit2gtk-4.1' 'gtk3' 'hicolor-icon-theme')
+provides=('vidra')
+conflicts=('vidra')
+# Paketlenen yt-dlp/ffmpeg/deno hazir derlenmis ikili dosyalardir; strip edilmemeli.
+options=('!strip' '!debug')
+source=("Vidra_${pkgver}_amd64.deb::${url}/releases/download/v${pkgver}/Vidra_${pkgver}_amd64.deb"
+        "LICENSE-${pkgver}::https://raw.githubusercontent.com/yellow-three/vidra/v${pkgver}/LICENSE")
+noextract=("Vidra_${pkgver}_amd64.deb")
+sha256sums=('SKIP'
+            '79a959c221b22dcf84a476cf70779a972886107540cb5c2f102b099defd957a8')
+
+package() {
+  bsdtar -xOf "Vidra_${pkgver}_amd64.deb" data.tar.gz | bsdtar -xf - -C "$pkgdir"
+  install -Dm644 "LICENSE-${pkgver}" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 "$pkgdir/usr/lib/Vidra/licenses/FFmpeg-LICENSE.txt" "$pkgdir/usr/share/licenses/$pkgname/FFmpeg-LICENSE.txt"
+}

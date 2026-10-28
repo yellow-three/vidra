@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.yellow_three.vidra</id>
+  <name>Vidra</name>
+  <summary>Download YouTube video and audio</summary>
+  <summary xml:lang="tr">YouTube video ve ses indirin</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="io.github.yellow_three">
+    <name>yellow three</name>
+  </developer>
+  <description>
+    <p>Vidra is a desktop app that downloads YouTube videos and audio with yt-dlp and FFmpeg, both bundled with the app, so nothing else needs to be installed.</p>
+    <ul>
+      <li>Video up to 4K as MP4, or audio as MP3 and M4A, with cover and details embedded</li>
+      <li>Playlists, clip sections and several links at once</li>
+      <li>A queue that survives restarts and a searchable download history</li>
+      <li>Browser cookies for age-restricted videos, proxy and speed limit</li>
+    </ul>
+    <p>Only download content you have the right to download.</p>
+  </description>
+  <launchable type="desktop-id">io.github.yellow_three.vidra.desktop</launchable>
+  <url type="homepage">https://github.com/yellow-three/vidra</url>
+  <url type="bugtracker">https://github.com/yellow-three/vidra/issues</url>
+  <url type="vcs-browser">https://github.com/yellow-three/vidra</url>
+  <content_rating type="oars-1.1" />
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <releases>
+    <release version="0.2.0" date="2026-10-28">
+      <description>
+        <p>Clip sections, playlist folders, history search, duplicate warnings and an English interface.</p>
+      </description>
+    </release>
+  </releases>
+</component>

@@ -149,3 +149,9 @@ pub fn get_ytdlp_version(app: AppHandle) -> serde_json::Value {
 pub fn get_platform() -> String {
     std::env::consts::OS.to_string()
 }
+
+/// Flatpak'te uygulamayi Flathub gunceller; uygulama ici guncelleyici kapatilir.
+#[tauri::command]
+pub fn is_flatpak() -> bool {
+    std::env::var_os("FLATPAK_ID").is_some() || std::path::Path::new("/.flatpak-info").exists()
+}

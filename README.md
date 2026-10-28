@@ -5,10 +5,16 @@ YouTube video ve ses indirme masaüstü uygulaması. Tauri 2 + React 19 + Tailwi
 **[Son sürümü indir](https://github.com/yellow-three/vidra/releases/latest)**
 
 - Video (4K'ya kadar, MP4) veya ses (MP3, M4A) indirme; kapak resmi, başlık, kanal ve bölümler dosyaya gömülür
-- Oynatma listeleri: listenin linkini yapıştırın, videolar kuyruğa gelir, "Hepsini indir" ile topluca inerler
+- Oynatma listeleri: listenin linkini yapıştırın, videolar kuyruğa gelir, "Hepsini indir" ile topluca inerler; dosyalar listenin adıyla bir klasöre kaydedilir
+- Videonun yalnızca bir bölümünü indirme (başlangıç–bitiş)
+- Birden fazla linki tek seferde yapıştırma; kuyrukta ya da geçmişte olan video tekrar eklenince uyarı
 - Kuyruk: aynı anda kaç indirme yapılacağı ayarlanır, sıradakiler yukarı/aşağı taşınarak öne alınır; uygulama kapansa da kuyruk kalır, yarıda kalan indirme kaldığı yerden sürer
-- Tarayıcı çerezleri, proxy, hız sınırı, dosya adı biçimi, altyazı
+- Geçmiş: arama, dosyayı oynatma, yeniden indirme; diskten silinen dosyalar işaretlenir
+- Tarayıcı çerezleri, proxy, hız sınırı, dosya adı biçimi, altyazı dilleri
+- Türkçe ve İngilizce arayüz (sistem diline göre; Ayarlar > Görünüm'den değiştirilir)
 - yt-dlp haftada bir kendiliğinden güncellenir
+
+*English:* Vidra is a desktop app for downloading YouTube videos and audio, built on yt-dlp and FFmpeg. The interface follows your system language (Turkish or English) and can be switched in Settings > Appearance.
 
 ## Kurulum
 
@@ -75,7 +81,8 @@ Uygulama v0.1.0'da "YouTube Downloader" (`com.abdurrahman.youtubedownloader`) ad
 - Release notlarındaki kısa kurulum metni `.github/workflows/release.yml` içindeki `releaseBody`'dedir; yukarıdaki "Kurulum" bölümüyle birlikte güncellenmelidir.
 - AppImage, AppImage'ın statik runtime'ıyla gelir: `libfuse2` istemez, yalnızca `fusermount` (`fuse3` paketi) gerekir.
 - Windows kurulum dosyaları kod imzalı değildir; SmartScreen uyarı verir.
-- Flathub'a şimdilik gönderilmiyor: Flatpak içinde uygulama ve yt-dlp güncelleyicilerinin kapatılması gerekir. Flatpak app ID'sinde tire kullanılamadığı için orada `io.github.yellow_three.vidra` olur (Tauri kimliği ise alt çizgi kabul etmez).
+- **AUR** (`packaging/aur/`): `vidra-bin`, release'deki `.deb`'i Arch'a aktarır. Yeni sürümde `pkgver`'i artırıp `updpkgsums` ve `makepkg --printsrcinfo > .SRCINFO` çalıştırın, sonra AUR'daki `vidra-bin` reposuna push edin (AUR hesabı ve SSH anahtarı gerekir).
+- **Flatpak** (`packaging/flatpak/`): `.deb`'i GNOME runtime'ına aktaran tarif, `.desktop` ve metainfo. Flatpak app ID'sinde tire kullanılamadığı için `io.github.yellow_three.vidra`'dır (Tauri kimliği ise alt çizgi kabul etmez). Flatpak'te uygulama içi güncelleyici kapalıdır (`is_flatpak`); yt-dlp güncellemesi uygulamanın kendi veri klasöründe çalıştığı için açık kalır. Flathub'a göndermek için tarifteki `sha256`'yı doldurun, metainfo'ya ekran görüntüsü ekleyin ve [flathub/flathub](https://github.com/flathub/flathub)'a PR açın; Flathub kaynaktan derlenmeyen ve kendi kendini güncelleyen (yt-dlp) uygulamaları reddedebilir.
 
 ## Gereksinimler
 
@@ -120,7 +127,8 @@ npm run tauri build   # paket üretimi
 ## Yapı
 
 - `src/engine/` — platformdan bağımsız indirme motoru (PLAN.md: `DownloadEngine`). yt-dlp argümanları, format seçenekleri, `%(progress)j` ayrıştırma ve yarım dosya seçimi saf TS'tir (`ytdlp.ts`, `ffmpeg.ts`); Android'de de aynı kod kullanılacak. `desktop.ts` bunları Rust süreç çalıştırıcısıyla çalıştırır.
-- `src/engine/errors.ts` — yt-dlp hatalarını Türkçe, çözüm öneren mesajlara çevirir (ham metin "Ayrıntı"da kalır).
+- `src/engine/errors.ts` — yt-dlp hatalarını çözüm öneren mesajlara çevirir (ham metin "Ayrıntı"da kalır).
+- `src/i18n/` — arayüz metinleri (`tr.ts`, `en.ts`); bileşenlerde `useT()`, React dışında `msg()`. Dil, ayardaki `language` ya da sistem dilidir; testler Türkçeye sabitlenir.
 - `src/features/queue/` — kuyruk store'u, eşzamanlı indirme sınırlayıcı (sıradakiler listedeki sırayla başlar), kuyruğun localStorage'da saklanması (`persistence.ts`).
 - `src/features/settings/ytdlpAutoUpdate.ts` — açılışta haftada bir `yt-dlp -U`.
 - `src/` diğer — React arayüzü (Home, Downloads, Convert, Settings).

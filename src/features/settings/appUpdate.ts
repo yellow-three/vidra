@@ -2,15 +2,20 @@
 
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { getVersion } from '@tauri-apps/api/app';
+import { invoke } from '@tauri-apps/api/core';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { check, type Update } from '@tauri-apps/plugin-updater';
 import { useState } from 'react';
 import { queryClient } from '../../app/queryClient';
 
 const updateKey = ['app-update'] as const;
+
+export const useIsFlatpak = () => useQuery({ queryKey: ['is-flatpak'], queryFn: () => invoke<boolean>('is_flatpak') });
+
 const updateQuery = {
   queryKey: updateKey,
-  queryFn: async (): Promise<Update | null> => check(),
+  // Flatpak kurulumunu Flathub gunceller; paket dosyasini uygulama degistiremez.
+  queryFn: async (): Promise<Update | null> => ((await invoke<boolean>('is_flatpak')) ? null : check()),
   // Acik kalan uygulama gunde birkac kez tekrar bakar.
   staleTime: 6 * 60 * 60 * 1000,
 };

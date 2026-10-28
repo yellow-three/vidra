@@ -223,6 +223,7 @@ const tr = {
     checkFailed: (e: string) => `Kontrol başarısız: ${e}`,
     newVersion: (v: string) => `Yeni sürüm: ${v}`,
     upToDate: 'Güncel',
+    flatpakUpdates: 'Flatpak sürümü yazılım merkezinden (Flathub) güncellenir.',
     installing: (p: number) => `İndiriliyor %${p}`,
     install: 'İndir ve yeniden başlat',
     check: 'Güncellemeleri kontrol et',

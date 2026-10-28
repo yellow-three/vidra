@@ -5,7 +5,7 @@ import { engine } from '../../engine';
 import { LANGUAGES, useLanguageCode, useT, type Language } from '../../i18n';
 import { appApi } from '../../lib/appApi';
 import { invalidateSettings, useSaveSettings, useSettings } from './queries';
-import { useAppUpdate, useAppVersion, useInstallUpdate } from './appUpdate';
+import { useAppUpdate, useAppVersion, useInstallUpdate, useIsFlatpak } from './appUpdate';
 import ThemePicker from './ThemePicker';
 import DownloadSettings, { SubtitleLanguages } from './DownloadSettings';
 import NetworkSettings from './NetworkSettings';
@@ -27,6 +27,7 @@ export default function SettingsForm() {
   const appVersion = useAppVersion();
   const appUpdate = useAppUpdate();
   const install = useInstallUpdate();
+  const flatpak = useIsFlatpak().data;
 
   const updateAndSave = (key: keyof AppSettings, value: string | boolean) => save.mutate({ [key]: value });
 
@@ -135,8 +136,12 @@ export default function SettingsForm() {
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm">{m.app}</span>
           <span className="badge badge-ghost font-mono">{appVersion.data ?? '…'}</span>
-          <span className={`text-xs ${appUpdate.isError ? 'text-error' : 'text-base-content/60'}`} role="status">{appUpdateText}</span>
-          {appUpdate.data ? (
+          {flatpak ? (
+            <span className="text-xs text-base-content/60" role="status">{m.flatpakUpdates}</span>
+          ) : (
+            <span className={`text-xs ${appUpdate.isError ? 'text-error' : 'text-base-content/60'}`} role="status">{appUpdateText}</span>
+          )}
+          {flatpak ? null : appUpdate.data ? (
             <button onClick={() => install.mutate(appUpdate.data!)} disabled={install.isPending} className="btn btn-sm btn-primary ml-auto">
               {install.isPending ? m.installing(install.percent ?? 0) : m.install}
             </button>
