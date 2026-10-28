@@ -96,6 +96,8 @@ function install(options: MockOptions) {
     get_legacy_history: () => [],
     clear_legacy_history: () => ({ success: true }),
     open_file_location: () => ({ success: true }),
+    open_file: () => ({ success: true }),
+    files_exist: (args: { paths: string[] }) => args.paths.map((p) => !p.includes('silinmis')),
     process_spawn: spawn,
     process_kill: ({ id }) => {
       const d = state.downloads.find((x) => x.pid === id);

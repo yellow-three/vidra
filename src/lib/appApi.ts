@@ -33,6 +33,8 @@ export const appApi: AppApi = {
   getLegacyHistory: () => invoke<HistoryItem[]>('get_legacy_history'),
   clearLegacyHistory: () => invokeResult('clear_legacy_history'),
   openFileLocation: (filePath) => invokeResult('open_file_location', { filePath }),
+  openFile: (filePath) => invokeResult('open_file', { filePath }),
+  filesExist: (paths) => invoke<boolean[]>('files_exist', { paths }),
 
   checkDependencies: () => invoke('check_dependencies'),
   getPlatform: () => invoke<string>('get_platform'),

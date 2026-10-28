@@ -5,7 +5,10 @@ import {
   buildOptions,
   isVideoInPlaylist,
   lastErrorLines,
+  formatClock,
   outputTemplate,
+  parseClock,
+  safeFolderName,
   parseInfo,
   parseOption,
   parseOutputLine,
@@ -226,5 +229,35 @@ describe('lastErrorLines', () => {
   it('uyari ve debug satirlarini atip son iki hatayi verir', () => {
     const stderr = '[debug] x\nWARNING: y\nERROR: a\n\nERROR: b\nERROR: c\n';
     expect(lastErrorLines(stderr)).toBe('ERROR: b\nERROR: c');
+  });
+});
+
+describe('bolum ve klasor', () => {
+  it('sureyi okur ve yazar', () => {
+    expect(parseClock('90')).toBe(90);
+    expect(parseClock('1:30')).toBe(90);
+    expect(parseClock('01:02:03')).toBe(3723);
+    expect(parseClock('1:75')).toBeNull();
+    expect(parseClock('abc')).toBeNull();
+    expect(formatClock(65)).toBe('01:05');
+    expect(formatClock(3723, '.')).toBe('01.02.03');
+  });
+
+  it('klasor adini guvenli yapar, yuzdeyi kacirir', () => {
+    expect(safeFolderName('Mix: a/b? %100 ')).toBe('Mix_ a_b_ %%100');
+    expect(safeFolderName(' ... ')).toBe('Oynatma listesi');
+  });
+
+  it('bolumu, liste klasorunu ve altyazi dillerini argumanlara ekler', () => {
+    const args = buildDownloadArgs({
+      url: 'U', option: { kind: 'video', height: 720 }, outDir: '/out', subtitles: true, subtitleLangs: 'de,fr',
+      subfolder: 'Liste', section: { start: 65, end: 90 },
+    });
+    expect(args[args.indexOf('-o') + 1]).toBe('/out/Liste/%(title)s [%(height)sp] [01.05-01.30].%(ext)s');
+    expect(args[args.indexOf('--download-sections') + 1]).toBe('*65-90');
+    expect(args[args.indexOf('--sub-langs') + 1]).toBe('de,fr');
+    expect(outputTemplate({ kind: 'mp3' }, undefined, { section: { start: 10 } })).toBe('%(title)s [00.10-son].%(ext)s');
+    expect(buildDownloadArgs({ url: 'U', option: { kind: 'mp3' }, outDir: '/o', subtitles: false, section: { start: 3 } }))
+      .toContain('*3-inf');
   });
 });

@@ -50,7 +50,7 @@ export default function AddUrlForm() {
         <p className="text-xs text-error px-1">Lütfen geçerli bir URL girin.</p>
       ) : (
         <p className="text-xs text-base-content/50 px-1">
-          Kopyaladığınız YouTube linkleri kutuya kendiliğinden gelir. Video veya ses formatını analizden sonra seçersiniz.
+          Kopyaladığınız YouTube linkleri kutuya kendiliğinden gelir. Birden fazla link de yapıştırabilirsiniz; formatı analizden sonra seçersiniz.
         </p>
       )}
     </form>

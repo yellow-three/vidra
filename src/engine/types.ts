@@ -63,6 +63,17 @@ export interface DownloadRequest extends NetworkOptions {
   filenameTemplate?: string;
   /** yt-dlp `--limit-rate` degeri, orn. `5M`. */
   rateLimit?: string;
+  /** `--sub-langs` degeri, orn. `tr,en`; bos ise `tr,en`. */
+  subtitleLangs?: string;
+  /** Dosyanin indirme klasoru icindeki alt klasoru (orn. oynatma listesinin adi). */
+  subfolder?: string;
+  /** Yalnizca bu araligi indirir (saniye); `end` yoksa videonun sonuna kadar. */
+  section?: TimeRange;
+}
+
+export interface TimeRange {
+  start: number;
+  end?: number;
 }
 
 export type DownloadResult =

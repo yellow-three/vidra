@@ -8,7 +8,7 @@ import { appApi } from '../../lib/appApi';
 import { invalidateSettings, useSaveSettings, useSettings } from './queries';
 import { useAppUpdate, useAppVersion, useInstallUpdate } from './appUpdate';
 import ThemePicker from './ThemePicker';
-import DownloadSettings from './DownloadSettings';
+import DownloadSettings, { SubtitleLanguages } from './DownloadSettings';
 import NetworkSettings from './NetworkSettings';
 import { Section, ToggleRow } from './SettingsParts';
 import { ytdlpVersionKey as versionKey } from './ytdlpAutoUpdate';
@@ -85,16 +85,17 @@ export default function SettingsForm() {
         <div className="divider my-0" />
         <ToggleRow
           label="Klasörü otomatik aç"
-          description="İndirme bitince dosyanın bulunduğu klasörü açar."
+          description="İndirmeler bitince klasörü bir kez açar; birden fazla dosya inerken her biri için ayrı pencere açılmaz."
           checked={settings.autoOpenFolder ?? true}
           onChange={(v) => updateAndSave('autoOpenFolder', v)}
         />
         <ToggleRow
           label="Altyazıları göm"
-          description="Türkçe ve İngilizce altyazılar varsa videoya eklenir."
+          description="Seçilen dillerde altyazı varsa videoya eklenir."
           checked={settings.downloadSubtitles ?? false}
           onChange={(v) => updateAndSave('downloadSubtitles', v)}
         />
+        {settings.downloadSubtitles && <SubtitleLanguages />}
       </Section>
 
       <DownloadSettings />

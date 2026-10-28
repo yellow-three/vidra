@@ -2,7 +2,7 @@
 // Platformdan bagimsizdir; masaustu ve Android motorlari ayni kodu kullanir.
 
 import { joinPath, splitPath, stem } from './paths';
-import type { DownloadOption, FormatOption, NetworkOptions, PlaylistEntry, VideoInfo } from './types';
+import type { DownloadOption, FormatOption, NetworkOptions, PlaylistEntry, TimeRange, VideoInfo } from './types';
 
 /** `yt-dlp -J` ciktisindaki format nesnesinin kullandigimiz alanlari. */
 export interface YtdlpFormat {
@@ -176,14 +176,53 @@ export const FILENAME_TEMPLATES: Record<string, string> = {
   'title-id': '%(title)s [%(id)s]',
 };
 
+/** `12:05` / `1:02:03` ya da saniye; dosya adlarinda `:` kullanilamadigi icin `.` ile yazilir. */
+export function formatClock(seconds: number, sep = ':'): string {
+  const s = Math.floor(seconds);
+  const parts = [Math.floor(s / 3600), Math.floor((s % 3600) / 60), s % 60];
+  const [h, m, sec] = parts.map((n) => String(n).padStart(2, '0'));
+  return parts[0] ? [h, m, sec].join(sep) : [m, sec].join(sep);
+}
+
+/** `90`, `1:30`, `01:02:03` -> saniye; gecersizse null. */
+export function parseClock(value: string): number | null {
+  const text = value.trim();
+  if (!/^\d+(?::\d{1,2}){0,2}(?:\.\d+)?$/.test(text)) return null;
+  const parts = text.split(':').map(Number);
+  if (parts.slice(1).some((n) => n >= 60)) return null;
+  return parts.reduce((total, n) => total * 60 + n, 0);
+}
+
+/** Klasor adi olarak guvenli metin; `%` yt-dlp sablonunda kacirilir. */
+export function safeFolderName(name: string): string {
+  const cleaned = name
+    .replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^\.+|[. ]+$/g, '')
+    .slice(0, 100)
+    .trim();
+  return (cleaned || 'Oynatma listesi').replace(/%/g, '%%');
+}
+
+export interface TemplateExtras {
+  subfolder?: string;
+  section?: TimeRange;
+}
+
 /**
  * Ayni videonun farkli kalitesi ayni ada yazilsaydi yt-dlp "already downloaded" deyip
- * eskisini dondururdu; cozunurluk ekiyle her kalite ayri dosyadir.
+ * eskisini dondururdu; cozunurluk ve bolum ekiyle her secim ayri dosyadir.
  */
-export function outputTemplate(option: DownloadOption, template?: string): string {
+export function outputTemplate(option: DownloadOption, template?: string, extras: TemplateExtras = {}): string {
   const base = FILENAME_TEMPLATES[template ?? ''] ?? FILENAME_TEMPLATES.title;
   const quality = option.kind === 'video' || option.kind === 'best-video' ? ' [%(height)sp]' : '';
-  return `${base}${quality}.%(ext)s`;
+  const { section, subfolder } = extras;
+  const clip = section
+    ? ` [${formatClock(section.start, '.')}-${section.end != null ? formatClock(section.end, '.') : 'son'}]`
+    : '';
+  const file = `${base}${quality}${clip}.%(ext)s`;
+  return subfolder ? `${safeFolderName(subfolder)}/${file}` : file;
 }
 
 export interface DownloadArgsInput extends NetworkOptions {
@@ -196,14 +235,18 @@ export interface DownloadArgsInput extends NetworkOptions {
   filenameTemplate?: string;
   rateLimit?: string;
   denoPath?: string | null;
+  subtitleLangs?: string;
+  subfolder?: string;
+  section?: TimeRange;
 }
 
 export function buildDownloadArgs({
-  url, option, outDir, ffmpegPath, subtitles, embedMetadata, filenameTemplate, rateLimit, denoPath, ...network
+  url, option, outDir, ffmpegPath, subtitles, embedMetadata, filenameTemplate, rateLimit, denoPath,
+  subtitleLangs, subfolder, section, ...network
 }: DownloadArgsInput): string[] {
   const args = [
     url,
-    '-o', joinPath(outDir, outputTemplate(option, filenameTemplate)),
+    '-o', joinPath(outDir, outputTemplate(option, filenameTemplate, { subfolder, section })),
     '--no-playlist',
     '--newline',
     '--progress',
@@ -235,8 +278,12 @@ export function buildDownloadArgs({
 
   if (subtitles && option.kind !== 'mp3' && option.kind !== 'm4a') {
     // `--write-subs` eklenirse gomulduktan sonra .vtt dosyasi da diskte kalir.
-    args.push('--embed-subs', '--sub-langs', 'tr,en');
+    args.push('--embed-subs', '--sub-langs', subtitleLangs?.trim() || 'tr,en');
   }
+  if (section) {
+    args.push('--download-sections', `*${section.start}-${section.end ?? 'inf'}`);
+  }
+
   // MP4/MP3/M4A'da ffprobe olmadan calisir (webp kapak ffmpeg ile PNG'ye cevrilir).
   if (embedMetadata) args.push('--embed-thumbnail', '--embed-metadata');
   if (rateLimit) args.push('--limit-rate', rateLimit);

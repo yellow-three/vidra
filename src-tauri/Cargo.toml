@@ -1,6 +1,6 @@
 [package]
 name = "vidra"
-version = "0.1.0"
+version = "0.2.0"
 description = "Vidra: YouTube video ve ses indirme masaustu uygulamasi"
 license = "MIT"
 authors = ["yellow-three"]

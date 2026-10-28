@@ -1,7 +1,11 @@
-import { FolderOpen, History, Trash2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { FolderOpen, History, Play, RotateCcw, Search, Trash2 } from 'lucide-react';
 import Thumbnail from '../../app/Thumbnail';
 import type { HistoryItem } from '../../types';
 import { appApi } from '../../lib/appApi';
+import { useQueueStore } from '../queue/store';
 import { useDeleteHistoryItem, useHistory } from './queries';
 
 // Gecmis Unix saniyesi tutar; eski kayitlar ISO metni olabilir.
@@ -13,9 +17,52 @@ function formatDate(value: string) {
 
 const isAudio = (item: HistoryItem) => ['mp3', 'm4a', 'opus', 'wav', 'flac'].includes(item.ext?.toLowerCase());
 
+const normalize = (text: string) => text.toLocaleLowerCase('tr-TR');
+
+/** Diskten silinmis ya da tasinmis dosyalar; bilinmiyorsa (sorgu bitmeden) var sayilir. */
+function useMissingFiles(items: HistoryItem[]): Set<string> {
+  const paths = items.map((i) => i.filePath);
+  const { data } = useQuery({
+    queryKey: ['history-files', paths],
+    queryFn: () => appApi.filesExist(paths),
+    enabled: paths.length > 0,
+  });
+  return useMemo(() => new Set(data ? items.filter((_, i) => !data[i]).map((i) => i.id) : []), [data, items]);
+}
+
+function IconButton({ tip, onClick, disabled, children }: {
+  tip: string;
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="tooltip" data-tip={tip}>
+      <button onClick={onClick} disabled={disabled} className="btn btn-ghost btn-sm btn-square" aria-label={tip}>
+        {children}
+      </button>
+    </div>
+  );
+}
+
 export default function HistoryList() {
   const { data: history = [], isPending } = useHistory();
   const deleteItem = useDeleteHistoryItem();
+  const navigate = useNavigate();
+  const [query, setQuery] = useState('');
+  const missing = useMissingFiles(history);
+
+  const visible = useMemo(() => {
+    const q = normalize(query.trim());
+    return q ? history.filter((h) => normalize(h.title).includes(q) || normalize(h.url).includes(q)) : history;
+  }, [history, query]);
+
+  const redownload = (item: HistoryItem) => {
+    const queue = useQueueStore.getState();
+    queue.setUrl(item.url);
+    void queue.analyze();
+    navigate('/');
+  };
 
   if (isPending) {
     return (
@@ -37,33 +84,57 @@ export default function HistoryList() {
   }
 
   return (
-    <ul className="list bg-base-100 rounded-box border border-base-300">
-      {history.map((item) => (
-        <li key={item.id} className="list-row items-center">
-          <Thumbnail src={item.thumbnail} audio={isAudio(item)} className="w-28" />
-          <div className="min-w-0">
-            <h3 className="font-medium truncate">{item.title}</h3>
-            <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-base-content/60">
-              <span className="badge badge-sm badge-ghost">{item.quality || item.ext?.toUpperCase() || '-'}</span>
-              {item.fileSize && <span>{item.fileSize}</span>}
-              <span aria-hidden>·</span>
-              <span>{formatDate(item.completedAt)}</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="tooltip" data-tip="Klasörde göster">
-              <button onClick={() => void appApi.openFileLocation(item.filePath)} className="btn btn-ghost btn-sm btn-square" aria-label="Klasörde göster">
-                <FolderOpen size={16} />
-              </button>
-            </div>
-            <div className="tooltip" data-tip="Geçmişten sil">
-              <button onClick={() => deleteItem.mutate(item.id)} className="btn btn-ghost btn-sm btn-square" aria-label="Sil">
-                <Trash2 size={16} />
-              </button>
-            </div>
-          </div>
-        </li>
-      ))}
-    </ul>
+    <div className="flex flex-col gap-3">
+      <label className="input w-full">
+        <Search size={16} className="opacity-50" />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Başlık ya da linkte ara"
+          aria-label="Geçmişte ara"
+          className="grow"
+        />
+      </label>
+
+      {visible.length === 0 ? (
+        <p className="text-sm text-base-content/60 text-center py-8">“{query}” ile eşleşen indirme yok.</p>
+      ) : (
+        <ul className="list bg-base-100 rounded-box border border-base-300">
+          {visible.map((item) => {
+            const gone = missing.has(item.id);
+            return (
+              <li key={item.id} className="list-row items-center" data-missing={gone || undefined}>
+                <Thumbnail src={item.thumbnail} audio={isAudio(item)} className={`w-28 ${gone ? 'opacity-50' : ''}`} />
+                <div className="min-w-0">
+                  <h3 className="font-medium truncate">{item.title}</h3>
+                  <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-base-content/60">
+                    <span className="badge badge-sm badge-ghost">{item.quality || item.ext?.toUpperCase() || '-'}</span>
+                    {item.fileSize && <span>{item.fileSize}</span>}
+                    <span aria-hidden>·</span>
+                    <span>{formatDate(item.completedAt)}</span>
+                    {gone && <span className="badge badge-sm badge-warning badge-soft">Dosya bulunamadı</span>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <IconButton tip="Oynat" onClick={() => void appApi.openFile(item.filePath)} disabled={gone}>
+                    <Play size={16} />
+                  </IconButton>
+                  <IconButton tip="Klasörde göster" onClick={() => void appApi.openFileLocation(item.filePath)} disabled={gone}>
+                    <FolderOpen size={16} />
+                  </IconButton>
+                  <IconButton tip="Yeniden indir" onClick={() => redownload(item)}>
+                    <RotateCcw size={16} />
+                  </IconButton>
+                  <IconButton tip="Geçmişten sil" onClick={() => deleteItem.mutate(item.id)}>
+                    <Trash2 size={16} />
+                  </IconButton>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }

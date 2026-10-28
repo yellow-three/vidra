@@ -5,8 +5,12 @@ import { getHistoryRepo } from './db';
 
 const historyKey = ['history'] as const;
 
-export const useHistory = () =>
-  useQuery({ queryKey: historyKey, queryFn: async () => (await getHistoryRepo()).findAll() });
+const historyQuery = { queryKey: historyKey, queryFn: async () => (await getHistoryRepo()).findAll() };
+
+export const useHistory = () => useQuery(historyQuery);
+
+/** React disindan (kuyruk store'u) gecmisi okur; onbellekte varsa onu kullanir. */
+export const fetchHistory = () => queryClient.fetchQuery(historyQuery);
 
 const invalidate = () => queryClient.invalidateQueries({ queryKey: historyKey });
 

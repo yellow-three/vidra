@@ -16,6 +16,8 @@ export interface AppApi {
   getLegacyHistory(): Promise<import('.').HistoryItem[]>;
   clearLegacyHistory(): Promise<IpcResult>;
   openFileLocation(filePath: string): Promise<IpcResult>;
+  openFile(filePath: string): Promise<IpcResult>;
+  filesExist(paths: string[]): Promise<boolean[]>;
   checkDependencies(): Promise<{ ytdlp: boolean; ffmpeg: boolean; deno: boolean; ytdlpPath: string | null; ffmpegPath: string | null; denoPath: string | null }>;
   getPlatform(): Promise<string>;
 }

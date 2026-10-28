@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Gauge } from 'lucide-react';
 import { DEFAULT_CONCURRENT_DOWNLOADS } from '../queue/store';
 import { useSaveSettings, useSettings } from './queries';
@@ -57,6 +58,48 @@ export default function DownloadSettings() {
         checked={settings.embedMetadata ?? true}
         onChange={(v) => save.mutate({ embedMetadata: v })}
       />
+      <ToggleRow
+        label="Oynatma listelerini klasöre koy"
+        description="Listeden inen videolar, indirme klasöründe listenin adını taşıyan bir klasöre kaydedilir."
+        checked={settings.playlistSubfolder ?? true}
+        onChange={(v) => save.mutate({ playlistSubfolder: v })}
+      />
     </Section>
+  );
+}
+
+const LANGS_PATTERN = /^[\w-]+(?:\s*,\s*[\w-]+)*$/;
+
+/** `--sub-langs` icin dil kodlari; yazarken degil, kutudan cikinca kaydedilir. */
+export function SubtitleLanguages() {
+  const saved = useSettings().data?.subtitleLangs ?? '';
+  const save = useSaveSettings();
+  const [value, setValue] = useState(saved);
+  const valid = value.trim() === '' || LANGS_PATTERN.test(value.trim());
+
+  useEffect(() => setValue(saved), [saved]);
+
+  const commit = () => {
+    const next = value.trim().replace(/\s+/g, '');
+    if (valid && next !== saved) save.mutate({ subtitleLangs: next });
+  };
+
+  return (
+    <fieldset className="fieldset">
+      <legend className="fieldset-legend">Altyazı dilleri</legend>
+      <input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => e.key === 'Enter' && commit()}
+        placeholder="tr,en"
+        aria-label="Altyazı dilleri"
+        aria-invalid={!valid}
+        className={`input w-full font-mono ${valid ? '' : 'input-error'}`}
+      />
+      <p className={`label whitespace-normal ${valid ? '' : 'text-error'}`}>
+        {valid ? 'Virgülle ayrılmış dil kodları, örn. tr,en,de. Boş bırakılırsa Türkçe ve İngilizce.' : 'Dil kodlarını virgülle ayırın, örn. tr,en.'}
+      </p>
+    </fieldset>
   );
 }

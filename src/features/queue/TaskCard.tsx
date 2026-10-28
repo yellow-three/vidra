@@ -3,6 +3,7 @@ import { isVideoInPlaylist } from '../../engine/ytdlp';
 import type { Task } from '../../types';
 import DownloadProgress from './DownloadProgress';
 import FormatSelector from './FormatSelector';
+import SectionPicker from './SectionPicker';
 import StatusBadge from './StatusBadge';
 import Thumbnail from '../../app/Thumbnail';
 
@@ -101,6 +102,7 @@ export default function TaskCard({
         </div>
 
         <FormatSelector task={task} onFormatChange={onFormatChange} onStartDownload={onStartDownload} />
+        {ready && task.formats && <SectionPicker task={task} />}
         {(task.status === 'downloading' || task.status === 'queued') && <DownloadProgress task={task} onCancel={onCancel} />}
         {ready && task.message && (
           <div role="status" className="alert alert-info alert-soft py-2 text-sm">
