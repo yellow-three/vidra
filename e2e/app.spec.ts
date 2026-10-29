@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { mockTauri } from './tauri-mock';
 
 const URL = 'https://www.youtube.com/watch?v=jNQXAC9IVRw';
-const accepted = { legalAccepted: true, autoOpenFolder: false };
+const accepted = { legalAccepted: true };
 
 const mock = <T,>(page: Page, fn: string, ...args: unknown[]) =>
   page.evaluate(([f, a]) => (window as any).__mock[f as string](...(a as unknown[])), [fn, args] as const) as Promise<T>;
@@ -44,7 +44,12 @@ test('analiz, varsayilan format, canli ilerleme ve tamamlanma', async ({ page })
   await expect(page.getByText('1.0 MB/s')).toBeVisible();
 
   await mock(page, 'finish', 0);
-  await expect(page.locator('article[data-status="complete"]')).toContainText('Tamamlandı');
+  const done = page.locator('article[data-status="complete"]');
+  await expect(done).toContainText('Tamamlandı');
+  // Klasor kendiliginden acilmaz; kartteki dugmeyle acilir.
+  expect(await calls(page, 'open_file_location')).toHaveLength(0);
+  await done.getByRole('button', { name: 'Klasörü aç' }).click();
+  await expect.poll(() => calls(page, 'open_file_location').then((c) => c.length)).toBe(1);
 
   const [args] = await calls(page, 'process_spawn').then((all) => all.filter((a: any) => !a.args.includes('-J')));
   expect(args.program).toBe('yt-dlp');

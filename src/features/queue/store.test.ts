@@ -4,7 +4,7 @@ import { EngineError } from '../../engine/errors';
 import tr from '../../i18n/tr';
 import { buildOptions, playlistOptions } from '../../engine/ytdlp';
 
-const settings = { downloadDir: '/out', autoOpenFolder: false, downloadSubtitles: true } as Record<string, unknown>;
+const settings = { downloadDir: '/out', downloadSubtitles: true } as Record<string, unknown>;
 
 const mocks = vi.hoisted(() => ({
   getInfo: vi.fn(),
@@ -56,7 +56,6 @@ async function addReadyTask(url: string, title = 'Video') {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.fetchHistory.mockResolvedValue([]);
-  settings.autoOpenFolder = false;
   for (const key of ['defaultFormat', 'maxConcurrentDownloads', 'cookiesFromBrowser', 'proxy', 'rateLimit', 'subtitleLangs', 'playlistSubfolder']) {
     delete settings[key];
   }
@@ -106,7 +105,7 @@ describe('queue store', () => {
 
     calls[0].finish({ status: 'complete', filePath: '/out/Klip.mp4', fileSize: 2048 });
     await done;
-    expect(task(id)).toMatchObject({ status: 'complete', percent: 100 });
+    expect(task(id)).toMatchObject({ status: 'complete', percent: 100, filePath: '/out/Klip.mp4' });
     expect(mocks.addHistory).toHaveBeenCalledWith(expect.objectContaining({
       id, title: 'Klip', quality: '1080p', ext: 'mp4', fileSize: '2.0 KB', filePath: '/out/Klip.mp4',
     }));
@@ -241,7 +240,8 @@ describe('queue store', () => {
     expect(useQueueStore.getState().tasks.map((t) => t.url)).toEqual(['https://v.test/b']);
   });
 
-  it('toplu indirmede tek bildirim ve tek klasor penceresi acar', async () => {
+  it('toplu indirmede tek bildirim gonderir, klasoru kendiliginden acmaz', async () => {
+    // Eski ayar dosyalarinda kalan secenek artik yok sayilir.
     settings.autoOpenFolder = true;
     const calls = controllableDownload();
     const [a, b] = [await addReadyTask('https://youtu.be/a', 'A'), await addReadyTask('https://youtu.be/b', 'B')];
@@ -256,8 +256,8 @@ describe('queue store', () => {
 
     expect(mocks.notify).toHaveBeenCalledTimes(1);
     expect(mocks.notify).toHaveBeenCalledWith('2 indirme tamamlandı.');
-    expect(mocks.openFileLocation).toHaveBeenCalledTimes(1);
-    expect(mocks.openFileLocation).toHaveBeenCalledWith('/out/B.mp4');
+    expect(mocks.openFileLocation).not.toHaveBeenCalled();
+    delete settings.autoOpenFolder;
   });
 
   it('kuyrukta ya da gecmiste olan videoyu uyariyla ekler', async () => {

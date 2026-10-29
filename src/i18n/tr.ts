@@ -137,6 +137,7 @@ const tr = {
     moveDown: 'Aşağı taşı',
     retry: 'Tekrar dene',
     remove: 'Kaldır',
+    openFolder: 'Klasörü aç',
     detail: 'Ayrıntı',
     badge: {
       analyzing: 'Analiz ediliyor',
@@ -242,8 +243,6 @@ const tr = {
     format: 'Format',
     formatVideo: 'MP4 (Video)',
     formatAudio: 'MP3 (Ses)',
-    autoOpen: 'Klasörü otomatik aç',
-    autoOpenHint: 'İndirmeler bitince klasörü bir kez açar; birden fazla dosya inerken her biri için ayrı pencere açılmaz.',
     subtitles: 'Altyazıları göm',
     subtitlesHint: 'Seçilen dillerde altyazı varsa videoya eklenir.',
     subtitleLangs: 'Altyazı dilleri',

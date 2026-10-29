@@ -26,6 +26,8 @@ export interface Task {
   detail?: string;
   /** Yalnizca bu aralik indirilir. */
   section?: TimeRange;
+  /** Inen dosyanin yolu (tamamlaninca). */
+  filePath?: string;
   /** Uygulama kapanirken indiriliyordu ya da siradaydi; acilista kendiliginden surer. */
   resume?: boolean;
 }
@@ -38,7 +40,6 @@ export interface AppSettings {
   defaultFormat?: string;
   /** 'system', 'vidra-dark' | 'vidra-light' ya da bir daisyUI tema adi. */
   theme?: string;
-  autoOpenFolder?: boolean;
   downloadSubtitles?: boolean;
   /** `--sub-langs` degeri (varsayilan `tr,en`). */
   subtitleLangs?: string;
