@@ -1,21 +1,26 @@
 # Vidra
 
-YouTube video ve ses indirme masaüstü uygulaması. Tauri 2 + React 19 + Tailwind/DaisyUI, indirme motoru yt-dlp + FFmpeg.
+YouTube ve yt-dlp'nin desteklediği yüzlerce siteden video ve ses indiren masaüstü uygulaması. Tauri 2 + React 19 + Tailwind/DaisyUI, indirme motoru yt-dlp + FFmpeg.
 
 **[Son sürümü indir](https://github.com/yellow-three/vidra/releases/latest)**
 
+- YouTube'un yanında yt-dlp'nin desteklediği diğer siteler (Vimeo, Dailymotion, SoundCloud, archive.org...)
 - Video (4K'ya kadar, MP4) veya ses (MP3, M4A) indirme; kapak resmi, başlık, kanal ve bölümler dosyaya gömülür
+- "Tüm formatlar": yt-dlp'nin listelediği her format (VP9/AV1, 60 fps, HDR, Opus...) çözünürlük, kodek ve boyutuyla seçilebilir
 - Oynatma listeleri: listenin linkini yapıştırın, videolar kuyruğa gelir, "Hepsini indir" ile topluca inerler; dosyalar listenin adıyla bir klasöre kaydedilir
 - Videonun yalnızca bir bölümünü indirme (başlangıç–bitiş)
 - Birden fazla linki tek seferde yapıştırma; kuyrukta ya da geçmişte olan video tekrar eklenince uyarı
-- Kuyruk: aynı anda kaç indirme yapılacağı ayarlanır, sıradakiler yukarı/aşağı taşınarak öne alınır; uygulama kapansa da kuyruk kalır, yarıda kalan indirme kaldığı yerden sürer
+- Kuyruk: aynı anda kaç indirme yapılacağı ayarlanır, sıradakiler yukarı/aşağı taşınarak öne alınır; indirmeler duraklatılıp sürdürülebilir; uygulama kapansa da kuyruk kalır, yarıda kalan indirme kaldığı yerden sürer
+- İndirme sürerken pencere kapatılınca Vidra sistem tepsisinde çalışmaya devam eder
+- İndirmeden önce disk alanı kontrolü
+- Pano izleme: kopyalanan YouTube linkleri (ya da istenirse tüm linkler) kutuya kendiliğinden gelir; Ayarlar > Davranış'tan kapatılabilir
 - Geçmiş: arama, dosyayı oynatma, yeniden indirme; diskten silinen dosyalar işaretlenir
 - Tarayıcı çerezleri, proxy, hız sınırı, dosya adı biçimi, altyazı dilleri
 - SponsorBlock: sponsor bölümlerini işaretleme ya da kesme (gereken ffprobe istenirse kurulumda ya da sonradan Ayarlar'dan indirilir)
 - Türkçe ve İngilizce arayüz (sistem diline göre; Ayarlar > Görünüm'den değiştirilir)
 - yt-dlp haftada bir kendiliğinden güncellenir
 
-*English:* Vidra is a desktop app for downloading YouTube videos and audio, built on yt-dlp and FFmpeg. The interface follows your system language (Turkish or English) and can be switched in Settings > Appearance.
+*English:* Vidra is a desktop app for downloading video and audio from YouTube and the other sites yt-dlp supports, built on yt-dlp and FFmpeg. The interface follows your system language (Turkish or English) and can be switched in Settings > Appearance.
 
 ## Kurulum
 
@@ -54,7 +59,9 @@ YouTube değiştikçe indirmeler bozulabilir; önce Ayarlar'dan yt-dlp'yi günce
 
 - **"YouTube bot doğrulaması istedi"**, yaş kısıtlamalı veya üyelere özel videolar: Ayarlar > Ağ ve hesap > Tarayıcı çerezleri'nden YouTube'a giriş yaptığınız tarayıcıyı seçin. Linux'ta Flatpak ve Snap tarayıcıların profilleri de bulunur. Windows'ta Chrome ve Edge çerezleri okunamayabilir; Firefox'u seçin.
 - **403 hatası** ya da beklenmedik indirme hataları: Ayarlar > Sistem'den yt-dlp'yi güncelleyin.
-- Hata kartındaki **Ayrıntı** yt-dlp'nin özgün mesajını gösterir; hata bildirirken onu ekleyin.
+- Hata kartındaki **Ayrıntı** yt-dlp'nin özgün mesajını gösterir. **Hata bildir** düğmesi bu mesaj ve sürüm bilgileriyle dolu bir GitHub issue taslağı açar; göndermeden önce düzenleyebilirsiniz.
+- Uygulama `vidra.log` adlı bir kayıt dosyası tutar (Ayarlar > Sistem > Kayıt dosyaları). Hata bildirirken eklemeniz sorunu bulmayı kolaylaştırır.
+- **Sistem tepsisi simgesi görünmüyor** (GNOME): tepsi için "AppIndicator" uzantısı gerekir. Simge yoksa da Vidra'yı yeniden açmak pencereyi geri getirir.
 
 ## Kaldırma
 

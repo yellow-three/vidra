@@ -1,5 +1,5 @@
 pkgbase = vidra-bin
-	pkgdesc = YouTube video and audio downloader (yt-dlp + FFmpeg, downloaded on first run)
+	pkgdesc = Video and audio downloader for YouTube and other yt-dlp sites (yt-dlp + FFmpeg, downloaded on first run)
 	pkgver = 0.2.0
 	pkgrel = 1
 	url = https://github.com/yellow-three/vidra
@@ -8,6 +8,7 @@ pkgbase = vidra-bin
 	depends = webkit2gtk-4.1
 	depends = gtk3
 	depends = hicolor-icon-theme
+	optdepends = libayatana-appindicator: indirme surerken sistem tepsisi simgesi
 	provides = vidra
 	conflicts = vidra
 	noextract = Vidra_0.2.0_amd64.deb

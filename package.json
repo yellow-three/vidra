@@ -3,7 +3,7 @@
   "license": "MIT",
   "private": true,
   "version": "0.2.2",
-  "description": "YouTube video ve ses indirme masaustu uygulamasi (Tauri 2 + React)",
+  "description": "YouTube ve diger sitelerden video ve ses indirme masaustu uygulamasi (Tauri 2 + React)",
   "type": "module",
   "scripts": {
     "dev": "vite",

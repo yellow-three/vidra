@@ -3,6 +3,7 @@
 import { defaultWindowIcon, exit } from '@tauri-apps/api/app';
 import { Menu } from '@tauri-apps/api/menu';
 import { TrayIcon } from '@tauri-apps/api/tray';
+import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { sendNotification } from '@tauri-apps/plugin-notification';
 import { msg } from '../i18n';
@@ -45,6 +46,7 @@ function createTray(): Promise<TrayIcon> {
 export async function hideToTray(): Promise<void> {
   const window = getCurrentWindow();
   try {
+    if (!(await invoke<boolean>('tray_available'))) throw new Error('AppIndicator kütüphanesi yok');
     tray ??= createTray();
     await tray;
   } catch (error) {

@@ -271,6 +271,40 @@ fn process_kill(id: u32, state: State<'_, AppState>) -> bool {
     state.processes.kill(id)
 }
 
+/// Linux'ta tepsi simgesi AppIndicator kutuphanesiyle cizilir; yoksa tray-icon kutuphanesi
+/// simgeyi olustururken panikler ve uygulama (suren indirmelerle birlikte) kapanir.
+/// Arayuz bu durumda pencereyi tepsiye gizlemek yerine kucultur.
+#[tauri::command]
+fn tray_available() -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        // libappindicator-sys ile ayni adlar ve sira.
+        [
+            "libayatana-appindicator3.so.1",
+            "libappindicator3.so.1",
+            "libayatana-appindicator3.so",
+            "libappindicator3.so",
+        ]
+        .iter()
+        .any(|name| {
+            let c_name = std::ffi::CString::new(*name).expect("sabit ad");
+            // SAFETY: NUL ile biten ad; kutuphane yalnizca varligi icin acilip hemen kapatilir.
+            unsafe {
+                let handle = libc::dlopen(c_name.as_ptr(), libc::RTLD_LAZY);
+                if handle.is_null() {
+                    return false;
+                }
+                libc::dlclose(handle);
+                true
+            }
+        })
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        true
+    }
+}
+
 /// Kayitlar uygulamanin kayit klasorunde tek dosyada tutulur; 2 MB'i gecince eskisi silinir.
 fn log_plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
     use tauri_plugin_log::{RotationStrategy, Target, TargetKind};
@@ -355,6 +389,7 @@ pub fn run() {
             files_exist,
             free_space,
             open_log_folder,
+            tray_available,
             start_clipboard_monitor,
             stop_clipboard_monitor,
             process_spawn,

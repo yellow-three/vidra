@@ -1,7 +1,7 @@
 [package]
 name = "vidra"
 version = "0.2.2"
-description = "YouTube video and audio downloader"
+description = "Video and audio downloader for YouTube and other sites"
 license = "MIT"
 authors = ["yellow-three"]
 edition = "2021"
