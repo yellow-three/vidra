@@ -29,6 +29,11 @@
     <control>keyboard</control>
   </supports>
   <releases>
+    <release version="0.2.2" date="2026-10-29">
+      <description>
+        <p>Finished downloads get an Open folder button instead of the folder opening by itself, and on Windows the download folder opens instead of Documents.</p>
+      </description>
+    </release>
     <release version="0.2.1" date="2026-10-28">
       <description>
         <p>Copied links no longer replace what is typed in the link box, downloads interrupted by closing the app resume on their own, conversions keep earlier outputs, and a second launch focuses the open window.</p>
