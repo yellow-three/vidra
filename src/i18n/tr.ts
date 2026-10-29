@@ -22,7 +22,7 @@ const tr = {
     title: 'Kullanım koşulları',
     text:
       'Bu uygulama yalnızca indirme hakkına sahip olduğunuz içerikler için tasarlanmıştır. '
-      + 'İndirilen içeriklerin telif haklarına ve YouTube Hizmet Şartları’na uygun kullanılması tamamen kullanıcının sorumluluğundadır.',
+      + 'İndirilen içeriklerin telif haklarına ve indirildiği sitenin (YouTube vb.) kullanım şartlarına uygun kullanılması tamamen kullanıcının sorumluluğundadır.',
     accept: 'Anladım, kabul ediyorum',
   },
 
@@ -91,9 +91,9 @@ const tr = {
 
   queue: {
     title: 'İndir',
-    subtitle: 'YouTube videolarını video veya ses olarak indirin.',
+    subtitle: 'YouTube ve yt-dlp\'nin desteklediği yüzlerce siteden video veya ses indirin.',
     clipboard: 'Pano izleniyor',
-    clipboardTip: 'Kopyalanan YouTube linkleri kutuya otomatik gelir',
+    clipboardTip: { youtube: 'Kopyalanan YouTube linkleri kutuya otomatik gelir', all: 'Kopyalanan tüm linkler kutuya otomatik gelir' },
     stats: { pending: 'Bekleyen', downloading: 'İniyor', complete: 'Tamamlanan', error: 'Hatalı' },
     newVersion: (v: string) => `Yeni sürüm ${v} hazır`,
     downloadsFolder: 'İndirilenler',
@@ -108,12 +108,12 @@ const tr = {
   },
 
   addUrl: {
-    label: 'YouTube linki',
+    label: 'Video linki',
     clear: 'Linki temizle',
     analyze: 'Analiz Et',
     preparing: 'Hazırlanıyor...',
     invalid: 'Lütfen geçerli bir link girin (http:// ya da https:// ile başlamalı).',
-    hint: 'Kopyaladığınız YouTube linkleri kutuya kendiliğinden gelir. Birden fazla link de yapıştırabilirsiniz; formatı analizden sonra seçersiniz.',
+    hint: 'YouTube ve yt-dlp\'nin desteklediği diğer sitelerin linklerini yapıştırın; birden fazla link de olur. Formatı analizden sonra seçersiniz.',
   },
 
   list: {
@@ -156,6 +156,7 @@ const tr = {
     format: 'Format',
     videoGroup: 'Video (MP4)',
     audioGroup: 'Yalnızca ses',
+    allFormatsGroup: 'Tüm formatlar (yt-dlp)',
     download: 'İndir',
   },
 
@@ -179,6 +180,10 @@ const tr = {
     upTo: 'en fazla bu kalite',
     unknownSize: 'Bilinmiyor',
     unknownVideo: 'Bilinmeyen video',
+    unknownResolution: 'Video',
+    formatCode: 'Format',
+    plusBestAudio: 'en iyi sesle',
+    audioOnly: 'yalnız ses',
     playlist: 'Oynatma listesi',
     /** Dosya adinda bitissiz bolum: `[00.10-son]`. */
     sectionEnd: 'son',
@@ -248,6 +253,10 @@ const tr = {
     subtitleLangs: 'Altyazı dilleri',
     subtitleLangsHint: 'Virgülle ayrılmış dil kodları, örn. tr,en,de. Boş bırakılırsa Türkçe ve İngilizce.',
     subtitleLangsInvalid: 'Dil kodlarını virgülle ayırın, örn. tr,en.',
+    behavior: 'Davranış',
+    clipboardMode: 'Pano izleme',
+    clipboardModes: { youtube: 'Yalnızca YouTube linkleri', all: 'Tüm linkler', off: 'Kapalı' },
+    clipboardModeHint: 'Kopyaladığınız linkler indirme kutusuna kendiliğinden gelir. "Tüm linkler" yt-dlp\'nin desteklediği diğer siteler içindir.',
     appearance: 'Görünüm',
     language: 'Dil',
     theme: 'Tema',
@@ -340,7 +349,7 @@ const tr = {
     geo: 'Video bölgenizde yayınlanmıyor. Proxy ayarı ile deneyebilirsiniz.',
     unavailable: 'Video kullanılamıyor; silinmiş veya kaldırılmış olabilir.',
     upcoming: 'Video henüz yayınlanmadı.',
-    unsupported: 'Bu link desteklenmiyor. YouTube video veya oynatma listesi linki yapıştırın.',
+    unsupported: 'yt-dlp bu linki desteklemiyor. Video sayfasının ya da oynatma listesinin linkini yapıştırın.',
     format: 'Seçilen format bu video için yok. Başka bir kalite seçin.',
     forbidden: 'YouTube indirmeyi reddetti (403). Ayarlar\'dan yt-dlp\'yi güncelleyip tekrar deneyin.',
     rateLimited: 'YouTube çok fazla istek aldığı için geçici olarak engelledi. Bir süre bekleyin veya çerez kullanın.',

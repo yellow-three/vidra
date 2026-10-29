@@ -1,5 +1,5 @@
 import { Download, FileAudio, FileVideo } from 'lucide-react';
-import { formatFilesize } from '../../engine/ytdlp';
+import { formatFilesize, isAudioOptionId } from '../../engine/ytdlp';
 import type { Task, VideoFormat } from '../../types';
 import { useT } from '../../i18n';
 
@@ -17,9 +17,10 @@ export default function FormatSelector({ task, onFormatChange, onStartDownload }
   if (task.status !== 'ready-to-select' || !task.formats) return null;
 
   const selected = task.selectedFormatId || task.formats[0]?.formatId;
-  const isAudio = selected?.startsWith('audio-');
+  const isAudio = isAudioOptionId(selected);
   const videos = task.formats.filter((f) => f.formatId.startsWith('video-'));
   const audios = task.formats.filter((f) => f.formatId.startsWith('audio-'));
+  const raw = task.formats.filter((f) => f.formatId.startsWith('fmt-'));
 
   return (
     <div className="join w-full">
@@ -36,6 +37,15 @@ export default function FormatSelector({ task, onFormatChange, onStartDownload }
               <option key={f.formatId} value={f.formatId}>{f.ext.toUpperCase()} · {f.note}{f.filesize === formatFilesize(null) ? '' : ` · ${f.filesize}`}</option>
             ))}
           </optgroup>
+          {raw.length > 0 && (
+            <optgroup label={m.task.allFormatsGroup}>
+              {raw.map((f) => (
+                <option key={f.formatId} value={f.formatId}>
+                  {[f.resolution, f.ext, f.note, f.filesize === formatFilesize(null) ? '' : f.filesize].filter(Boolean).join(' · ')}
+                </option>
+              ))}
+            </optgroup>
+          )}
         </select>
       </label>
       <button onClick={() => onStartDownload(task)} className="btn btn-sm btn-neutral join-item gap-1.5">

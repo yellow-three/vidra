@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  rawOptions,
   buildDownloadArgs,
   buildInfoArgs,
   buildOptions,
@@ -81,10 +82,37 @@ describe('buildOptions', () => {
     { format_id: 'sb0', ext: 'mhtml', vcodec: 'none', acodec: 'none' },
   ];
 
-  it('her cozunurluk icin bir video, arti MP3/M4A uretir', () => {
+  it('her cozunurluk icin bir video, arti MP3/M4A, ardindan yt-dlp\'nin tum formatlarini uretir', () => {
     const options = buildOptions(formats);
-    expect(options.map((o) => o.formatId)).toEqual(['video-1080', 'video-720', 'audio-mp3', 'audio-m4a']);
-    expect(options[0].filesize).toBe('9.5 MB');
+    expect(options.map((o) => o.formatId)).toEqual([
+      'video-1080', 'video-720', 'audio-mp3', 'audio-m4a',
+      // Cozunurluge gore en iyiden kotuye, sonra ses; storyboard (mhtml) atlanir.
+      'fmt-v-137', 'fmt-v-248', 'fmt-v-136', 'fmt-a-140',
+    ]);
+    expect(options[0]).toMatchObject({ filesize: '9.5 MB', bytes: 10_000_000 });
+  });
+
+  it('ham formatlari cozunurluk, fps, kodek ve ses bilgisiyle etiketler', () => {
+    const raw = rawOptions([
+      { format_id: '251', ext: 'webm', vcodec: 'none', acodec: 'opus', abr: 130.4, filesize: 3_000_000 },
+      { format_id: '303', ext: 'webm', vcodec: 'vp09.00.40.08', acodec: 'none', width: 1920, height: 1080, fps: 60, dynamic_range: 'HDR10' },
+      { format_id: '18', ext: 'mp4', vcodec: 'avc1.42001E', acodec: 'mp4a.40.2', width: 640, height: 360, fps: 30 },
+      { format_id: 'http-720p', ext: 'mp4', format_note: '720p' },
+    ], 1_000);
+    expect(raw).toEqual([
+      expect.objectContaining({ formatId: 'fmt-v-303', resolution: '1920x1080 60fps HDR10', note: 'vp09 · en iyi sesle' }),
+      expect.objectContaining({ formatId: 'fmt-av-18', resolution: '640x360', ext: 'mp4', note: 'avc1 + mp4a' }),
+      // Cozunurluk bilinmeyen: yt-dlp'nin notu gosterilir.
+      expect.objectContaining({ formatId: 'fmt-av-http-720p', resolution: '720p', note: '' }),
+      expect.objectContaining({ formatId: 'fmt-a-251', resolution: 'Ses', note: 'opus 130k · yalnız ses', bytes: 3_000_000 }),
+    ]);
+  });
+
+  it('yalnizca ses sunan sitede video secenegi sunmaz', () => {
+    const audio: YtdlpFormat[] = [{ format_id: 'hls_aac_160k', ext: 'm4a', vcodec: 'none', acodec: 'mp4a.40.2' }];
+    expect(buildOptions(audio).map((o) => o.formatId)).toEqual(['audio-mp3', 'audio-m4a', 'fmt-a-hls_aac_160k']);
+    // Kodek bilgisi vermeyen site (archive.org): video olabilir.
+    expect(buildOptions([{ format_id: '0', ext: 'mp4' }]).map((o) => o.formatId)[0]).toBe('video-best');
   });
 
   it('cozunurluk bilgisi yoksa en iyi videoya duser', () => {
@@ -113,6 +141,25 @@ describe('partialFilesToRemove', () => {
   it('Windows yollarini da ayristirir', () => {
     const entries = [{ name: 'Video.mp4.part', mtimeMs: started }];
     expect(partialFilesToRemove('C:\\Users\\a\\Video.mp4', entries, started)).toEqual(['Video.mp4.part']);
+  });
+});
+
+describe('ham format secimi', () => {
+  it('kimlikten turu cozer; kisa cizgili format kimlikleri de olur', () => {
+    expect(parseOption('fmt-v-hls-1080p')).toEqual({ kind: 'format', formatId: 'hls-1080p', video: true, audio: false });
+    expect(parseOption('fmt-a-251')).toEqual({ kind: 'format', formatId: '251', video: false, audio: true });
+  });
+
+  it('yalniz goruntuye en iyi sesi ekler, kabi yt-dlp\'ye birakir, ses formatina altyazi koymaz', () => {
+    const video = buildDownloadArgs({ url: 'U', option: parseOption('fmt-v-303')!, outDir: '/o', subtitles: true });
+    expect(video.join(' ')).toContain('-f 303+ba/303');
+    expect(video).not.toContain('--merge-output-format');
+    expect(video).toContain('--embed-subs');
+    expect(video.join(' ')).toContain('[%(format_id)s].%(ext)s');
+    const audio = buildDownloadArgs({ url: 'U', option: parseOption('fmt-a-251')!, outDir: '/o', subtitles: true });
+    expect(audio.join(' ')).toContain('-f 251 ');
+    expect(audio).not.toContain('--embed-subs');
+    expect(audio).not.toContain('-x');
   });
 });
 

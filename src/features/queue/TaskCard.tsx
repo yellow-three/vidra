@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronUp, CircleAlert, FolderOpen, Info, ListPlus, ListVideo, RotateCcw, X } from 'lucide-react';
 import { appApi } from '../../lib/appApi';
-import { isVideoInPlaylist } from '../../engine/ytdlp';
+import { isAudioOptionId, isVideoInPlaylist } from '../../engine/ytdlp';
 import type { Task } from '../../types';
 import DownloadProgress from './DownloadProgress';
 import FormatSelector from './FormatSelector';
@@ -53,7 +53,7 @@ export default function TaskCard({
 
           <Thumbnail
             src={task.thumbnail}
-            audio={task.selectedFormatId?.startsWith('audio-')}
+            audio={isAudioOptionId(task.selectedFormatId)}
             loading={analyzing}
             className="w-36"
           />

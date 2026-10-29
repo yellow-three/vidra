@@ -11,7 +11,7 @@ import type { AppSettings, Task } from '../../types';
 import { addHistory, fetchHistory } from '../history/queries';
 import { fetchSettings } from '../settings/queries';
 import { pickDefaultFormat } from './defaultFormat';
-import { isHttpUrl, mergeClipboardLinks, splitUrls, videoKey } from './duplicates';
+import { isHttpUrl, mergeClipboardLinks, splitUrls, videoKey, type ClipboardMode } from './duplicates';
 import { createLimiter } from './limiter';
 import { notifyComplete } from './notify';
 import { loadTasks, saveTasks } from './persistence';
@@ -40,7 +40,7 @@ interface QueueState {
    */
   analyze(): Promise<string | null>;
   /** Panoda yakalanan metnin linklerini kutuya ekler. */
-  addClipboardText(text: string): void;
+  addClipboardText(text: string, mode?: ClipboardMode): void;
   /** Uygulama kapanirken suren ya da siradaki indirmeleri yeniden baslatir. */
   resumeInterrupted(): Promise<void>;
   /** `watch?v=..&list=..` gorevini listenin tum videolariyla degistirir. */
@@ -173,7 +173,7 @@ export const useQueueStore = create<QueueState>()((set, get) => {
 
     setUrl: (url) => set({ url }),
 
-    addClipboardText: (text) => set((s) => ({ url: mergeClipboardLinks(s.url, text) })),
+    addClipboardText: (text, mode) => set((s) => ({ url: mergeClipboardLinks(s.url, text, mode) })),
 
     async resumeInterrupted() {
       const interrupted = get().tasks.filter((t) => t.resume && t.status === 'ready-to-select');

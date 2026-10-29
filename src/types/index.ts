@@ -6,6 +6,8 @@ export interface VideoFormat {
   ext: string;
   note: string;
   filesize: string;
+  /** Bilinen ya da tahmini boyut (bayt); disk alani kontrolu icin. */
+  bytes?: number;
 }
 
 export interface Task {
@@ -63,6 +65,8 @@ export interface AppSettings {
   /** Son basarili otomatik yt-dlp guncellemesi, Unix ms. */
   ytdlpCheckedAt?: number;
   legalAccepted?: boolean;
+  /** Kopyalanan linklerin kutuya gelmesi (varsayilan `youtube`). */
+  clipboardMode?: 'off' | 'youtube' | 'all';
   /** Arayuz dili; bos ise sistem dili. */
   language?: 'tr' | 'en';
 }

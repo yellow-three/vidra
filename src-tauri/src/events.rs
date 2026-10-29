@@ -39,11 +39,8 @@ impl ClipboardMonitor {
                     Err(_) => continue,
                 };
 
-                if current_text != last_text
-                    && (current_text.contains("youtube.com/")
-                        || current_text.contains("youtu.be/")
-                        || current_text.contains("youtube.com/shorts/"))
-                {
+                // Hangi linklerin alinacagina arayuz karar verir (Ayarlar > pano izleme).
+                if current_text != last_text && current_text.contains("http") {
                     last_text = current_text.clone();
                     let _ = app.emit("clipboard-link-detected", current_text);
                 }

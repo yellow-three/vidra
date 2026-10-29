@@ -1,5 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { HardDrive, Info, Package, Palette, RefreshCw, SlidersHorizontal } from 'lucide-react';
+import { HardDrive, Info, MousePointerClick, Package, Palette, RefreshCw, SlidersHorizontal } from 'lucide-react';
+import { applyClipboardMode } from '../queue/bootstrap';
+import type { ClipboardMode } from '../queue/duplicates';
 import type { AppSettings } from '../../types';
 import { engine } from '../../engine';
 import { LANGUAGES, useLanguageCode, useT, type Language } from '../../i18n';
@@ -101,6 +103,22 @@ export default function SettingsForm() {
       <SponsorBlockSettings />
 
       <NetworkSettings />
+
+      <Section title={m.behavior} icon={<MousePointerClick size={18} />}>
+        <div className="sm:w-1/2">
+          <SelectField
+            legend={m.clipboardMode}
+            value={settings.clipboardMode ?? 'youtube'}
+            options={(['youtube', 'all', 'off'] as const).map((v) => [v, m.clipboardModes[v]])}
+            onChange={(v) => {
+              const mode = v as ClipboardMode;
+              save.mutate({ clipboardMode: mode });
+              applyClipboardMode(mode);
+            }}
+            hint={m.clipboardModeHint}
+          />
+        </div>
+      </Section>
 
       <Section title={m.appearance} icon={<Palette size={18} />}>
         <div className="sm:w-1/3">

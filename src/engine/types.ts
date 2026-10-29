@@ -4,7 +4,9 @@ export type DownloadOption =
   | { kind: 'video'; height: number }
   | { kind: 'best-video' }
   | { kind: 'mp3' }
-  | { kind: 'm4a' };
+  | { kind: 'm4a' }
+  /** yt-dlp'nin listeledigi bir format, oldugu gibi; yalnizca goruntu olanlara en iyi ses eklenir. */
+  | { kind: 'format'; formatId: string; video: boolean; audio: boolean };
 
 /** UI'da secilebilen sade indirme secenegi. */
 export interface FormatOption {
@@ -13,6 +15,8 @@ export interface FormatOption {
   ext: string;
   note: string;
   filesize: string;
+  /** Bilinen ya da tahmini boyut (bayt); disk alani kontrolu icin. */
+  bytes?: number;
 }
 
 /** Oynatma listesindeki bir video; formatlari indirirken secilir, onceden analiz edilmez. */

@@ -22,7 +22,7 @@ const en: Messages = {
     title: 'Terms of use',
     text:
       'This app is meant only for content you have the right to download. '
-      + 'You alone are responsible for using downloaded content in line with copyright law and the YouTube Terms of Service.',
+      + 'You alone are responsible for using downloaded content in line with copyright law and the terms of the site it comes from (YouTube and others).',
     accept: 'I understand and accept',
   },
 
@@ -91,9 +91,9 @@ const en: Messages = {
 
   queue: {
     title: 'Download',
-    subtitle: 'Download YouTube videos as video or audio.',
+    subtitle: 'Download video or audio from YouTube and the hundreds of sites yt-dlp supports.',
     clipboard: 'Watching clipboard',
-    clipboardTip: 'Copied YouTube links appear in the box automatically',
+    clipboardTip: { youtube: 'Copied YouTube links appear in the box automatically', all: 'Every copied link appears in the box automatically' },
     stats: { pending: 'Pending', downloading: 'Downloading', complete: 'Complete', error: 'Failed' },
     newVersion: (v) => `Version ${v} is available`,
     downloadsFolder: 'Downloads',
@@ -108,12 +108,12 @@ const en: Messages = {
   },
 
   addUrl: {
-    label: 'YouTube link',
+    label: 'Video link',
     clear: 'Clear link',
     analyze: 'Analyze',
     preparing: 'Preparing...',
     invalid: 'Please enter a valid link (starting with http:// or https://).',
-    hint: 'Copied YouTube links appear here automatically. You can paste several links at once; pick the format after the lookup.',
+    hint: 'Paste links from YouTube or any other site yt-dlp supports, several at once if you like. Pick the format after the lookup.',
   },
 
   list: {
@@ -156,6 +156,7 @@ const en: Messages = {
     format: 'Format',
     videoGroup: 'Video (MP4)',
     audioGroup: 'Audio only',
+    allFormatsGroup: 'All formats (yt-dlp)',
     download: 'Download',
   },
 
@@ -179,6 +180,10 @@ const en: Messages = {
     upTo: 'up to this quality',
     unknownSize: 'Unknown',
     unknownVideo: 'Unknown video',
+    unknownResolution: 'Video',
+    formatCode: 'Format',
+    plusBestAudio: 'with best audio',
+    audioOnly: 'audio only',
     playlist: 'Playlist',
     sectionEnd: 'end',
   },
@@ -247,6 +252,10 @@ const en: Messages = {
     subtitleLangs: 'Subtitle languages',
     subtitleLangsHint: 'Comma-separated language codes, e.g. en,de. Empty means Turkish and English.',
     subtitleLangsInvalid: 'Separate language codes with commas, e.g. en,de.',
+    behavior: 'Behavior',
+    clipboardMode: 'Clipboard watching',
+    clipboardModes: { youtube: 'YouTube links only', all: 'All links', off: 'Off' },
+    clipboardModeHint: 'Links you copy appear in the download box by themselves. "All links" is for the other sites yt-dlp supports.',
     appearance: 'Appearance',
     language: 'Language',
     theme: 'Theme',
@@ -339,7 +348,7 @@ const en: Messages = {
     geo: 'This video is not available in your region. You can try with a proxy.',
     unavailable: 'This video is unavailable; it may have been deleted or removed.',
     upcoming: 'This video has not premiered yet.',
-    unsupported: 'This link is not supported. Paste a YouTube video or playlist link.',
+    unsupported: 'yt-dlp does not support this link. Paste the link of the video page or playlist.',
     format: 'The chosen format is not available for this video. Pick another quality.',
     forbidden: 'YouTube refused the download (403). Update yt-dlp in Settings and try again.',
     rateLimited: 'YouTube is temporarily blocking requests. Wait a while or use cookies.',

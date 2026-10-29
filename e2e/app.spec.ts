@@ -10,7 +10,7 @@ const calls = (page: Page, cmd: string) =>
   page.evaluate((c) => (window as any).__mock.state.calls.filter((x: any) => x.cmd === c).map((x: any) => x.args), cmd);
 
 async function analyze(page: Page, url = URL) {
-  await page.getByLabel('YouTube linki').fill(url);
+  await page.getByLabel('Video linki').fill(url);
   await page.getByRole('button', { name: 'Analiz Et' }).click();
 }
 
@@ -35,7 +35,11 @@ test('analiz, varsayilan format, canli ilerleme ve tamamlanma', async ({ page })
 
   const select = page.getByRole('combobox');
   await expect(select).toHaveValue('video-240');
-  await expect(select.locator('option')).toHaveText([/360p/, /240p/, /MP3/, /M4A/]);
+  await expect(select.locator('option')).toHaveText([
+    /360p/, /240p/, /MP3/, /M4A/,
+    // yt-dlp'nin tum formatlari, en iyiden kotuye.
+    /^360p · mp4 · avc1 · en iyi sesle/, /^240p · mp4/, /^Ses · m4a · mp4a · yalnız ses/,
+  ]);
   await page.getByRole('button', { name: 'İndir', exact: true }).click();
 
   await expect.poll(() => page.evaluate(() => (window as any).__mock.state.downloads.length)).toBe(1);
@@ -64,7 +68,7 @@ test('indirme surerken yeni link eklenebilir; iptal edilen indirme iptal gorunur
   await page.getByRole('button', { name: 'İndir', exact: true }).click();
   await expect.poll(() => page.evaluate(() => (window as any).__mock.state.downloads.length)).toBe(1);
 
-  await expect(page.getByLabel('YouTube linki')).toBeEnabled();
+  await expect(page.getByLabel('Video linki')).toBeEnabled();
   await analyze(page, 'https://youtu.be/ikinci');
   await expect(page.getByRole('combobox')).toHaveCount(1);
 
@@ -165,14 +169,33 @@ test('panodan gelen link kutuya yazilir', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Analiz Et' })).toBeVisible();
   await mock(page, 'emit', 'clipboard-link-detected', 'https://youtu.be/panodan');
-  await expect(page.getByLabel('YouTube linki')).toHaveValue('https://youtu.be/panodan');
+  await expect(page.getByLabel('Video linki')).toHaveValue('https://youtu.be/panodan');
+  // Varsayilan: yalnizca YouTube linkleri.
+  await mock(page, 'emit', 'clipboard-link-detected', 'https://vimeo.com/1');
+  await expect(page.getByLabel('Video linki')).toHaveValue('https://youtu.be/panodan');
+});
+
+test('pano izleme ayardan tum linklere acilir ya da kapatilir', async ({ page }) => {
+  await mockTauri(page, { settings: accepted });
+  await page.goto('/settings');
+  const mode = page.getByRole('combobox').filter({ has: page.getByRole('option', { name: 'Tüm linkler' }) });
+  await mode.selectOption('all');
+  await page.getByRole('link', { name: 'İndir' }).click();
+  await mock(page, 'emit', 'clipboard-link-detected', 'bak https://vimeo.com/1');
+  await expect(page.getByLabel('Video linki')).toHaveValue('https://vimeo.com/1');
+
+  await page.getByRole('link', { name: 'Ayarlar' }).click();
+  await mode.selectOption('off');
+  await expect.poll(() => calls(page, 'stop_clipboard_monitor').then((c) => c.length)).toBe(1);
+  await page.getByRole('link', { name: 'İndir' }).click();
+  await expect(page.getByText('Pano izleniyor')).toHaveCount(0);
 });
 
 test('eksik sidecar durum cubugunda gosterilir ve analiz kapali kalir', async ({ page }) => {
   await mockTauri(page, { settings: accepted, deps: { ytdlp: true, ffmpeg: false, deno: false } });
   await page.goto('/');
   await expect(page.getByText('Eksik bileşen: FFmpeg, deno. Ayarlar > Sistem bölümünden indirin.')).toBeVisible();
-  await page.getByLabel('YouTube linki').fill(URL);
+  await page.getByLabel('Video linki').fill(URL);
   await expect(page.getByRole('button', { name: 'Hazırlanıyor...' })).toBeDisabled();
 });
 
@@ -297,7 +320,7 @@ test('dil: sistem dili Ingilizceyse arayuz Ingilizce, ayardan Turkceye gecer', a
   await mockTauri(page, { settings: accepted });
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Analyze' })).toBeVisible();
-  await expect(page.getByText('Download YouTube videos as video or audio.')).toBeVisible();
+  await expect(page.getByText('Download video or audio from YouTube and the hundreds of sites yt-dlp supports.')).toBeVisible();
 
   await page.getByRole('link', { name: 'Settings' }).click();
   await page.getByRole('combobox').filter({ has: page.getByRole('option', { name: 'Türkçe' }) }).selectOption('tr');
