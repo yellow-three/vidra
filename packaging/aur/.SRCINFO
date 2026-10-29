@@ -16,7 +16,7 @@ pkgbase = vidra-bin
 	options = !debug
 	source = Vidra_0.3.0_amd64.deb::https://github.com/yellow-three/vidra/releases/download/v0.3.0/Vidra_0.3.0_amd64.deb
 	source = LICENSE-0.3.0::https://raw.githubusercontent.com/yellow-three/vidra/v0.3.0/LICENSE
-	sha256sums = SKIP
+	sha256sums = 943399695a2cf2fd04c607278c3722f7cb1764fefc129ae8bb7fd842dfa73e9c
 	sha256sums = 79a959c221b22dcf84a476cf70779a972886107540cb5c2f102b099defd957a8
 
 pkgname = vidra-bin

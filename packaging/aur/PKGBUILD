@@ -18,7 +18,7 @@ options=('!strip' '!debug')
 source=("Vidra_${pkgver}_amd64.deb::${url}/releases/download/v${pkgver}/Vidra_${pkgver}_amd64.deb"
         "LICENSE-${pkgver}::https://raw.githubusercontent.com/yellow-three/vidra/v${pkgver}/LICENSE")
 noextract=("Vidra_${pkgver}_amd64.deb")
-sha256sums=('SKIP'
+sha256sums=('943399695a2cf2fd04c607278c3722f7cb1764fefc129ae8bb7fd842dfa73e9c'
             '79a959c221b22dcf84a476cf70779a972886107540cb5c2f102b099defd957a8')
 
 package() {
