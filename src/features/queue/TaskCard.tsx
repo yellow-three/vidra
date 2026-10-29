@@ -111,7 +111,9 @@ export default function TaskCard({
 
         <FormatSelector task={task} onFormatChange={onFormatChange} onStartDownload={onStartDownload} />
         {ready && task.formats && <SectionPicker task={task} />}
-        {(task.status === 'downloading' || task.status === 'queued') && <DownloadProgress task={task} onCancel={onCancel} />}
+        {(task.status === 'downloading' || task.status === 'queued' || task.status === 'paused') && (
+          <DownloadProgress task={task} onCancel={onCancel} />
+        )}
         {ready && task.message && (
           <div role="status" className="alert alert-info alert-soft py-2 text-sm">
             <Info size={16} />

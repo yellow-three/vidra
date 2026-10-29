@@ -52,6 +52,10 @@ interface QueueState {
   /** Format secimini bekleyen tum gorevleri listedeki sirayla kuyruga alir. */
   startAll(): Promise<void>;
   cancel(id: string): Promise<void>;
+  /** Siradaki ya da suren indirmeyi durdurur; yarim dosya kalir. */
+  pause(id: string): Promise<void>;
+  /** Duraklatilan indirmeyi kaldigi yerden surdurur. */
+  resume(id: string): Promise<void>;
   retry(id: string): Promise<void>;
   move(id: string, direction: 'up' | 'down'): void;
   /** Tamamlanan ve iptal edilen gorevleri listeden kaldirir. */
@@ -212,7 +216,9 @@ export const useQueueStore = create<QueueState>()((set, get) => {
       const task = find(id);
       const formatId = task?.selectedFormatId || task?.formats?.[0]?.formatId;
       if (!task || !formatId) return;
-      force(id, { status: 'queued', selectedFormatId: formatId, resume: undefined, percent: 0, speed: '', eta: '', message: undefined, detail: undefined });
+      // Surdurulen indirme yuzdesini korur; yt-dlp kaldigi yerden raporlar.
+      const percent = task.status === 'paused' ? task.percent : 0;
+      force(id, { status: 'queued', selectedFormatId: formatId, resume: undefined, percent, speed: '', eta: '', message: undefined, detail: undefined });
 
       try {
         const settings = await fetchSettings();
@@ -236,18 +242,23 @@ export const useQueueStore = create<QueueState>()((set, get) => {
               embedMetadata: settings.embedMetadata ?? true,
               filenameTemplate: settings.filenameTemplate,
               rateLimit: settings.rateLimit || undefined,
+              partialSince: task.partial?.since,
               ...networkOptions(settings),
             },
             (p) => update(id, { percent: p.percent, speed: p.speed, eta: p.eta }),
           );
         });
 
-        if (result === null || result.status === 'cancelled') {
-          force(id, { status: 'cancelled', message: undefined });
+        if (result === null) {
+          // Siradayken duraklatildi ya da iptal edildi; durumu pause/cancel yazdi.
+        } else if (result.status === 'paused') {
+          force(id, { status: 'paused', speed: '', eta: '', partial: { destination: result.destination, since: result.startedMs } });
+        } else if (result.status === 'cancelled') {
+          force(id, { status: 'cancelled', message: undefined, partial: undefined });
         } else if (result.status === 'error') {
           update(id, { status: 'error', message: result.message, detail: result.detail });
         } else {
-          update(id, { status: 'complete', percent: 100, filePath: result.filePath });
+          update(id, { status: 'complete', percent: 100, filePath: result.filePath, partial: undefined });
           batch = { count: batch.count + 1, lastTitle: task.title };
           await saveCompleted(find(id) ?? task, formatId, result.filePath, result.fileSize);
         }
@@ -263,14 +274,16 @@ export const useQueueStore = create<QueueState>()((set, get) => {
     },
 
     async cancel(id) {
+      const task = find(id);
       // Siradaki is hic baslamaz.
       if (limiter.dequeue(id)) {
         force(id, { status: 'cancelled', message: undefined });
+        if (task?.partial) void engine.discardPartial(task.partial.destination, task.partial.since);
         return;
       }
-      const task = find(id);
       if (task && task.status !== 'downloading') {
-        force(id, { status: 'cancelled' });
+        force(id, { status: 'cancelled', partial: undefined });
+        if (task.partial) void engine.discardPartial(task.partial.destination, task.partial.since);
         return;
       }
       // Calisan indirmeyi motor sonlandirir; startDownload sonucu "cancelled" olarak isler.
@@ -280,6 +293,16 @@ export const useQueueStore = create<QueueState>()((set, get) => {
         console.warn('İptal başarısız:', error);
       }
     },
+
+    async pause(id) {
+      if (limiter.dequeue(id)) {
+        force(id, { status: 'paused', speed: '', eta: '' });
+        return;
+      }
+      if (find(id)?.status === 'downloading') await engine.pause(id);
+    },
+
+    resume: (id) => get().startDownload(id),
 
     async retry(id) {
       const task = find(id);

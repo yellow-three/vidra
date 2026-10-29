@@ -23,7 +23,7 @@ export default function QueuePage() {
 
   const count = (pred: (s: string) => boolean) => queue.filter((t) => pred(t.status)).length;
   const stats = [
-    { label: m.queue.stats.pending, value: count((s) => s === 'ready-to-select' || s === 'analyzing' || s === 'queued') },
+    { label: m.queue.stats.pending, value: count((s) => s === 'ready-to-select' || s === 'analyzing' || s === 'queued' || s === 'paused') },
     { label: m.queue.stats.downloading, value: count((s) => s === 'downloading') },
     { label: m.queue.stats.complete, value: count((s) => s === 'complete') },
     { label: m.queue.stats.error, value: count((s) => s === 'error') },

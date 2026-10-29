@@ -76,6 +76,27 @@ test('indirme surerken yeni link eklenebilir; iptal edilen indirme iptal gorunur
   await expect(page.locator('article[data-status="cancelled"]')).toContainText('İptal edildi');
 });
 
+test('indirme duraklatilir ve kaldigi yerden surdurulur', async ({ page }) => {
+  await mockTauri(page, { settings: accepted });
+  await page.goto('/');
+  await analyze(page);
+  await page.getByRole('button', { name: 'İndir', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).__mock.state.downloads.length)).toBe(1);
+  await mock(page, 'progress', 0, 42);
+
+  const card = page.getByRole('article', { name: 'Me at the zoo' });
+  await card.getByRole('button', { name: 'Duraklat' }).click();
+  await expect(card).toContainText('Duraklatıldı');
+  await expect(card).toContainText('%42');
+  await expect.poll(() => calls(page, 'process_kill').then((c) => c.length)).toBe(1);
+  // Yarim dosya silinmez.
+  expect(await calls(page, 'plugin:fs|remove')).toHaveLength(0);
+
+  await card.getByRole('button', { name: 'Devam et' }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).__mock.state.downloads.length)).toBe(2);
+  await expect(card).toContainText('İndiriliyor');
+});
+
 test('indirme hatasi kartta gosterilir', async ({ page }) => {
   await mockTauri(page, { settings: accepted });
   await page.goto('/');

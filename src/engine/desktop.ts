@@ -56,6 +56,8 @@ async function removePartialFiles(destination: string, startedMs: number): Promi
 export class DesktopEngine implements DownloadEngine {
   /** Indirme kimligi -> surec kimligi, ya da surec baslamadan onceki durum. */
   private processes = new Map<string, number | 'starting' | 'cancel-requested'>();
+  /** Durdurulan sureclerden hangileri duraklatildi (iptal edilmedi). */
+  private pausing = new Set<string>();
 
   async getInfo(url: string, options: InfoOptions = {}): Promise<VideoInfo> {
     const deps = await getDependencies();
@@ -74,6 +76,7 @@ export class DesktopEngine implements DownloadEngine {
       return await this.runDownload(request, option, onProgress);
     } finally {
       this.processes.delete(request.id);
+      this.pausing.delete(request.id);
     }
   }
 
@@ -86,7 +89,7 @@ export class DesktopEngine implements DownloadEngine {
     if (!deps.ytdlp) return { status: 'error', message: msg().engine.noYtdlp };
     if (!deps.ffmpeg) return { status: 'error', message: msg().engine.noFfmpeg };
 
-    const { id: _id, formatId: _formatId, sponsorBlock, ...rest } = await resolveNetwork(request);
+    const { id: _id, formatId: _formatId, sponsorBlock, partialSince, ...rest } = await resolveNetwork(request);
     const args = buildDownloadArgs({
       ...rest,
       option,
@@ -100,7 +103,8 @@ export class DesktopEngine implements DownloadEngine {
     let filePath = '';
     let lastPercent = -1;
     const stderr: string[] = [];
-    const startedMs = Date.now();
+    // Surdurulen indirmede ilk denemenin dosyalari da bu indirmenindir.
+    const startedMs = Math.min(Date.now(), partialSince ?? Infinity);
 
     const proc = await spawnProcess('yt-dlp', args, {
       onStderr: (line) => stderr.push(line),
@@ -122,6 +126,7 @@ export class DesktopEngine implements DownloadEngine {
 
     const exit = await proc.exit;
     if (exit.killed) {
+      if (this.pausing.has(request.id)) return { status: 'paused', destination, startedMs };
       if (destination) await removePartialFiles(destination, startedMs);
       return { status: 'cancelled' };
     }
@@ -130,6 +135,16 @@ export class DesktopEngine implements DownloadEngine {
       return { status: 'complete', filePath, fileSize };
     }
     return { status: 'error', ...friendlyError(lastErrorLines(stderr.join('\n')) || msg().engine.downloadError) };
+  }
+
+  async pause(id: string): Promise<void> {
+    if (!this.processes.has(id)) return;
+    this.pausing.add(id);
+    await this.cancel(id);
+  }
+
+  async discardPartial(destination: string, sinceMs: number): Promise<void> {
+    if (destination) await removePartialFiles(destination, sinceMs);
   }
 
   async cancel(id: string): Promise<void> {

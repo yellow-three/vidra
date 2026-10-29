@@ -75,6 +75,8 @@ export interface DownloadRequest extends NetworkOptions {
   section?: TimeRange;
   /** ffprobe kurulu degilse motor yok sayar (src-tauri/src/ffprobe.rs). */
   sponsorBlock?: SponsorBlockMode;
+  /** Duraklatilip surdurulen indirmenin ilk basladigi an (Unix ms); iptalde o andan beri yazilanlar silinir. */
+  partialSince?: number;
 }
 
 /** `mark`: sponsor bolumleri dosyaya bolum olarak eklenir; `remove`: dosyadan kesilir. */
@@ -88,12 +90,18 @@ export interface TimeRange {
 export type DownloadResult =
   | { status: 'complete'; filePath: string; fileSize?: number }
   | { status: 'cancelled' }
+  /** Yarim dosyalar diskte kalir; ayni istekle yeniden indirilince yt-dlp kaldigi yerden surer. */
+  | { status: 'paused'; destination: string; startedMs: number }
   | { status: 'error'; message: string; detail?: string };
 
 export interface DownloadEngine {
   getInfo(url: string, options?: InfoOptions): Promise<VideoInfo>;
   download(request: DownloadRequest, onProgress: (p: DownloadProgress) => void): Promise<DownloadResult>;
   cancel(id: string): Promise<void>;
+  /** Indirmeyi durdurur ama yarim dosyalari silmez; `download` sonucu `paused` olur. */
+  pause(id: string): Promise<void>;
+  /** Duraklatilmis indirmenin yarim dosyalarini siler (duraklatilmisken iptal). */
+  discardPartial(destination: string, sinceMs: number): Promise<void>;
   updateEngine(): Promise<string | null>;
   engineVersion(): Promise<string | null>;
 }

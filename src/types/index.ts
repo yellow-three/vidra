@@ -30,11 +30,13 @@ export interface Task {
   section?: TimeRange;
   /** Inen dosyanin yolu (tamamlaninca). */
   filePath?: string;
+  /** Duraklatilan indirmenin yarim dosyasi; iptal edilirse silinir, surdurulunce yt-dlp devam eder. */
+  partial?: { destination: string; since: number };
   /** Uygulama kapanirken indiriliyordu ya da siradaydi; acilista kendiliginden surer. */
   resume?: boolean;
 }
 
-export type TaskStatus = 'analyzing' | 'ready-to-select' | 'queued' | 'downloading' | 'complete' | 'cancelled' | 'error';
+export type TaskStatus = 'analyzing' | 'ready-to-select' | 'queued' | 'downloading' | 'paused' | 'complete' | 'cancelled' | 'error';
 
 export interface AppSettings {
   downloadDir?: string;

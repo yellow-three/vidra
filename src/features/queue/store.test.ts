@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
   getInfo: vi.fn(),
   download: vi.fn(),
   cancel: vi.fn(),
+  pause: vi.fn(),
+  discardPartial: vi.fn(),
   addHistory: vi.fn(),
   fetchHistory: vi.fn(),
   openFileLocation: vi.fn(),
@@ -17,7 +19,9 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../../engine', () => ({
-  engine: { getInfo: mocks.getInfo, download: mocks.download, cancel: mocks.cancel },
+  engine: {
+    getInfo: mocks.getInfo, download: mocks.download, cancel: mocks.cancel, pause: mocks.pause, discardPartial: mocks.discardPartial,
+  },
 }));
 vi.mock('../settings/queries', () => ({ fetchSettings: async () => settings }));
 vi.mock('../history/queries', () => ({ addHistory: mocks.addHistory, fetchHistory: mocks.fetchHistory }));
@@ -337,5 +341,44 @@ describe('queue store', () => {
     expect(task('n1').status).toBe('ready-to-select');
     calls[0].finish({ status: 'cancelled' });
     await run;
+  });
+
+  it('duraklatir, yuzdeyi ve yarim dosyayi koruyarak surdurur; duraklatilmisken iptal yarim dosyayi siler', async () => {
+    const calls = controllableDownload();
+    const id = await addReadyTask('https://youtu.be/a');
+    let run = useQueueStore.getState().startDownload(id);
+    await flush();
+    calls[0].progress({ percent: 40, speed: '1 MB/s', eta: '00:10' });
+    await useQueueStore.getState().pause(id);
+    expect(mocks.pause).toHaveBeenCalledWith(id);
+    calls[0].finish({ status: 'paused', destination: '/out/A.mp4', startedMs: 1000 });
+    await run;
+    expect(task(id)).toMatchObject({ status: 'paused', percent: 40, speed: '', partial: { destination: '/out/A.mp4', since: 1000 } });
+    expect(mocks.notify).not.toHaveBeenCalled();
+
+    run = useQueueStore.getState().resume(id);
+    await flush();
+    expect(calls[1].req.partialSince).toBe(1000);
+    expect(task(id)).toMatchObject({ status: 'downloading', percent: 40 });
+    calls[1].finish({ status: 'paused', destination: '/out/A.mp4', startedMs: 1000 });
+    await run;
+
+    await useQueueStore.getState().cancel(id);
+    expect(task(id).status).toBe('cancelled');
+    expect(mocks.discardPartial).toHaveBeenCalledWith('/out/A.mp4', 1000);
+  });
+
+  it('siradaki indirme duraklatilinca hic baslamaz', async () => {
+    settings.maxConcurrentDownloads = 1;
+    const calls = controllableDownload();
+    const [a, b] = [await addReadyTask('https://v.test/a'), await addReadyTask('https://v.test/b')];
+    const runs = [a, b].map((id) => useQueueStore.getState().startDownload(id));
+    await flush();
+    await useQueueStore.getState().pause(b);
+    expect(task(b).status).toBe('paused');
+    calls[0].finish({ status: 'cancelled' });
+    await Promise.all(runs);
+    expect(calls).toHaveLength(1);
+    expect(mocks.pause).not.toHaveBeenCalled();
   });
 });
