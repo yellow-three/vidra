@@ -36,7 +36,7 @@ jobs:
         with:
           workspaces: src-tauri
       - run: npm ci
-      - uses: tauri-apps/tauri-action@v0
+      - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # ~/.tauri/youtube-downloader.key icerigi ve parolasi (repo Settings > Secrets).
@@ -60,6 +60,6 @@ jobs:
 
             İndirilen bileşenler: yt-dlp (Unlicense), deno (MIT), FFmpeg (LGPL, BtbN build'i; kaynak: https://github.com/BtbN/FFmpeg-Builds ve https://ffmpeg.org). FFmpeg lisans metni FFmpeg ile birlikte uygulamanın veri klasörüne kurulur.
           releaseDraft: true
-          includeUpdaterJson: true
+          uploadUpdaterJson: true
           # Yerel `tauri build` imza anahtari istemesin diye updater dosyalari yalnizca burada uretilir.
           args: --config '{"bundle":{"createUpdaterArtifacts":true}}'
