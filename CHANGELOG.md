@@ -4,6 +4,8 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/); sürümler [
 
 ## [Yayınlanmamış]
 
+## [0.3.1] - 2026-10-30
+
 ### Düzeltilenler
 - "Kapatınca tepside çalış" açıkken pencere, indirme olmasa da tepsiye geçiyor (önceden yalnızca indirme sürerken geçiyor, aksi halde uygulama kapanıyordu). "Arka planda çalışıyor" bildirimi oturumda bir kez gösteriliyor.
 
@@ -48,7 +50,8 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/); sürümler [
 
 - İlk sürüm ("YouTube Downloader" adıyla).
 
-[Yayınlanmamış]: https://github.com/yellow-three/vidra/compare/v0.3.0...HEAD
+[Yayınlanmamış]: https://github.com/yellow-three/vidra/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/yellow-three/vidra/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/yellow-three/vidra/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/yellow-three/vidra/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/yellow-three/vidra/compare/v0.2.0...v0.2.1
