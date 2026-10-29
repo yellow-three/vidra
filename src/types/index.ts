@@ -6,6 +6,8 @@ export interface VideoFormat {
   ext: string;
   note: string;
   filesize: string;
+  /** Bilinen ya da tahmini boyut (bayt); disk alani kontrolu icin. */
+  bytes?: number;
 }
 
 export interface Task {
@@ -28,11 +30,13 @@ export interface Task {
   section?: TimeRange;
   /** Inen dosyanin yolu (tamamlaninca). */
   filePath?: string;
+  /** Duraklatilan indirmenin yarim dosyasi; iptal edilirse silinir, surdurulunce yt-dlp devam eder. */
+  partial?: { destination: string; since: number };
   /** Uygulama kapanirken indiriliyordu ya da siradaydi; acilista kendiliginden surer. */
   resume?: boolean;
 }
 
-export type TaskStatus = 'analyzing' | 'ready-to-select' | 'queued' | 'downloading' | 'complete' | 'cancelled' | 'error';
+export type TaskStatus = 'analyzing' | 'ready-to-select' | 'queued' | 'downloading' | 'paused' | 'complete' | 'cancelled' | 'error';
 
 export interface AppSettings {
   downloadDir?: string;
@@ -63,6 +67,10 @@ export interface AppSettings {
   /** Son basarili otomatik yt-dlp guncellemesi, Unix ms. */
   ytdlpCheckedAt?: number;
   legalAccepted?: boolean;
+  /** Indirme surerken pencere kapatilinca tepside calismaya devam et (varsayilan acik). */
+  closeToTray?: boolean;
+  /** Kopyalanan linklerin kutuya gelmesi (varsayilan `youtube`). */
+  clipboardMode?: 'off' | 'youtube' | 'all';
   /** Arayuz dili; bos ise sistem dili. */
   language?: 'tr' | 'en';
 }

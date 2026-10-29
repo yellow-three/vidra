@@ -11,7 +11,13 @@ export interface YtdlpFormat {
   ext?: string;
   vcodec?: string | null;
   acodec?: string | null;
+  width?: number | null;
   height?: number | null;
+  fps?: number | null;
+  tbr?: number | null;
+  abr?: number | null;
+  format_note?: string | null;
+  dynamic_range?: string | null;
   filesize?: number | null;
   filesize_approx?: number | null;
 }
@@ -20,7 +26,12 @@ export const PROGRESS_PREFIX = '[progress] ';
 export const DEST_PREFIX = 'DEST:';
 export const FILE_PREFIX = 'FILE:';
 
+/** Ham format secenekleri: `fmt-v-137` (yalniz goruntu), `fmt-a-251` (yalniz ses), `fmt-av-18`. */
+const RAW_PREFIX = /^fmt-(av|v|a)-(.+)$/;
+
 export function parseOption(id: string): DownloadOption | null {
+  const raw = RAW_PREFIX.exec(id);
+  if (raw) return { kind: 'format', formatId: raw[2], video: raw[1] !== 'a', audio: raw[1] !== 'v' };
   if (id === 'audio-mp3') return { kind: 'mp3' };
   if (id === 'audio-m4a') return { kind: 'm4a' };
   if (id === 'video-best') return { kind: 'best-video' };
@@ -34,8 +45,12 @@ export function optionLabel(option: DownloadOption): string {
     case 'best-video': return msg().formats.best;
     case 'mp3': return 'MP3';
     case 'm4a': return 'M4A';
+    case 'format': return `${msg().formats.formatCode} ${option.formatId}`;
   }
 }
+
+/** Sonuc yalnizca ses mi (kapak yerine ses simgesi, altyazi yok). */
+export const isAudioOptionId = (id: string | undefined) => !!id && (id.startsWith('audio-') || id.startsWith('fmt-a-'));
 
 export function formatFilesize(bytes: number | null | undefined): string {
   if (bytes == null) return msg().formats.unknownSize;
@@ -62,23 +77,70 @@ export function buildOptions(formats: YtdlpFormat[]): FormatOption[] {
 
   const options: FormatOption[] = heights.map((h) => {
     const video = maxOf(formats.filter((f) => isVideo(f) && f.height === h).map(sizeOf));
+    const bytes = video == null ? undefined : video + (bestAudio ?? 0);
     return {
       formatId: `video-${h}`,
       resolution: `${h}p`,
       ext: 'mp4',
       note: msg().formats.videoAndAudio,
-      filesize: formatFilesize(video == null ? null : video + (bestAudio ?? 0)),
+      filesize: formatFilesize(bytes),
+      bytes,
     };
   });
 
-  if (options.length === 0) {
+  // Yalnizca ses sunan sitelerde (SoundCloud vb.) video secenegi olmaz.
+  const audioOnlySite = formats.length > 0 && formats.every((f) => !isVideo(f) && f.vcodec !== undefined && f.vcodec !== null);
+  if (options.length === 0 && !audioOnlySite) {
     options.push({ formatId: 'video-best', resolution: msg().formats.best, ext: 'mp4', note: msg().formats.videoAndAudio, filesize: formatFilesize(null) });
   }
   options.push(
-    { formatId: 'audio-mp3', resolution: m.audio, ext: 'mp3', note: m.bestQuality, filesize: formatFilesize(bestAudio) },
-    { formatId: 'audio-m4a', resolution: m.audio, ext: 'm4a', note: m.noConversion, filesize: formatFilesize(bestAudio) },
+    { formatId: 'audio-mp3', resolution: m.audio, ext: 'mp3', note: m.bestQuality, filesize: formatFilesize(bestAudio), bytes: bestAudio },
+    { formatId: 'audio-m4a', resolution: m.audio, ext: 'm4a', note: m.noConversion, filesize: formatFilesize(bestAudio), bytes: bestAudio },
   );
-  return options;
+  return [...options, ...rawOptions(formats, bestAudio)];
+}
+
+const codecName = (codec: string) => codec.split('.')[0];
+
+/**
+ * yt-dlp'nin listeledigi tum indirilebilir formatlar: once goruntulu olanlar (cozunurluk, sonra bit hizi),
+ * sonra yalniz ses (bit hizi). Onizleme gorselleri (storyboard) ve ne goruntu ne ses tasiyan girdiler atlanir.
+ */
+export function rawOptions(formats: YtdlpFormat[], bestAudio?: number): FormatOption[] {
+  const m = msg().formats;
+  const hasVideo = (f: YtdlpFormat) => isVideo(f) && f.vcodec !== 'images';
+  const hasAudio = (f: YtdlpFormat) => !!f.acodec && f.acodec !== 'none';
+  // Codec bilgisi vermeyen siteler (vcodec/acodec yok) birlesik format sayilir.
+  const unknown = (f: YtdlpFormat) => f.vcodec == null && f.acodec == null;
+  const rank = (f: YtdlpFormat) => [hasVideo(f) || unknown(f) ? 1 : 0, f.height ?? 0, f.fps ?? 0, f.tbr ?? f.abr ?? 0];
+  const byQuality = (a: YtdlpFormat, b: YtdlpFormat) => {
+    const [ra, rb] = [rank(a), rank(b)];
+    const i = ra.findIndex((v, k) => v !== rb[k]);
+    return i === -1 ? 0 : rb[i] - ra[i];
+  };
+  return formats
+    .filter((f) => f.ext !== 'mhtml' && (hasVideo(f) || hasAudio(f) || unknown(f)))
+    .sort(byQuality)
+    .map((f) => {
+      const video = hasVideo(f) || unknown(f);
+      const audio = hasAudio(f) || unknown(f);
+      const kind = video && audio ? 'av' : video ? 'v' : 'a';
+      const size = sizeOf(f);
+      // Yalniz goruntu formatina en iyi ses eklenir; tahmini boyut da ona gore.
+      const bytes = size == null ? undefined : kind === 'v' ? size + (bestAudio ?? 0) : size;
+      const fps = f.fps && f.fps > 30 ? ` ${Math.round(f.fps)}fps` : '';
+      const hdr = f.dynamic_range && f.dynamic_range !== 'SDR' ? ` ${f.dynamic_range}` : '';
+      const resolution = video
+        ? (f.height ? `${f.width ? `${f.width}x${f.height}` : `${f.height}p`}${fps}${hdr}` : f.format_note || m.unknownResolution)
+        : m.audio;
+      const bitrate = !video && f.abr ? ` ${Math.round(f.abr)}k` : '';
+      const codecs = [
+        video && f.vcodec && f.vcodec !== 'none' ? codecName(f.vcodec) : '',
+        audio && f.acodec && f.acodec !== 'none' ? codecName(f.acodec) + bitrate : '',
+      ].filter(Boolean).join(' + ');
+      const note = [codecs, kind === 'v' ? m.plusBestAudio : kind === 'a' ? m.audioOnly : ''].filter(Boolean).join(' · ');
+      return { formatId: `fmt-${kind}-${f.format_id}`, resolution, ext: f.ext ?? '', note, filesize: formatFilesize(bytes), bytes };
+    });
 }
 
 /** Oynatma listesi girdileri tek tek analiz edilmez; her cozunurluk "en fazla" olarak sunulur. */
@@ -223,7 +285,9 @@ export interface TemplateExtras {
  */
 export function outputTemplate(option: DownloadOption, template?: string, extras: TemplateExtras = {}): string {
   const base = FILENAME_TEMPLATES[template ?? ''] ?? FILENAME_TEMPLATES.title;
-  const quality = option.kind === 'video' || option.kind === 'best-video' ? ' [%(height)sp]' : '';
+  const quality = option.kind === 'format'
+    ? ' [%(format_id)s]'
+    : option.kind === 'video' || option.kind === 'best-video' ? ' [%(height)sp]' : '';
   const { section, subfolder } = extras;
   const clip = section
     ? ` [${formatClock(section.start, '.')}-${section.end != null ? formatClock(section.end, '.') : msg().formats.sectionEnd}]`
@@ -284,9 +348,14 @@ export function buildDownloadArgs({
     case 'm4a':
       args.push('-f', 'ba[ext=m4a]/ba/b', '-x', '--audio-format', 'm4a');
       break;
+    case 'format':
+      // Kap secilmez: yt-dlp kodeklere uyan kabi (mp4, webm ya da mkv) kendisi secer.
+      args.push('-f', option.video && !option.audio ? `${option.formatId}+ba/${option.formatId}` : option.formatId);
+      break;
   }
 
-  if (subtitles && option.kind !== 'mp3' && option.kind !== 'm4a') {
+  const audioOnly = option.kind === 'mp3' || option.kind === 'm4a' || (option.kind === 'format' && !option.video);
+  if (subtitles && !audioOnly) {
     // `--write-subs` eklenirse gomulduktan sonra .vtt dosyasi da diskte kalir.
     args.push('--embed-subs', '--sub-langs', subtitleLangs?.trim() || 'tr,en');
   }
@@ -297,7 +366,12 @@ export function buildDownloadArgs({
   if (sponsorBlock === 'remove') args.push('--sponsorblock-remove', SPONSOR_REMOVE);
 
   // MP4/MP3/M4A'da ffprobe olmadan calisir (webp kapak ffmpeg ile PNG'ye cevrilir).
-  if (embedMetadata) args.push('--embed-thumbnail', '--embed-metadata');
+  if (embedMetadata) {
+    // Ham ses formatlari webm olabilir; yt-dlp webm'e kapak gomemez ve indirmeyi hatayla bitirir.
+    // Videolarda sorun yok: yt-dlp kapak icin webm yerine mkv secer.
+    if (!(option.kind === 'format' && !option.video)) args.push('--embed-thumbnail');
+    args.push('--embed-metadata');
+  }
   if (rateLimit) args.push('--limit-rate', rateLimit);
   if (ffmpegPath) args.push('--ffmpeg-location', ffmpegPath);
   args.push(...networkArgs(network), ...jsRuntimeArgs(denoPath), ...urlArgs(url));

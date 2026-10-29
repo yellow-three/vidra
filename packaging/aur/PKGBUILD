@@ -4,11 +4,12 @@
 pkgname=vidra-bin
 pkgver=0.2.0
 pkgrel=1
-pkgdesc='YouTube video and audio downloader (yt-dlp + FFmpeg, downloaded on first run)'
+pkgdesc='Video and audio downloader for YouTube and other yt-dlp sites (yt-dlp + FFmpeg, downloaded on first run)'
 arch=('x86_64')
 url='https://github.com/yellow-three/vidra'
 license=('MIT')
 depends=('webkit2gtk-4.1' 'gtk3' 'hicolor-icon-theme')
+optdepends=('libayatana-appindicator: indirme surerken sistem tepsisi simgesi')
 provides=('vidra')
 conflicts=('vidra')
 # Hazir derlenmis release ikilisi; yeniden strip edilmez. yt-dlp, FFmpeg ve deno ilk acilista

@@ -6,6 +6,13 @@
   "permissions": [
     "core:default",
     "core:window:allow-destroy",
+    "core:window:allow-hide",
+    "core:window:allow-show",
+    "core:window:allow-set-focus",
+    "core:window:allow-minimize",
+    "core:window:allow-unminimize",
+    "core:app:allow-default-window-icon",
+    "core:app:allow-exit",
     "opener:default",
     "dialog:default",
     "dialog:allow-open",
@@ -16,6 +23,7 @@
     "fs:allow-stat",
     "fs:allow-remove",
     "notification:default",
+    "log:default",
     "sql:default",
     "sql:allow-execute"
   ]

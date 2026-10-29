@@ -5,6 +5,9 @@ import './index.css'
 import { queryClient } from './app/queryClient'
 import { ThemeProvider } from './app/ThemeContext'
 import App from './app/App'
+import { forwardConsoleToLog } from './lib/log'
+
+forwardConsoleToLog()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

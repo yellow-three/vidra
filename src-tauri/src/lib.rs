@@ -3,6 +3,7 @@ pub mod appimage;
 pub mod legacy;
 mod cookies;
 mod dependencies;
+mod disk;
 mod events;
 mod system_tools;
 mod tools;
@@ -225,6 +226,12 @@ fn files_exist(paths: Vec<String>) -> Vec<bool> {
         .collect()
 }
 
+/// Klasorun diskindeki bos alan (bayt); olculemezse `None` (kontrol atlanir).
+#[tauri::command]
+fn free_space(path: String) -> Option<u64> {
+    disk::free_space(std::path::Path::new(&path))
+}
+
 #[tauri::command]
 fn start_clipboard_monitor(app: AppHandle, state: State<'_, AppState>) -> CommandResult<Value> {
     let mut monitor = state.clipboard_monitor.lock().map_err(|e| e.to_string())?;
@@ -264,6 +271,67 @@ fn process_kill(id: u32, state: State<'_, AppState>) -> bool {
     state.processes.kill(id)
 }
 
+/// Linux'ta tepsi simgesi AppIndicator kutuphanesiyle cizilir; yoksa tray-icon kutuphanesi
+/// simgeyi olustururken panikler ve uygulama (suren indirmelerle birlikte) kapanir.
+/// Arayuz bu durumda pencereyi tepsiye gizlemek yerine kucultur.
+#[tauri::command]
+fn tray_available() -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        // libappindicator-sys ile ayni adlar ve sira.
+        [
+            "libayatana-appindicator3.so.1",
+            "libappindicator3.so.1",
+            "libayatana-appindicator3.so",
+            "libappindicator3.so",
+        ]
+        .iter()
+        .any(|name| {
+            let c_name = std::ffi::CString::new(*name).expect("sabit ad");
+            // SAFETY: NUL ile biten ad; kutuphane yalnizca varligi icin acilip hemen kapatilir.
+            unsafe {
+                let handle = libc::dlopen(c_name.as_ptr(), libc::RTLD_LAZY);
+                if handle.is_null() {
+                    return false;
+                }
+                libc::dlclose(handle);
+                true
+            }
+        })
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        true
+    }
+}
+
+/// Kayitlar uygulamanin kayit klasorunde tek dosyada tutulur; 2 MB'i gecince eskisi silinir.
+fn log_plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
+    use tauri_plugin_log::{RotationStrategy, Target, TargetKind};
+    tauri_plugin_log::Builder::new()
+        .targets([
+            Target::new(TargetKind::LogDir { file_name: Some("vidra".into()) }),
+            Target::new(TargetKind::Stdout),
+        ])
+        .level(tauri_plugin_log::log::LevelFilter::Info)
+        // Tek ornek kontrolunun DBus el sikismasi her acilista onlarca satir yazardi.
+        .level_for("zbus", tauri_plugin_log::log::LevelFilter::Warn)
+        .level_for("tracing", tauri_plugin_log::log::LevelFilter::Warn)
+        .max_file_size(2_000_000)
+        .rotation_strategy(RotationStrategy::KeepOne)
+        .build()
+}
+
+/// Kayit klasorunu dosya yoneticisinde acar (Ayarlar > Sistem, hata bildirirken eklemek icin).
+#[tauri::command]
+fn open_log_folder(app: AppHandle) -> CommandResult<Value> {
+    use tauri_plugin_opener::OpenerExt;
+    let dir = app.path().app_log_dir().map_err(|e| e.to_string())?;
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    app.opener().open_path(dir.to_string_lossy(), None::<&str>).map_err(|e| e.to_string())?;
+    Ok(ok())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default();
@@ -285,6 +353,7 @@ pub fn run() {
             .build(),
     );
     builder
+        .plugin(log_plugin())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -321,6 +390,9 @@ pub fn run() {
             open_file_location,
             open_file,
             files_exist,
+            free_space,
+            open_log_folder,
+            tray_available,
             start_clipboard_monitor,
             stop_clipboard_monitor,
             process_spawn,

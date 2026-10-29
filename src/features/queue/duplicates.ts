@@ -39,13 +39,18 @@ const YOUTUBE_HOST = /^(?:(?:www|m|music)\.)?(?:youtube\.com|youtu\.be)$/;
 
 const isYoutubeUrl = (text: string) => isHttpUrl(text) && YOUTUBE_HOST.test(new URL(text).hostname);
 
+/** Pano izleme: kapali, yalnizca YouTube linkleri ya da her http(s) linki (yt-dlp yuzlerce siteyi destekler). */
+export type ClipboardMode = 'off' | 'youtube' | 'all';
+
 /**
- * Panodan gelen metnin YouTube linklerini kutudakilere ekler; kutuda yazilani silmez,
+ * Panodan gelen metnin linklerini kutudakilere ekler; kutuda yazilani silmez,
  * kutuda zaten olan link tekrar eklenmez. Eklenecek link yoksa kutu aynen kalir.
  */
-export function mergeClipboardLinks(box: string, clipboard: string): string {
+export function mergeClipboardLinks(box: string, clipboard: string, mode: ClipboardMode = 'youtube'): string {
+  if (mode === 'off') return box;
+  const accept = mode === 'all' ? isHttpUrl : isYoutubeUrl;
   const present = new Set(splitUrls(box).map(videoKey));
-  const fresh = splitUrls(clipboard).filter((u) => isYoutubeUrl(u) && !present.has(videoKey(u)));
+  const fresh = splitUrls(clipboard).filter((u) => accept(u) && !present.has(videoKey(u)));
   if (fresh.length === 0) return box;
   return [box.trim(), ...new Set(fresh)].filter(Boolean).join(' ');
 }

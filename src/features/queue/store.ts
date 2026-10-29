@@ -4,18 +4,20 @@
 import { create } from 'zustand';
 import { engine } from '../../engine';
 import { EngineError } from '../../engine/errors';
-import type { InfoOptions, NetworkOptions, TimeRange, VideoInfo } from '../../engine/types';
+import type { DownloadResult, InfoOptions, NetworkOptions, TimeRange, VideoInfo } from '../../engine/types';
 import { formatFilesize, optionLabel, parseOption } from '../../engine/ytdlp';
 import { appApi } from '../../lib/appApi';
 import type { AppSettings, Task } from '../../types';
 import { addHistory, fetchHistory } from '../history/queries';
 import { fetchSettings } from '../settings/queries';
 import { pickDefaultFormat } from './defaultFormat';
-import { isHttpUrl, mergeClipboardLinks, splitUrls, videoKey } from './duplicates';
+import { isHttpUrl, mergeClipboardLinks, splitUrls, videoKey, type ClipboardMode } from './duplicates';
 import { createLimiter } from './limiter';
+import { diskShortage } from './diskSpace';
 import { notifyComplete } from './notify';
 import { loadTasks, saveTasks } from './persistence';
 import { msg } from '../../i18n';
+import { log } from '../../lib/log';
 
 export const DEFAULT_CONCURRENT_DOWNLOADS = 2;
 const limiter = createLimiter(DEFAULT_CONCURRENT_DOWNLOADS);
@@ -40,7 +42,7 @@ interface QueueState {
    */
   analyze(): Promise<string | null>;
   /** Panoda yakalanan metnin linklerini kutuya ekler. */
-  addClipboardText(text: string): void;
+  addClipboardText(text: string, mode?: ClipboardMode): void;
   /** Uygulama kapanirken suren ya da siradaki indirmeleri yeniden baslatir. */
   resumeInterrupted(): Promise<void>;
   /** `watch?v=..&list=..` gorevini listenin tum videolariyla degistirir. */
@@ -52,6 +54,10 @@ interface QueueState {
   /** Format secimini bekleyen tum gorevleri listedeki sirayla kuyruga alir. */
   startAll(): Promise<void>;
   cancel(id: string): Promise<void>;
+  /** Siradaki ya da suren indirmeyi durdurur; yarim dosya kalir. */
+  pause(id: string): Promise<void>;
+  /** Duraklatilan indirmeyi kaldigi yerden surdurur. */
+  resume(id: string): Promise<void>;
   retry(id: string): Promise<void>;
   move(id: string, direction: 'up' | 'down'): void;
   /** Tamamlanan ve iptal edilen gorevleri listeden kaldirir. */
@@ -139,7 +145,9 @@ export const useQueueStore = create<QueueState>()((set, get) => {
         detail: undefined,
       });
     } catch (error) {
-      update(id, { status: 'error', ...errorFields(error) });
+      const fields = errorFields(error);
+      log.warn(`Analiz hatası ${url}: ${fields.message}${fields.detail ? `\n${fields.detail}` : ''}`);
+      update(id, { status: 'error', ...fields });
     }
   }
 
@@ -173,7 +181,7 @@ export const useQueueStore = create<QueueState>()((set, get) => {
 
     setUrl: (url) => set({ url }),
 
-    addClipboardText: (text) => set((s) => ({ url: mergeClipboardLinks(s.url, text) })),
+    addClipboardText: (text, mode) => set((s) => ({ url: mergeClipboardLinks(s.url, text, mode) })),
 
     async resumeInterrupted() {
       const interrupted = get().tasks.filter((t) => t.resume && t.status === 'ready-to-select');
@@ -212,7 +220,9 @@ export const useQueueStore = create<QueueState>()((set, get) => {
       const task = find(id);
       const formatId = task?.selectedFormatId || task?.formats?.[0]?.formatId;
       if (!task || !formatId) return;
-      force(id, { status: 'queued', selectedFormatId: formatId, resume: undefined, percent: 0, speed: '', eta: '', message: undefined, detail: undefined });
+      // Surdurulen indirme yuzdesini korur; yt-dlp kaldigi yerden raporlar.
+      const percent = task.status === 'paused' ? task.percent : 0;
+      force(id, { status: 'queued', selectedFormatId: formatId, resume: undefined, percent, speed: '', eta: '', message: undefined, detail: undefined });
 
       try {
         const settings = await fetchSettings();
@@ -221,7 +231,12 @@ export const useQueueStore = create<QueueState>()((set, get) => {
         const result = await limiter.run(id, async () => {
           // Ayarlar okunurken iptal edildiyse hic baslama.
           if (find(id)?.status === 'cancelled') return { status: 'cancelled' } as const;
+          // Sira gelince olculur: bekleyen indirmeler arasinda baskalari diski doldurmus olabilir.
+          const bytes = task.formats?.find((f) => f.formatId === formatId)?.bytes;
+          const shortage = diskShortage(await appApi.freeSpace(outDir).catch(() => null), bytes);
+          if (shortage) return { status: 'error', message: shortage } satisfies DownloadResult;
           update(id, { status: 'downloading' });
+          log.info(`İndirme başladı ${task.url} (${formatId})`);
           return engine.download(
             {
               id,
@@ -236,18 +251,27 @@ export const useQueueStore = create<QueueState>()((set, get) => {
               embedMetadata: settings.embedMetadata ?? true,
               filenameTemplate: settings.filenameTemplate,
               rateLimit: settings.rateLimit || undefined,
+              partialSince: task.partial?.since,
               ...networkOptions(settings),
             },
             (p) => update(id, { percent: p.percent, speed: p.speed, eta: p.eta }),
           );
         });
 
-        if (result === null || result.status === 'cancelled') {
-          force(id, { status: 'cancelled', message: undefined });
+        if (result === null) {
+          // Siradayken duraklatildi ya da iptal edildi; durumu pause/cancel yazdi.
+        } else if (result.status === 'paused') {
+          log.info(`İndirme duraklatıldı ${task.url}`);
+          force(id, { status: 'paused', speed: '', eta: '', partial: { destination: result.destination, since: result.startedMs } });
+        } else if (result.status === 'cancelled') {
+          log.info(`İndirme iptal edildi ${task.url}`);
+          force(id, { status: 'cancelled', message: undefined, partial: undefined });
         } else if (result.status === 'error') {
+          log.error(`İndirme hatası ${task.url} (${formatId}): ${result.message}${result.detail ? `\n${result.detail}` : ''}`);
           update(id, { status: 'error', message: result.message, detail: result.detail });
         } else {
-          update(id, { status: 'complete', percent: 100, filePath: result.filePath });
+          log.info(`İndirme tamamlandı ${task.url}: ${result.filePath}`);
+          update(id, { status: 'complete', percent: 100, filePath: result.filePath, partial: undefined });
           batch = { count: batch.count + 1, lastTitle: task.title };
           await saveCompleted(find(id) ?? task, formatId, result.filePath, result.fileSize);
         }
@@ -263,14 +287,16 @@ export const useQueueStore = create<QueueState>()((set, get) => {
     },
 
     async cancel(id) {
+      const task = find(id);
       // Siradaki is hic baslamaz.
       if (limiter.dequeue(id)) {
         force(id, { status: 'cancelled', message: undefined });
+        if (task?.partial) void engine.discardPartial(task.partial.destination, task.partial.since);
         return;
       }
-      const task = find(id);
       if (task && task.status !== 'downloading') {
-        force(id, { status: 'cancelled' });
+        force(id, { status: 'cancelled', partial: undefined });
+        if (task.partial) void engine.discardPartial(task.partial.destination, task.partial.since);
         return;
       }
       // Calisan indirmeyi motor sonlandirir; startDownload sonucu "cancelled" olarak isler.
@@ -280,6 +306,16 @@ export const useQueueStore = create<QueueState>()((set, get) => {
         console.warn('İptal başarısız:', error);
       }
     },
+
+    async pause(id) {
+      if (limiter.dequeue(id)) {
+        force(id, { status: 'paused', speed: '', eta: '' });
+        return;
+      }
+      if (find(id)?.status === 'downloading') await engine.pause(id);
+    },
+
+    resume: (id) => get().startDownload(id),
 
     async retry(id) {
       const task = find(id);

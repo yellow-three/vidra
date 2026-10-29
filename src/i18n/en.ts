@@ -22,7 +22,7 @@ const en: Messages = {
     title: 'Terms of use',
     text:
       'This app is meant only for content you have the right to download. '
-      + 'You alone are responsible for using downloaded content in line with copyright law and the YouTube Terms of Service.',
+      + 'You alone are responsible for using downloaded content in line with copyright law and the terms of the site it comes from (YouTube and others).',
     accept: 'I understand and accept',
   },
 
@@ -84,6 +84,13 @@ const en: Messages = {
     cancel: 'Cancel',
   },
 
+  tray: {
+    show: 'Show Vidra',
+    quit: 'Quit',
+    backgroundTitle: 'Vidra is running in the background',
+    backgroundBody: 'Downloads continue. Click the tray icon or open Vidra again to bring the window back.',
+  },
+
   notify: {
     title: 'Download complete',
     batch: (n) => `${n} downloads complete.`,
@@ -91,9 +98,9 @@ const en: Messages = {
 
   queue: {
     title: 'Download',
-    subtitle: 'Download YouTube videos as video or audio.',
+    subtitle: 'Download video or audio from YouTube and the hundreds of sites yt-dlp supports.',
     clipboard: 'Watching clipboard',
-    clipboardTip: 'Copied YouTube links appear in the box automatically',
+    clipboardTip: { youtube: 'Copied YouTube links appear in the box automatically', all: 'Every copied link appears in the box automatically' },
     stats: { pending: 'Pending', downloading: 'Downloading', complete: 'Complete', error: 'Failed' },
     newVersion: (v) => `Version ${v} is available`,
     downloadsFolder: 'Downloads',
@@ -105,15 +112,17 @@ const en: Messages = {
     duplicateInHistory: 'You downloaded this video before; it is on the History page.',
     interrupted: 'Interrupted when the app closed; press Download to resume.',
     analysisInterrupted: 'Lookup was interrupted; please try again.',
+    diskFull: (needed, free) =>
+      `Not enough free disk space: about ${needed} needed, ${free} free. Free up space or pick another download folder in Settings.`,
   },
 
   addUrl: {
-    label: 'YouTube link',
+    label: 'Video link',
     clear: 'Clear link',
     analyze: 'Analyze',
     preparing: 'Preparing...',
     invalid: 'Please enter a valid link (starting with http:// or https://).',
-    hint: 'Copied YouTube links appear here automatically. You can paste several links at once; pick the format after the lookup.',
+    hint: 'Paste links from YouTube or any other site yt-dlp supports, several at once if you like. Pick the format after the lookup.',
   },
 
   list: {
@@ -138,12 +147,14 @@ const en: Messages = {
     retry: 'Retry',
     remove: 'Remove',
     openFolder: 'Open folder',
+    report: 'Report a problem',
     detail: 'Details',
     badge: {
       analyzing: 'Analyzing',
       ready: 'Pick a format',
       queued: 'Queued',
       downloading: 'Downloading',
+      paused: 'Paused',
       complete: 'Complete',
       cancelled: 'Cancelled',
       error: 'Error',
@@ -153,9 +164,13 @@ const en: Messages = {
     progress: 'Download progress',
     remaining: (eta) => `${eta} left`,
     cancel: 'Cancel',
+    pause: 'Pause',
+    resume: 'Resume',
+    pausedHint: 'Paused; Resume continues where it left off.',
     format: 'Format',
     videoGroup: 'Video (MP4)',
     audioGroup: 'Audio only',
+    allFormatsGroup: 'All formats (yt-dlp)',
     download: 'Download',
   },
 
@@ -179,6 +194,10 @@ const en: Messages = {
     upTo: 'up to this quality',
     unknownSize: 'Unknown',
     unknownVideo: 'Unknown video',
+    unknownResolution: 'Video',
+    formatCode: 'Format',
+    plusBestAudio: 'with best audio',
+    audioOnly: 'audio only',
     playlist: 'Playlist',
     sectionEnd: 'end',
   },
@@ -247,6 +266,12 @@ const en: Messages = {
     subtitleLangs: 'Subtitle languages',
     subtitleLangsHint: 'Comma-separated language codes, e.g. en,de. Empty means Turkish and English.',
     subtitleLangsInvalid: 'Separate language codes with commas, e.g. en,de.',
+    behavior: 'Behavior',
+    clipboardMode: 'Clipboard watching',
+    clipboardModes: { youtube: 'YouTube links only', all: 'All links', off: 'Off' },
+    closeToTray: 'Keep running in the tray',
+    closeToTrayHint: 'If you close the window while downloading, Vidra moves to the system tray and the downloads continue. When off, you are asked before closing.',
+    clipboardModeHint: 'Links you copy appear in the download box by themselves. "All links" is for the other sites yt-dlp supports.',
     appearance: 'Appearance',
     language: 'Language',
     theme: 'Theme',
@@ -258,6 +283,9 @@ const en: Messages = {
     updating: 'Updating...',
     update: 'Update',
     updateFailed: (e) => `Update failed: ${e}`,
+    logs: 'Log files',
+    logsHint: 'You can attach vidra.log when reporting a problem.',
+    openLogs: 'Open folder',
     autoUpdate: 'Update yt-dlp automatically',
     autoUpdateHint: 'Downloads can break when YouTube changes; yt-dlp is updated once a week when the app starts.',
     app: 'App',
@@ -339,7 +367,7 @@ const en: Messages = {
     geo: 'This video is not available in your region. You can try with a proxy.',
     unavailable: 'This video is unavailable; it may have been deleted or removed.',
     upcoming: 'This video has not premiered yet.',
-    unsupported: 'This link is not supported. Paste a YouTube video or playlist link.',
+    unsupported: 'yt-dlp does not support this link. Paste the link of the video page or playlist.',
     format: 'The chosen format is not available for this video. Pick another quality.',
     forbidden: 'YouTube refused the download (403). Update yt-dlp in Settings and try again.',
     rateLimited: 'YouTube is temporarily blocking requests. Wait a while or use cookies.',

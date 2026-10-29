@@ -17,11 +17,13 @@ export default function QueuePage() {
   const { selectFormat, startDownload, startAll, cancel, retry, move, expandPlaylist, clearFinished } = useQueueStore.getState();
   const { status, depsReady } = useAppStatus();
   const appUpdate = useAppUpdate().data;
-  const downloadDir = useSettings().data?.downloadDir;
+  const settings = useSettings().data;
+  const downloadDir = settings?.downloadDir;
+  const clipboardMode = settings?.clipboardMode ?? 'youtube';
 
   const count = (pred: (s: string) => boolean) => queue.filter((t) => pred(t.status)).length;
   const stats = [
-    { label: m.queue.stats.pending, value: count((s) => s === 'ready-to-select' || s === 'analyzing' || s === 'queued') },
+    { label: m.queue.stats.pending, value: count((s) => s === 'ready-to-select' || s === 'analyzing' || s === 'queued' || s === 'paused') },
     { label: m.queue.stats.downloading, value: count((s) => s === 'downloading') },
     { label: m.queue.stats.complete, value: count((s) => s === 'complete') },
     { label: m.queue.stats.error, value: count((s) => s === 'error') },
@@ -33,9 +35,11 @@ export default function QueuePage() {
         title={m.queue.title}
         subtitle={m.queue.subtitle}
         actions={
-          <span className="badge badge-ghost gap-1.5" title={m.queue.clipboardTip}>
-            <ClipboardCheck size={14} /> {m.queue.clipboard}
-          </span>
+          clipboardMode !== 'off' && (
+            <span className="badge badge-ghost gap-1.5" title={m.queue.clipboardTip[clipboardMode]}>
+              <ClipboardCheck size={14} /> {m.queue.clipboard}
+            </span>
+          )
         }
       />
 

@@ -17,6 +17,8 @@ export default function StatusBadge({ task }: { task: Task }) {
       return <span className="badge badge-ghost badge-sm">{b.queued}</span>;
     case 'downloading':
       return <span className="badge badge-primary badge-soft badge-sm">{b.downloading}</span>;
+    case 'paused':
+      return <span className="badge badge-warning badge-soft badge-sm">{b.paused}</span>;
     case 'complete':
       return <span className="badge badge-success badge-soft badge-sm">{b.complete}</span>;
     case 'cancelled':

@@ -1,6 +1,7 @@
-import { ChevronDown, ChevronUp, CircleAlert, FolderOpen, Info, ListPlus, ListVideo, RotateCcw, X } from 'lucide-react';
+import { Bug, ChevronDown, ChevronUp, CircleAlert, FolderOpen, Info, ListPlus, ListVideo, RotateCcw, X } from 'lucide-react';
+import { reportIssue } from './reportIssue';
 import { appApi } from '../../lib/appApi';
-import { isVideoInPlaylist } from '../../engine/ytdlp';
+import { isAudioOptionId, isVideoInPlaylist } from '../../engine/ytdlp';
 import type { Task } from '../../types';
 import DownloadProgress from './DownloadProgress';
 import FormatSelector from './FormatSelector';
@@ -53,7 +54,7 @@ export default function TaskCard({
 
           <Thumbnail
             src={task.thumbnail}
-            audio={task.selectedFormatId?.startsWith('audio-')}
+            audio={isAudioOptionId(task.selectedFormatId)}
             loading={analyzing}
             className="w-36"
           />
@@ -111,7 +112,9 @@ export default function TaskCard({
 
         <FormatSelector task={task} onFormatChange={onFormatChange} onStartDownload={onStartDownload} />
         {ready && task.formats && <SectionPicker task={task} />}
-        {(task.status === 'downloading' || task.status === 'queued') && <DownloadProgress task={task} onCancel={onCancel} />}
+        {(task.status === 'downloading' || task.status === 'queued' || task.status === 'paused') && (
+          <DownloadProgress task={task} onCancel={onCancel} />
+        )}
         {ready && task.message && (
           <div role="status" className="alert alert-info alert-soft py-2 text-sm">
             <Info size={16} />
@@ -129,6 +132,9 @@ export default function TaskCard({
                   <p className="font-mono break-words whitespace-pre-wrap mt-1">{task.detail}</p>
                 </details>
               )}
+              <button onClick={() => void reportIssue(task)} className="btn btn-ghost btn-xs gap-1 self-start -ml-2">
+                <Bug size={12} /> {m.task.report}
+              </button>
             </div>
           </div>
         )}

@@ -6,6 +6,9 @@ import { msg } from '../../i18n';
 import { appApi } from '../../lib/appApi';
 import { setStatus, useAppStatus } from './appStatus';
 import { hasActiveDownloads, useQueueStore } from './store';
+import type { ClipboardMode } from './duplicates';
+import { fetchSettings } from '../settings/queries';
+import { hideToTray } from '../../app/tray';
 import { checkForAppUpdateInBackground } from '../settings/appUpdate';
 import { autoUpdateYtdlp } from '../settings/ytdlpAutoUpdate';
 
@@ -17,10 +20,19 @@ async function missingDependencies(): Promise<string[]> {
   return [!deps.ytdlp && 'yt-dlp', !deps.ffmpeg && 'FFmpeg', !deps.deno && 'deno'].filter((n): n is string => Boolean(n));
 }
 
-/** Suren indirme varken pencere kapatilirsa sorar; indirmeler kapaninca durur (process.rs kill_all). */
+/**
+ * Suren indirme varken pencere kapatilirsa: ayar aciksa tepsiye gizlenir, kapaliysa sorar
+ * (indirmeler kapaninca durur, process.rs kill_all).
+ */
 function confirmCloseWithActiveDownloads(): void {
   void getCurrentWindow().onCloseRequested(async (event) => {
     if (!hasActiveDownloads()) return;
+    const settings = await fetchSettings().catch(() => null);
+    if (settings?.closeToTray ?? true) {
+      event.preventDefault();
+      await hideToTray();
+      return;
+    }
     const m = msg().closeDialog;
     const close = await ask(m.body, { title: m.title, kind: 'warning', okLabel: m.ok, cancelLabel: m.cancel });
     if (!close) event.preventDefault();
@@ -48,6 +60,14 @@ export async function refreshDependencyStatus(): Promise<void> {
   }
 }
 
+let clipboardMode: ClipboardMode = 'youtube';
+
+/** Pano izleyicisini ayara gore baslatir/durdurur; Ayarlar degisince de cagrilir. */
+export function applyClipboardMode(mode: ClipboardMode): void {
+  clipboardMode = mode;
+  void (mode === 'off' ? appApi.stopClipboardMonitor() : appApi.startClipboardMonitor());
+}
+
 /** Uygulama omru boyunca bir kez cagrilir (StrictMode cift efektine karsi korumali). */
 let started = false;
 export function startApp(): void {
@@ -55,8 +75,8 @@ export function startApp(): void {
   started = true;
 
   void refreshDependencyStatus();
-  void appApi.onClipboardLink((text) => useQueueStore.getState().addClipboardText(text));
-  void appApi.startClipboardMonitor();
+  void appApi.onClipboardLink((text) => useQueueStore.getState().addClipboardText(text, clipboardMode));
+  void fetchSettings().then((s) => applyClipboardMode(s.clipboardMode ?? 'youtube'), () => applyClipboardMode('youtube'));
   checkForAppUpdateInBackground();
   confirmCloseWithActiveDownloads();
 }

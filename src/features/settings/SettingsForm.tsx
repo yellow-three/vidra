@@ -1,5 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { HardDrive, Info, Package, Palette, RefreshCw, SlidersHorizontal } from 'lucide-react';
+import { FolderOpen, HardDrive, Info, MousePointerClick, Package, Palette, RefreshCw, SlidersHorizontal } from 'lucide-react';
+import { applyClipboardMode } from '../queue/bootstrap';
+import type { ClipboardMode } from '../queue/duplicates';
 import type { AppSettings } from '../../types';
 import { engine } from '../../engine';
 import { LANGUAGES, useLanguageCode, useT, type Language } from '../../i18n';
@@ -102,6 +104,28 @@ export default function SettingsForm() {
 
       <NetworkSettings />
 
+      <Section title={m.behavior} icon={<MousePointerClick size={18} />}>
+        <div className="sm:w-1/2">
+          <SelectField
+            legend={m.clipboardMode}
+            value={settings.clipboardMode ?? 'youtube'}
+            options={(['youtube', 'all', 'off'] as const).map((v) => [v, m.clipboardModes[v]])}
+            onChange={(v) => {
+              const mode = v as ClipboardMode;
+              save.mutate({ clipboardMode: mode });
+              applyClipboardMode(mode);
+            }}
+            hint={m.clipboardModeHint}
+          />
+        </div>
+        <ToggleRow
+          label={m.closeToTray}
+          description={m.closeToTrayHint}
+          checked={settings.closeToTray ?? true}
+          onChange={(v) => updateAndSave('closeToTray', v)}
+        />
+      </Section>
+
       <Section title={m.appearance} icon={<Palette size={18} />}>
         <div className="sm:w-1/3">
           <SelectField
@@ -132,6 +156,16 @@ export default function SettingsForm() {
           checked={settings.autoUpdateYtdlp ?? true}
           onChange={(v) => updateAndSave('autoUpdateYtdlp', v)}
         />
+        <div className="divider my-0" />
+        <div className="flex items-center gap-3">
+          <span>
+            <span className="block text-sm">{m.logs}</span>
+            <span className="block text-xs text-base-content/60">{m.logsHint}</span>
+          </span>
+          <button onClick={() => void appApi.openLogFolder()} className="btn btn-sm ml-auto gap-1.5">
+            <FolderOpen size={14} /> {m.openLogs}
+          </button>
+        </div>
         <div className="divider my-0" />
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm">{m.app}</span>
