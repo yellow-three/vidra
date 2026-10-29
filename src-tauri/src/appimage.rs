@@ -75,13 +75,21 @@ mod tests {
 
     #[test]
     fn appimage_icinde_sistem_kutuphanesini_one_alir() {
-        assert_eq!(preload_value(Some("/x.AppImage".into()), false, None, only(LIB)), Some(LIB.into()));
+        assert_eq!(
+            preload_value(Some("/x.AppImage".into()), false, None, only(LIB)),
+            Some(LIB.into())
+        );
     }
 
     #[test]
     fn mevcut_ld_preload_korunur() {
         assert_eq!(
-            preload_value(Some("/x.AppImage".into()), false, Some("/opt/hook.so".into()), only(LIB)),
+            preload_value(
+                Some("/x.AppImage".into()),
+                false,
+                Some("/opt/hook.so".into()),
+                only(LIB)
+            ),
             Some(format!("{LIB}:/opt/hook.so").into())
         );
     }
@@ -99,6 +107,9 @@ mod tests {
     #[test]
     fn diger_mimari_yollarini_da_bulur() {
         let arm = "/usr/lib/aarch64-linux-gnu/libwayland-client.so.0";
-        assert_eq!(preload_value(Some("/x.AppImage".into()), false, None, only(arm)), Some(arm.into()));
+        assert_eq!(
+            preload_value(Some("/x.AppImage".into()), false, None, only(arm)),
+            Some(arm.into())
+        );
     }
 }
