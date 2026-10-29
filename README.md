@@ -82,6 +82,23 @@ Ayarlar, geçmiş ve indirilen bileşenler kaldırmadan sonra da kalır; tamamen
 
 İlk hedef masaüstü; Android sonraya bırakıldı.
 
+## Mimari kararlar ve yol haritası
+
+- **Tauri 2 + React/TS**: tek kod tabanıyla Windows, macOS, Linux ve Android. Flutter (Dart deneyimi yok), Compose Multiplatform (tamamı Kotlin), Lynx (Linux yok, ekosistem genç), React Native/Expo (Linux masaüstü yok) ve Electron (ağır, mobil yok) elendi. Plan B: Android deneyimi yetersiz kalırsa Expo (mobil) + Tauri (masaüstü) + ortak TS paketleri (motor, kuyruk, tipler).
+- yt-dlp'ye özgü her şey `src/engine/`'de TS'tir; Rust yalnızca genel süreç çalıştırıcı ve platform işleridir. Android'de aynı motor, `youtubedl-android`'i saran küçük bir Kotlin plugin'iyle çalışacak.
+- **iOS kapsam dışı** (App Store izin vermiyor, alt süreç yok); gerekirse ileride self-hosted sunucu modu (FastAPI + yt-dlp) ile iOS/web istemcisi.
+- **Google Play bu tür uygulamaları kabul etmiyor**; Android dağıtımı GitHub Releases / F-Droid (APK) üzerinden olacak.
+
+Android (sıradaki faz):
+
+- [ ] Tauri Android hedefi
+- [ ] Kotlin plugin: `youtubedl-android` (init / getInfo / download / progress / update)
+- [ ] Foreground service ve bildirimle arka planda indirme
+- [ ] Paylaş menüsünden link alma (share intent)
+- [ ] APK dağıtımı (GitHub Releases)
+
+Referanslar: [youtubedl-android](https://github.com/yausername/youtubedl-android), [Seal](https://github.com/JunkFood02/Seal) (Android referans uygulama).
+
 Uygulama v0.1.0'da "YouTube Downloader" (`com.abdurrahman.youtubedownloader`) adıyla, ayrı (artık silinmiş) `vidra-releases` reposunda yayınlandı. Kimlik `io.github.yellow-three.vidra` oldu; eski ayarlar, geçmiş ve yt-dlp kopyası ilk açılışta yeni klasöre taşınır (`src-tauri/src/legacy.rs`). `.deb`/`.rpm` paketleri eski `you-tube-downloader` paketinin yerini alır.
 
 ## Dağıtım notları
@@ -146,7 +163,7 @@ npm run tauri build   # paket üretimi
 
 ## Yapı
 
-- `src/engine/` — platformdan bağımsız indirme motoru (PLAN.md: `DownloadEngine`). yt-dlp argümanları, format seçenekleri, `%(progress)j` ayrıştırma ve yarım dosya seçimi saf TS'tir (`ytdlp.ts`, `ffmpeg.ts`); Android'de de aynı kod kullanılacak. `desktop.ts` bunları Rust süreç çalıştırıcısıyla çalıştırır.
+- `src/engine/` — platformdan bağımsız indirme motoru (`DownloadEngine`). yt-dlp argümanları, format seçenekleri, `%(progress)j` ayrıştırma ve yarım dosya seçimi saf TS'tir (`ytdlp.ts`, `ffmpeg.ts`); Android'de de aynı kod kullanılacak. `desktop.ts` bunları Rust süreç çalıştırıcısıyla çalıştırır.
 - `src/engine/errors.ts` — yt-dlp hatalarını çözüm öneren mesajlara çevirir (ham metin "Ayrıntı"da kalır).
 - `src/i18n/` — arayüz metinleri (`tr.ts`, `en.ts`); bileşenlerde `useT()`, React dışında `msg()`. Dil, ayardaki `language` ya da sistem dilidir; testler Türkçeye sabitlenir.
 - `src/features/queue/` — kuyruk store'u, eşzamanlı indirme sınırlayıcı (sıradakiler listedeki sırayla başlar), kuyruğun localStorage'da saklanması (`persistence.ts`).
