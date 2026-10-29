@@ -369,7 +369,10 @@ fn extract(archive: &Path, wanted: &[(String, PathBuf)]) -> Result<(), String> {
         let mut zip = zip::ZipArchive::new(file).map_err(|e| format!("Arşiv açılamadı: {e}"))?;
         for i in 0..zip.len() {
             let mut entry = zip.by_index(i).map_err(|e| e.to_string())?;
-            let entry_name = entry.name().replace('\\', "/");
+            let entry_name = entry
+                .name()
+                .map_err(|e| format!("Arşiv açılamadı: {e}"))?
+                .replace('\\', "/");
             if let Some(index) = wanted.iter().position(|(suffix, _)| matches(&entry_name, suffix)) {
                 write(index, &mut entry)?;
             }
