@@ -332,7 +332,8 @@ async fn download_verified(
         }
     }
     file.flush().map_err(|e| e.to_string())?;
-    if format!("{:x}", hasher.finalize()) != expected {
+    let actual: String = hasher.finalize().iter().map(|b| format!("{b:02x}")).collect();
+    if actual != expected {
         return Err("İndirilen dosya doğrulanamadı (SHA-256 uyuşmuyor).".into());
     }
     Ok(())
