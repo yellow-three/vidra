@@ -1,4 +1,4 @@
-// Platformdan bagimsiz indirme motoru sozlesmesi (PLAN.md: DownloadEngine).
+// Platformdan bagimsiz indirme motoru sozlesmesi (DownloadEngine).
 
 export type DownloadOption =
   | { kind: 'video'; height: number }
