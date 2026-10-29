@@ -265,6 +265,8 @@ export function parseClock(value: string): number | null {
 /** Klasor adi olarak guvenli metin; `%` yt-dlp sablonunda kacirilir. */
 export function safeFolderName(name: string): string {
   const cleaned = name
+    // Kontrol karakterleri dosya adlarinda gecersiz; bilerek eslesiyor.
+    // eslint-disable-next-line no-control-regex
     .replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_')
     .replace(/\s+/g, ' ')
     .trim()

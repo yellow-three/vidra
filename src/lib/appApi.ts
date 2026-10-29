@@ -3,7 +3,7 @@ import { listen } from '@tauri-apps/api/event';
 import type { AppSettings, HistoryItem } from '../types';
 import type { AppApi, IpcResult } from '../types/app-api';
 
-async function invokeResult<T extends object = {}>(command: string, args?: Record<string, unknown>): Promise<IpcResult<T>> {
+async function invokeResult<T extends object = Record<never, never>>(command: string, args?: Record<string, unknown>): Promise<IpcResult<T>> {
   try {
     return await invoke<IpcResult<T>>(command, args);
   } catch (error) {

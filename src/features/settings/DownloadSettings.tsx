@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Gauge } from 'lucide-react';
 import { DEFAULT_CONCURRENT_DOWNLOADS } from '../queue/store';
 import { useSaveSettings, useSettings } from './queries';
@@ -72,14 +72,15 @@ export function SubtitleLanguages() {
   const saved = useSettings().data?.subtitleLangs ?? '';
   const save = useSaveSettings();
   const m = useT().settings;
-  const [value, setValue] = useState(saved);
+  // Kullanici yazmiyorken (null) kayitli degeri gosterir.
+  const [draft, setDraft] = useState<string | null>(null);
+  const value = draft ?? saved;
   const valid = value.trim() === '' || LANGS_PATTERN.test(value.trim());
-
-  useEffect(() => setValue(saved), [saved]);
 
   const commit = () => {
     const next = value.trim().replace(/\s+/g, '');
     if (valid && next !== saved) save.mutate({ subtitleLangs: next });
+    if (valid) setDraft(null);
   };
 
   return (
@@ -87,7 +88,7 @@ export function SubtitleLanguages() {
       <legend className="fieldset-legend">{m.subtitleLangs}</legend>
       <input
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => e.key === 'Enter' && commit()}
         placeholder="tr,en"
