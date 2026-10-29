@@ -1,0 +1,2 @@
+# Kod tabani 100 karakterden uzun satirlar kullaniyor; CI `cargo fmt --check` ile denetler.
+max_width = 120

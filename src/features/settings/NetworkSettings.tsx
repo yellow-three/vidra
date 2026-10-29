@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Globe } from 'lucide-react';
 import { useSaveSettings, useSettings } from './queries';
 import { Section, SelectField } from './SettingsParts';
@@ -24,15 +24,15 @@ export default function NetworkSettings() {
   const settings = useSettings().data ?? {};
   const save = useSaveSettings();
   const m = useT().network;
-  const [proxy, setProxy] = useState(settings.proxy ?? '');
+  // Kullanici yazmiyorken (null) kutu kayitli degeri gosterir; ayarlar diskten gec gelse de esit kalir.
+  const [draft, setDraft] = useState<string | null>(null);
+  const proxy = draft ?? settings.proxy ?? '';
   const proxyValid = isValidProxy(proxy.trim());
-
-  // Ayarlar diskten gec gelir; kullanici yazmiyorken kutuyu esitle.
-  useEffect(() => setProxy(settings.proxy ?? ''), [settings.proxy]);
 
   const saveProxy = () => {
     const value = proxy.trim();
     if (isValidProxy(value) && value !== (settings.proxy ?? '')) save.mutate({ proxy: value });
+    if (isValidProxy(value)) setDraft(null);
   };
 
   return (
@@ -49,7 +49,7 @@ export default function NetworkSettings() {
         <input
           type="text"
           value={proxy}
-          onChange={(e) => setProxy(e.target.value)}
+          onChange={(e) => setDraft(e.target.value)}
           onBlur={saveProxy}
           onKeyDown={(e) => e.key === 'Enter' && saveProxy()}
           placeholder="socks5://127.0.0.1:1080"

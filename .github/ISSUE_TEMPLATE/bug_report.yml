@@ -1,0 +1,34 @@
+name: Hata bildirimi / Bug report
+description: Bir indirme ya da uygulama hatası bildirin. Uygulamadaki "Hata bildir" düğmesi bu formu doldurur.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: Ne oldu? / What happened?
+      description: Ne yaptınız, ne bekliyordunuz, ne oldu?
+    validations:
+      required: true
+  - type: input
+    id: link
+    attributes:
+      label: Link
+      description: İndirmeye çalıştığınız video ya da liste (paylaşmak istemiyorsanız sitenin adı yeterli).
+  - type: textarea
+    id: output
+    attributes:
+      label: yt-dlp çıktısı / output
+      description: Hata kartındaki "Ayrıntı" metni.
+      render: text
+  - type: input
+    id: versions
+    attributes:
+      label: Sürümler / Versions
+      description: Ayarlar > Sistem'de görünen Vidra ve yt-dlp sürümleri, işletim sistemi.
+      placeholder: Vidra 0.2.2, yt-dlp 2026.10.26, Windows 11
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: |
+        Kayıt dosyası (`vidra.log`) sorunu bulmayı kolaylaştırır: Ayarlar > Sistem > Kayıt dosyaları > Klasörü aç, dosyayı buraya sürükleyin.

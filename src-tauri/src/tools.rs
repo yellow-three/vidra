@@ -147,7 +147,9 @@ pub fn ffmpeg_location(app: &AppHandle) -> Option<PathBuf> {
 }
 
 fn is_ffprobe_downloaded(app: &AppHandle) -> bool {
-    tools_dir(app).map(|d| d.join(exe("ffprobe")).is_file()).unwrap_or(false)
+    tools_dir(app)
+        .map(|d| d.join(exe("ffprobe")).is_file())
+        .unwrap_or(false)
 }
 
 pub fn deno_path(app: &AppHandle) -> Option<PathBuf> {
@@ -212,15 +214,31 @@ fn statuses(bin: &Path, bundled: &dyn Fn(&str) -> bool, system: &dyn Fn(&str) ->
     let ffmpeg_from_system = !ffmpeg_downloaded && !bundled("ffmpeg") && system("ffmpeg");
     let status = |id, downloaded: bool, outdated, downloadable, download_mb| {
         let bundled = !downloaded && id != "ffprobe" && bundled(id);
-        let system = !downloaded && !bundled && match id {
-            "ffprobe" => ffmpeg_from_system && system("ffprobe"),
-            "yt-dlp" => false,
-            _ => system(id),
-        };
-        ToolStatus { id, installed: downloaded || bundled || system, bundled, system, outdated, downloadable, download_mb }
+        let system = !downloaded
+            && !bundled
+            && match id {
+                "ffprobe" => ffmpeg_from_system && system("ffprobe"),
+                "yt-dlp" => false,
+                _ => system(id),
+            };
+        ToolStatus {
+            id,
+            installed: downloaded || bundled || system,
+            bundled,
+            system,
+            outdated,
+            downloadable,
+            download_mb,
+        }
     };
     vec![
-        status("yt-dlp", bin.join(exe("yt-dlp")).is_file(), false, platform.is_some(), if windows { 18 } else { 40 }),
+        status(
+            "yt-dlp",
+            bin.join(exe("yt-dlp")).is_file(),
+            false,
+            platform.is_some(),
+            if windows { 18 } else { 40 },
+        ),
         status(
             "deno",
             deno_downloaded,
@@ -229,7 +247,13 @@ fn statuses(bin: &Path, bundled: &dyn Fn(&str) -> bool, system: &dyn Fn(&str) ->
             45,
         ),
         status("ffmpeg", ffmpeg_downloaded, false, ffmpeg_downloadable, 135),
-        status("ffprobe", tools.join(exe("ffprobe")).is_file(), false, ffmpeg_downloadable, 135),
+        status(
+            "ffprobe",
+            tools.join(exe("ffprobe")).is_file(),
+            false,
+            ffmpeg_downloadable,
+            135,
+        ),
     ]
 }
 
@@ -278,7 +302,13 @@ async fn fetch_text(client: &reqwest::Client, url: &str) -> Result<String, Strin
 type Progress<'a> = &'a (dyn Fn(u8) + Sync);
 
 /// Dosyayi indirir, ilerlemeyi yuzde olarak bildirir ve SHA-256'yi `expected` ile karsilastirir.
-async fn download_verified(client: &reqwest::Client, url: &str, expected: &str, dest: &Path, progress: Progress<'_>) -> Result<(), String> {
+async fn download_verified(
+    client: &reqwest::Client,
+    url: &str,
+    expected: &str,
+    dest: &Path,
+    progress: Progress<'_>,
+) -> Result<(), String> {
     let mut res = client
         .get(url)
         .send()
@@ -293,8 +323,8 @@ async fn download_verified(client: &reqwest::Client, url: &str, expected: &str, 
         hasher.update(&chunk);
         file.write_all(&chunk).map_err(|e| format!("Diske yazılamadı: {e}"))?;
         done += chunk.len() as u64;
-        if total > 0 {
-            let percent = (done * 100 / total).min(100) as u8;
+        if let Some(ratio) = (done * 100).checked_div(total) {
+            let percent = ratio.min(100) as u8;
             if percent != last {
                 last = percent;
                 progress(percent);
@@ -339,17 +369,21 @@ fn extract(archive: &Path, wanted: &[(String, PathBuf)]) -> Result<(), String> {
         let mut zip = zip::ZipArchive::new(file).map_err(|e| format!("Arşiv açılamadı: {e}"))?;
         for i in 0..zip.len() {
             let mut entry = zip.by_index(i).map_err(|e| e.to_string())?;
-            let entry_name = entry.name().replace('\\', "/");
+            let entry_name = entry
+                .name()
+                .map_err(|e| format!("Arşiv açılamadı: {e}"))?
+                .replace('\\', "/");
             if let Some(index) = wanted.iter().position(|(suffix, _)| matches(&entry_name, suffix)) {
                 write(index, &mut entry)?;
             }
         }
     } else {
-        extract_tar_xz(archive, &mut |entry_name, reader| {
-            match wanted.iter().position(|(suffix, _)| matches(entry_name, suffix)) {
-                Some(index) => write(index, reader),
-                None => Ok(()),
-            }
+        extract_tar_xz(archive, &mut |entry_name, reader| match wanted
+            .iter()
+            .position(|(suffix, _)| matches(entry_name, suffix))
+        {
+            Some(index) => write(index, reader),
+            None => Ok(()),
         })?;
     }
 
@@ -366,7 +400,10 @@ fn extract(archive: &Path, wanted: &[(String, PathBuf)]) -> Result<(), String> {
 }
 
 #[cfg(target_os = "linux")]
-fn extract_tar_xz(archive: &Path, visit: &mut dyn FnMut(&str, &mut dyn std::io::Read) -> Result<(), String>) -> Result<(), String> {
+fn extract_tar_xz(
+    archive: &Path,
+    visit: &mut dyn FnMut(&str, &mut dyn std::io::Read) -> Result<(), String>,
+) -> Result<(), String> {
     // Akisla acilir; arsivin acilmis hali (~500 MB) bellege alinmaz.
     let file = std::io::BufReader::new(fs::File::open(archive).map_err(|e| e.to_string())?);
     let mut tar = tar::Archive::new(liblzma::read::XzDecoder::new(file));
@@ -379,7 +416,10 @@ fn extract_tar_xz(archive: &Path, visit: &mut dyn FnMut(&str, &mut dyn std::io::
 }
 
 #[cfg(not(target_os = "linux"))]
-fn extract_tar_xz(_archive: &Path, _visit: &mut dyn FnMut(&str, &mut dyn std::io::Read) -> Result<(), String>) -> Result<(), String> {
+fn extract_tar_xz(
+    _archive: &Path,
+    _visit: &mut dyn FnMut(&str, &mut dyn std::io::Read) -> Result<(), String>,
+) -> Result<(), String> {
     Err("Bu platformda .tar.xz açılamıyor.".into())
 }
 
@@ -403,7 +443,9 @@ where
         // Arsiv acmak CPU'yu birkac saniye mesgul eder; async calisani bloklamasin.
         Ok(()) => {
             let path = temp.clone();
-            tauri::async_runtime::spawn_blocking(move || then(path)).await.map_err(|e| e.to_string())?
+            tauri::async_runtime::spawn_blocking(move || then(path))
+                .await
+                .map_err(|e| e.to_string())?
         }
         Err(e) => Err(e),
     };
@@ -418,15 +460,22 @@ async fn install_ytdlp(client: &reqwest::Client, bin: &Path, progress: Progress<
     let expected = hash_from_list(&sums, asset).ok_or_else(|| format!("{asset} için doğrulama bilgisi yok."))?;
     let target = bin.join(exe("yt-dlp"));
     let version = pins().ytdlp.clone();
-    with_download(client, bin, &format!("{base}/{asset}"), &expected, progress, move |file| {
-        make_executable(&file)?;
-        // Calisan bir indirme eski dosyayi kullaniyor olabilir; bos olunca yerine konur.
-        fs::rename(&file, crate::dependencies::staged_ytdlp(&target)).map_err(|e| e.to_string())?;
-        crate::dependencies::YTDLP_GATE.swap_if_idle(&target);
-        // dependencies::prune_stale_ytdlp paketlenmis surumle bu dosyayi karsilastirir.
-        let _ = fs::write(target.with_file_name(crate::dependencies::YTDLP_VERSION_FILE), version);
-        Ok(())
-    })
+    with_download(
+        client,
+        bin,
+        &format!("{base}/{asset}"),
+        &expected,
+        progress,
+        move |file| {
+            make_executable(&file)?;
+            // Calisan bir indirme eski dosyayi kullaniyor olabilir; bos olunca yerine konur.
+            fs::rename(&file, crate::dependencies::staged_ytdlp(&target)).map_err(|e| e.to_string())?;
+            crate::dependencies::YTDLP_GATE.swap_if_idle(&target);
+            // dependencies::prune_stale_ytdlp paketlenmis surumle bu dosyayi karsilastirir.
+            let _ = fs::write(target.with_file_name(crate::dependencies::YTDLP_VERSION_FILE), version);
+            Ok(())
+        },
+    )
     .await
 }
 
@@ -438,10 +487,17 @@ async fn install_deno(client: &reqwest::Client, bin: &Path, progress: Progress<'
     let expected = hash_from_list(&fetch_text(client, &format!("{base}/{asset}.sha256sum")).await?, &asset)
         .ok_or_else(|| format!("{asset} için doğrulama bilgisi yok."))?;
     let bin_owned = bin.to_path_buf();
-    with_download(client, bin, &format!("{base}/{asset}"), &expected, progress, move |zip| {
-        extract(&zip, &[(exe("deno"), bin_owned.join(exe("deno")))])?;
-        fs::write(bin_owned.join(DENO_VERSION_FILE), version).map_err(|e| e.to_string())
-    })
+    with_download(
+        client,
+        bin,
+        &format!("{base}/{asset}"),
+        &expected,
+        progress,
+        move |zip| {
+            extract(&zip, &[(exe("deno"), bin_owned.join(exe("deno")))])?;
+            fs::write(bin_owned.join(DENO_VERSION_FILE), version).map_err(|e| e.to_string())
+        },
+    )
     .await
 }
 
@@ -453,7 +509,9 @@ async fn install_ffmpeg_tools(
     with_ffprobe: bool,
     progress: Progress<'_>,
 ) -> Result<(), String> {
-    let platform = platform().and_then(|p| p.ffmpeg).ok_or("Bu platform için hazır FFmpeg yok.")?;
+    let platform = platform()
+        .and_then(|p| p.ffmpeg)
+        .ok_or("Bu platform için hazır FFmpeg yok.")?;
     let asset = ffmpeg_asset(platform);
     let sums = fetch_text(client, &format!("{FFMPEG_BASE_URL}/checksums.sha256")).await?;
     let expected = hash_from_list(&sums, &asset).ok_or_else(|| format!("{asset} için doğrulama bilgisi yok."))?;
@@ -468,21 +526,34 @@ async fn install_ffmpeg_tools(
     }
     let stamp = with_ffmpeg.then(|| (tools.join(FFMPEG_STAMP), expected.clone()));
     let tools_owned = tools.clone();
-    with_download(client, &tools, &format!("{FFMPEG_BASE_URL}/{asset}"), &expected, progress, move |archive| {
-        // Paketlenmis ffmpeg'e giden eski baglanti yerine gercek dosya yazilacak.
-        if with_ffmpeg {
-            let _ = fs::remove_file(tools_owned.join(exe("ffmpeg")));
-        }
-        extract(&archive, &wanted)?;
-        if let Some((path, hash)) = stamp {
-            fs::write(path, hash).map_err(|e| e.to_string())?;
-        }
-        Ok(())
-    })
+    with_download(
+        client,
+        &tools,
+        &format!("{FFMPEG_BASE_URL}/{asset}"),
+        &expected,
+        progress,
+        move |archive| {
+            // Paketlenmis ffmpeg'e giden eski baglanti yerine gercek dosya yazilacak.
+            if with_ffmpeg {
+                let _ = fs::remove_file(tools_owned.join(exe("ffmpeg")));
+            }
+            extract(&archive, &wanted)?;
+            if let Some((path, hash)) = stamp {
+                fs::write(path, hash).map_err(|e| e.to_string())?;
+            }
+            Ok(())
+        },
+    )
     .await
 }
 
-async fn install(bin: &Path, tool: &str, with_ffprobe: bool, proxy: Option<&str>, progress: Progress<'_>) -> Result<(), String> {
+async fn install(
+    bin: &Path,
+    tool: &str,
+    with_ffprobe: bool,
+    proxy: Option<&str>,
+    progress: Progress<'_>,
+) -> Result<(), String> {
     let client = client(proxy)?;
     match tool {
         "yt-dlp" => install_ytdlp(&client, bin, progress).await,
@@ -515,9 +586,15 @@ pub async fn install_tool(
     on_progress: Channel<u8>,
 ) -> Result<(), String> {
     let bin = override_dir(&app)?;
-    install(&bin, &tool, with_ffprobe.unwrap_or(false), proxy.as_deref(), &|percent| {
-        let _ = on_progress.send(percent);
-    })
+    install(
+        &bin,
+        &tool,
+        with_ffprobe.unwrap_or(false),
+        proxy.as_deref(),
+        &|percent| {
+            let _ = on_progress.send(percent);
+        },
+    )
     .await
 }
 
@@ -574,7 +651,12 @@ mod tests {
     #[test]
     fn status_prefers_downloads_and_flags_old_deno() {
         let bin = temp_dir("status");
-        let get = |list: &[ToolStatus], id: &str| list.iter().find(|s| s.id == id).map(|s| (s.installed, s.bundled, s.outdated)).unwrap();
+        let get = |list: &[ToolStatus], id: &str| {
+            list.iter()
+                .find(|s| s.id == id)
+                .map(|s| (s.installed, s.bundled, s.outdated))
+                .unwrap()
+        };
 
         let none = |_: &str| false;
         let empty = statuses(&bin, &none, &none);
@@ -604,7 +686,12 @@ mod tests {
         let bin = temp_dir("system");
         let none = |_: &str| false;
         let all = |id: &str| id != "yt-dlp";
-        let sys = |list: &[ToolStatus], id: &str| list.iter().find(|s| s.id == id).map(|s| (s.installed, s.system)).unwrap();
+        let sys = |list: &[ToolStatus], id: &str| {
+            list.iter()
+                .find(|s| s.id == id)
+                .map(|s| (s.installed, s.system))
+                .unwrap()
+        };
 
         let found = statuses(&bin, &none, &all);
         assert_eq!(sys(&found, "yt-dlp"), (false, false));
@@ -640,7 +727,9 @@ mod tests {
         let dest = dir.join("out-deno");
         extract(&archive, &[("deno".into(), dest.clone())]).unwrap();
         assert_eq!(fs::read_to_string(&dest).unwrap(), "deno!");
-        assert!(extract(&archive, &[("bin/ffprobe".into(), dir.join("x"))]).unwrap_err().contains("bin/ffprobe"));
+        assert!(extract(&archive, &[("bin/ffprobe".into(), dir.join("x"))])
+            .unwrap_err()
+            .contains("bin/ffprobe"));
         fs::remove_dir_all(&dir).unwrap();
     }
 
@@ -651,7 +740,11 @@ mod tests {
         let mut tar_bytes = Vec::new();
         {
             let mut builder = tar::Builder::new(&mut tar_bytes);
-            for (name, body) in [("ffmpeg-x/LICENSE.txt", "lgpl"), ("ffmpeg-x/bin/ffmpeg", "ff"), ("ffmpeg-x/bin/ffprobe", "probe")] {
+            for (name, body) in [
+                ("ffmpeg-x/LICENSE.txt", "lgpl"),
+                ("ffmpeg-x/bin/ffmpeg", "ff"),
+                ("ffmpeg-x/bin/ffprobe", "probe"),
+            ] {
                 let mut header = tar::Header::new_gnu();
                 header.set_size(body.len() as u64);
                 header.set_mode(0o644);
@@ -666,7 +759,14 @@ mod tests {
         fs::write(&archive, xz).unwrap();
 
         let (probe, license) = (dir.join("ffprobe"), dir.join("LICENSE.txt"));
-        extract(&archive, &[("bin/ffprobe".into(), probe.clone()), ("LICENSE.txt".into(), license.clone())]).unwrap();
+        extract(
+            &archive,
+            &[
+                ("bin/ffprobe".into(), probe.clone()),
+                ("LICENSE.txt".into(), license.clone()),
+            ],
+        )
+        .unwrap();
         assert_eq!(fs::read_to_string(&probe).unwrap(), "probe");
         assert_eq!(fs::read_to_string(&license).unwrap(), "lgpl");
         assert!(!dir.join("ffmpeg").exists());

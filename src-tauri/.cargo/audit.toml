@@ -1,0 +1,12 @@
+# cargo audit (CI) icin bilinen ve bizi etkilemeyen uyarilar. Her biri gerekcesiyle;
+# Tauri bagimliliklari guncellenince kaldirilmali.
+[advisories]
+ignore = [
+  # rsa: sqlx-mysql uzerinden Cargo.lock'ta var ama derlenmiyor (yalnizca sqlite kullaniliyor);
+  # duzeltilmis surum yok.
+  "RUSTSEC-2023-0071",
+  # quick-xml: tauri-utils > plist uzerinden yalnizca derleme zamaninda uygulamanin kendi
+  # yapilandirmasini okur; disaridan XML islenmez. plist yeni surume gecince kalkar.
+  "RUSTSEC-2026-0194",
+  "RUSTSEC-2026-0195",
+]

@@ -36,7 +36,9 @@ fn output(program: &Path, args: &[&str]) -> Option<String> {
     #[cfg(windows)]
     std::os::windows::process::CommandExt::creation_flags(&mut cmd, 0x0800_0000);
     let out = cmd.output().ok()?;
-    out.status.success().then(|| String::from_utf8_lossy(&out.stdout).into_owned())
+    out.status
+        .success()
+        .then(|| String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
 /// `ffmpeg version 8.0.1-3ubuntu2`, `n7.1`, git build'leri (`N-1180-g...`, `2024-10-27-git-...`).
@@ -45,7 +47,11 @@ fn ffmpeg_major(version_output: &str) -> Option<u32> {
     if version.starts_with("N-") {
         return Some(u32::MAX);
     }
-    let digits: String = version.trim_start_matches('n').chars().take_while(char::is_ascii_digit).collect();
+    let digits: String = version
+        .trim_start_matches('n')
+        .chars()
+        .take_while(char::is_ascii_digit)
+        .collect();
     let number: u32 = digits.parse().ok()?;
     // Tarihli git build'i surum numarasi tasimaz; yenidir.
     Some(if number >= 1000 { u32::MAX } else { number })
@@ -65,7 +71,9 @@ fn pick_h264(encoders_output: &str) -> Option<&'static str> {
             let mut parts = line.split_whitespace();
             let flags = parts.next()?;
             // Baslik satirlari ("V..... = Video") ve aciklamalar ayiklanir.
-            (flags.len() == 6 && flags.starts_with(['V', 'A', 'S'])).then(|| parts.next()).flatten()
+            (flags.len() == 6 && flags.starts_with(['V', 'A', 'S']))
+                .then(|| parts.next())
+                .flatten()
         })
         .collect();
     if !REQUIRED_ENCODERS.iter().all(|e| names.contains(e)) {
@@ -83,7 +91,11 @@ fn detect_ffmpeg() -> Option<SystemFfmpeg> {
     // yt-dlp `--ffmpeg-location` ile tek klasor alir; ffprobe ayni klasorde olmali.
     let ffprobe = ffmpeg.with_file_name(format!("ffprobe{EXE_SUFFIX}"));
     let ffprobe = (ffprobe.is_file() && output(&ffprobe, &["-version"]).is_some()).then_some(ffprobe);
-    Some(SystemFfmpeg { ffmpeg, ffprobe, h264_encoder })
+    Some(SystemFfmpeg {
+        ffmpeg,
+        ffprobe,
+        h264_encoder,
+    })
 }
 
 fn detect_deno() -> Option<PathBuf> {
@@ -107,17 +119,29 @@ mod tests {
 
     #[test]
     fn parses_ffmpeg_versions() {
-        assert_eq!(ffmpeg_major("ffmpeg version 8.0.1-3ubuntu2+esm5 Copyright (c) 2000-2025"), Some(8));
-        assert_eq!(ffmpeg_major("ffmpeg version n9.0.2-36-g6882969ce9-20261027 Copyright"), Some(9));
+        assert_eq!(
+            ffmpeg_major("ffmpeg version 8.0.1-3ubuntu2+esm5 Copyright (c) 2000-2025"),
+            Some(8)
+        );
+        assert_eq!(
+            ffmpeg_major("ffmpeg version n9.0.2-36-g6882969ce9-20261027 Copyright"),
+            Some(9)
+        );
         assert_eq!(ffmpeg_major("ffmpeg version 4.4.2-0ubuntu0.22.04.1"), Some(4));
         assert_eq!(ffmpeg_major("ffmpeg version N-118000-g1234 Copyright"), Some(u32::MAX));
-        assert_eq!(ffmpeg_major("ffmpeg version 2024-10-27-git-bdc76f467f-full_build"), Some(u32::MAX));
+        assert_eq!(
+            ffmpeg_major("ffmpeg version 2024-10-27-git-bdc76f467f-full_build"),
+            Some(u32::MAX)
+        );
         assert_eq!(ffmpeg_major("avconv version 12"), None);
     }
 
     #[test]
     fn parses_deno_versions() {
-        assert_eq!(deno_major("deno 2.9.8 (stable, release, x86_64-unknown-linux-gnu)\nv8 14.0"), Some(2));
+        assert_eq!(
+            deno_major("deno 2.9.8 (stable, release, x86_64-unknown-linux-gnu)\nv8 14.0"),
+            Some(2)
+        );
         assert_eq!(deno_major("deno 1.46.3 (stable)"), Some(1));
         assert_eq!(deno_major("node v24"), None);
     }

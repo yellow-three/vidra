@@ -125,7 +125,7 @@ test('indirme hatasi kartta gosterilir', async ({ page }) => {
   await expect.poll(() => calls(page, 'plugin:opener|open_url').then((c) => c.length)).toBe(1);
   const [{ url }] = await calls(page, 'plugin:opener|open_url');
   expect(url).toContain('https://github.com/yellow-three/vidra/issues/new?');
-  expect(new globalThis.URL(url).searchParams.get('body')).toContain('ERROR: [youtube] Video unavailable');
+  expect(new globalThis.URL(url).searchParams.get('output')).toContain('ERROR: [youtube] Video unavailable');
 });
 
 test('oynatma listesi videolarina acilir ve hepsi birden indirilir', async ({ page }) => {

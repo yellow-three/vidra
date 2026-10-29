@@ -6,6 +6,8 @@
 # kurulum ekrani hic cikmaz. Surumler src-tauri/tools.json ile ayni tutulur; BtbN eski
 # autobuild'leri sildiginden ffmpeg kaynagi her surumde yenilenmeli.
 # Flatpak app ID'sinde tire olamaz; Tauri kimligi io.github.yellow-three.vidra olarak kalir.
+# GNOME runtime'inda AppIndicator kutuphanesi yok: indirme surerken pencere kapatilinca
+# uygulama tepsi yerine pencereyi kucultur (src/app/tray.ts).
 id: io.github.yellow_three.vidra
 runtime: org.gnome.Platform
 runtime-version: '51'
@@ -40,8 +42,8 @@ modules:
     buildsystem: simple
     sources:
       - type: file
-        url: https://github.com/yellow-three/vidra/releases/download/v0.2.0/Vidra_0.2.0_amd64.deb
-        sha256: REPLACE_WITH_RELEASE_DEB_SHA256
+        url: https://github.com/yellow-three/vidra/releases/download/v0.2.2/Vidra_0.2.2_amd64.deb
+        sha256: 80bb35fad06fd620c751815469f62741a080cc99428f7c6055346d2849f03512
         dest-filename: vidra.deb
         only-arches: [x86_64]
       - type: file

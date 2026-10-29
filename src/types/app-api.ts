@@ -1,4 +1,4 @@
-export type IpcResult<T = {}> =
+export type IpcResult<T = Record<never, never>> =
   | ({ success: true } & T)
   | { success: false; error: string };
 

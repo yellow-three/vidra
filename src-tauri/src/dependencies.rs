@@ -57,7 +57,12 @@ struct GateState {
 
 impl YtdlpGate {
     pub(crate) const fn new() -> Self {
-        Self { state: Mutex::new(GateState { running: 0, updating: false }) }
+        Self {
+            state: Mutex::new(GateState {
+                running: 0,
+                updating: false,
+            }),
+        }
     }
 }
 
@@ -87,7 +92,10 @@ impl YtdlpGate {
             swap_staged(target);
         }
         state.running += 1;
-        YtdlpRun { gate: self, target: target.to_path_buf() }
+        YtdlpRun {
+            gate: self,
+            target: target.to_path_buf(),
+        }
     }
 
     /// Calisan yt-dlp yoksa bekleyen yeni surumu hemen yerine koyar.
@@ -223,7 +231,10 @@ fn run_self_update(path: &Path) -> Result<String, String> {
     let out = cmd.output().map_err(|e| format!("yt-dlp calistirilamadi: {e}"))?;
     if !out.status.success() {
         let stderr = String::from_utf8_lossy(&out.stderr);
-        let msg = stderr.lines().filter(|l| !l.trim().is_empty()).last().unwrap_or("bilinmeyen hata");
+        let msg = stderr
+            .lines()
+            .rfind(|l| !l.trim().is_empty())
+            .unwrap_or("bilinmeyen hata");
         return Err(format!("yt-dlp guncellenemedi: {msg}"));
     }
 

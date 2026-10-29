@@ -9,14 +9,19 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 /// Ayarlarda secilebilen tarayicilar; baska deger yt-dlp'ye gecmez.
-const BROWSERS: &[&str] = &["firefox", "chrome", "chromium", "edge", "brave", "opera", "vivaldi", "safari"];
+const BROWSERS: &[&str] = &[
+    "firefox", "chrome", "chromium", "edge", "brave", "opera", "vivaldi", "safari",
+];
 
 #[cfg(target_os = "linux")]
 fn candidates(browser: &str, home: &Path) -> Vec<PathBuf> {
     let config = |p: &str| home.join(".config").join(p);
     let flatpak = |app: &str, p: &str| home.join(".var/app").join(app).join(p);
     match browser {
-        "chrome" => vec![config("google-chrome"), flatpak("com.google.Chrome", "config/google-chrome")],
+        "chrome" => vec![
+            config("google-chrome"),
+            flatpak("com.google.Chrome", "config/google-chrome"),
+        ],
         "chromium" => vec![
             config("chromium"),
             flatpak("org.chromium.Chromium", "config/chromium"),
@@ -26,7 +31,10 @@ fn candidates(browser: &str, home: &Path) -> Vec<PathBuf> {
             config("BraveSoftware/Brave-Browser"),
             flatpak("com.brave.Browser", "config/BraveSoftware/Brave-Browser"),
         ],
-        "edge" => vec![config("microsoft-edge"), flatpak("com.microsoft.Edge", "config/microsoft-edge")],
+        "edge" => vec![
+            config("microsoft-edge"),
+            flatpak("com.microsoft.Edge", "config/microsoft-edge"),
+        ],
         "vivaldi" => vec![config("vivaldi"), flatpak("com.vivaldi.Vivaldi", "config/vivaldi")],
         "opera" => vec![config("opera"), flatpak("com.opera.Opera", "config/opera")],
         "firefox" => vec![
@@ -51,7 +59,11 @@ fn newest_cookie_db(dir: &Path, depth: u8) -> Option<SystemTime> {
     for entry in std::fs::read_dir(dir).ok()?.flatten() {
         let path = entry.path();
         let found = if path.is_dir() {
-            if depth == 0 { None } else { newest_cookie_db(&path, depth - 1) }
+            if depth == 0 {
+                None
+            } else {
+                newest_cookie_db(&path, depth - 1)
+            }
         } else if matches!(entry.file_name().to_str(), Some("Cookies" | "cookies.sqlite")) {
             entry.metadata().and_then(|m| m.modified()).ok()
         } else {
@@ -101,7 +113,12 @@ mod tests {
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(path, b"").unwrap();
         let time = SystemTime::now() - Duration::from_secs(age_secs);
-        fs::File::options().write(true).open(path).unwrap().set_modified(time).unwrap();
+        fs::File::options()
+            .write(true)
+            .open(path)
+            .unwrap()
+            .set_modified(time)
+            .unwrap();
     }
 
     #[test]

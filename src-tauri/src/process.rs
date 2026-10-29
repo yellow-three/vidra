@@ -54,10 +54,13 @@ impl ProcessManager {
 
         let id = self.next_id.fetch_add(1, Ordering::Relaxed) + 1;
         let killed = Arc::new(AtomicBool::new(false));
-        self.running
-            .lock()
-            .unwrap()
-            .insert(id, Entry { group, killed: killed.clone() });
+        self.running.lock().unwrap().insert(
+            id,
+            Entry {
+                group,
+                killed: killed.clone(),
+            },
+        );
 
         let on_event = Arc::new(on_event);
         let stdout = child.stdout.take().expect("stdout piped");
@@ -72,7 +75,10 @@ impl ProcessManager {
             let _ = err_reader.join();
             let code = child.wait().ok().and_then(|s| s.code());
             running.lock().unwrap().remove(&id);
-            on_event(ProcessEvent::Exit { code, killed: killed.load(Ordering::SeqCst) });
+            on_event(ProcessEvent::Exit {
+                code,
+                killed: killed.load(Ordering::SeqCst),
+            });
         });
 
         Ok(id)
@@ -101,11 +107,7 @@ impl ProcessManager {
     }
 }
 
-fn forward_lines<R, F>(
-    stream: R,
-    on_event: Arc<F>,
-    wrap: fn(String) -> ProcessEvent,
-) -> std::thread::JoinHandle<()>
+fn forward_lines<R, F>(stream: R, on_event: Arc<F>, wrap: fn(String) -> ProcessEvent) -> std::thread::JoinHandle<()>
 where
     R: Read + Send + 'static,
     F: Fn(ProcessEvent) + Send + Sync + 'static,
@@ -134,7 +136,9 @@ impl ProcessGroup {
     }
 
     fn attach(child: &std::process::Child) -> Result<Self, String> {
-        Ok(Self { pgid: child.id() as i32 })
+        Ok(Self {
+            pgid: child.id() as i32,
+        })
     }
 
     fn kill(&self) {
@@ -166,9 +170,8 @@ impl ProcessGroup {
         use std::os::windows::io::AsRawHandle;
         use windows_sys::Win32::Foundation::CloseHandle;
         use windows_sys::Win32::System::JobObjects::{
-            AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation,
-            SetInformationJobObject, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
-            JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+            AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation, SetInformationJobObject,
+            JOBOBJECT_EXTENDED_LIMIT_INFORMATION, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
         };
 
         unsafe {
@@ -244,14 +247,26 @@ mod tests {
         let manager = ProcessManager::new();
         let (_, rx) = collect(&manager, "echo bir; echo iki >&2; printf 'uc\\r\\n'; exit 3");
         let events = until_exit(&rx);
-        let mut stdout: Vec<&ProcessEvent> = events.iter().filter(|e| matches!(e, ProcessEvent::Stdout { .. })).collect();
+        let mut stdout: Vec<&ProcessEvent> = events
+            .iter()
+            .filter(|e| matches!(e, ProcessEvent::Stdout { .. }))
+            .collect();
         stdout.sort_by_key(|e| format!("{e:?}"));
-        assert_eq!(stdout, [
-            &ProcessEvent::Stdout { line: "bir".into() },
-            &ProcessEvent::Stdout { line: "uc".into() },
-        ]);
+        assert_eq!(
+            stdout,
+            [
+                &ProcessEvent::Stdout { line: "bir".into() },
+                &ProcessEvent::Stdout { line: "uc".into() },
+            ]
+        );
         assert!(events.contains(&ProcessEvent::Stderr { line: "iki".into() }));
-        assert_eq!(events.last(), Some(&ProcessEvent::Exit { code: Some(3), killed: false }));
+        assert_eq!(
+            events.last(),
+            Some(&ProcessEvent::Exit {
+                code: Some(3),
+                killed: false
+            })
+        );
     }
 
     #[test]
@@ -266,7 +281,13 @@ mod tests {
 
         assert!(manager.kill(id));
         let events = until_exit(&rx);
-        assert_eq!(events.last(), Some(&ProcessEvent::Exit { code: None, killed: true }));
+        assert_eq!(
+            events.last(),
+            Some(&ProcessEvent::Exit {
+                code: None,
+                killed: true
+            })
+        );
 
         // Oldurulen torun kisa sure zombi kalabilir; ust surec onu toplayana kadar bekle.
         let gone = (0..100).any(|_| {
@@ -289,7 +310,13 @@ mod tests {
         manager.kill_all();
         for rx in [first, second] {
             let events = until_exit(&rx);
-            assert_eq!(events.last(), Some(&ProcessEvent::Exit { code: None, killed: true }));
+            assert_eq!(
+                events.last(),
+                Some(&ProcessEvent::Exit {
+                    code: None,
+                    killed: true
+                })
+            );
         }
     }
 
@@ -345,7 +372,13 @@ mod windows_tests {
         let events = until_exit(&rx);
         assert!(events.contains(&ProcessEvent::Stdout { line: "bir".into() }));
         assert!(events.contains(&ProcessEvent::Stderr { line: "iki".into() }));
-        assert_eq!(events.last(), Some(&ProcessEvent::Exit { code: Some(3), killed: false }));
+        assert_eq!(
+            events.last(),
+            Some(&ProcessEvent::Exit {
+                code: Some(3),
+                killed: false
+            })
+        );
     }
 
     #[test]
@@ -353,7 +386,11 @@ mod windows_tests {
         let manager = ProcessManager::new();
         // Torun surec (ping) job'a otomatik dahil olur; job sonlaninca o da olmeli.
         let script = "$p = Start-Process -FilePath ping.exe -ArgumentList '-n','60','127.0.0.1' -PassThru -WindowStyle Hidden; Write-Output $p.Id; Wait-Process -Id $p.Id";
-        let (id, rx) = collect(&manager, "powershell", &["-NoProfile", "-NonInteractive", "-Command", script]);
+        let (id, rx) = collect(
+            &manager,
+            "powershell",
+            &["-NoProfile", "-NonInteractive", "-Command", script],
+        );
         let grandchild: u32 = loop {
             match rx.recv_timeout(Duration::from_secs(30)).unwrap() {
                 ProcessEvent::Stdout { line } if !line.trim().is_empty() => break line.trim().parse().unwrap(),
@@ -379,6 +416,8 @@ mod windows_tests {
     #[test]
     fn missing_program_is_an_error() {
         let manager = ProcessManager::new();
-        assert!(manager.spawn(Path::new("C:\\yok\\boyle-bir-program.exe"), &[], |_| {}).is_err());
+        assert!(manager
+            .spawn(Path::new("C:\\yok\\boyle-bir-program.exe"), &[], |_| {})
+            .is_err());
     }
 }

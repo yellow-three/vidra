@@ -28,7 +28,14 @@ fn platform_free_space(path: &Path) -> Option<u64> {
     let wide: Vec<u16> = path.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
     let mut available = 0u64;
     // SAFETY: wide NUL ile biten UTF-16 yol; diger cikislar istenmedigi icin null.
-    let ok = unsafe { GetDiskFreeSpaceExW(wide.as_ptr(), &mut available, std::ptr::null_mut(), std::ptr::null_mut()) };
+    let ok = unsafe {
+        GetDiskFreeSpaceExW(
+            wide.as_ptr(),
+            &mut available,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+        )
+    };
     (ok != 0).then_some(available)
 }
 
