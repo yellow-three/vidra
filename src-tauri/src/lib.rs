@@ -314,6 +314,9 @@ fn log_plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
             Target::new(TargetKind::Stdout),
         ])
         .level(tauri_plugin_log::log::LevelFilter::Info)
+        // Tek ornek kontrolunun DBus el sikismasi her acilista onlarca satir yazardi.
+        .level_for("zbus", tauri_plugin_log::log::LevelFilter::Warn)
+        .level_for("tracing", tauri_plugin_log::log::LevelFilter::Warn)
         .max_file_size(2_000_000)
         .rotation_strategy(RotationStrategy::KeepOne)
         .build()

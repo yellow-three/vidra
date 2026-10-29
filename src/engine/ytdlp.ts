@@ -366,7 +366,12 @@ export function buildDownloadArgs({
   if (sponsorBlock === 'remove') args.push('--sponsorblock-remove', SPONSOR_REMOVE);
 
   // MP4/MP3/M4A'da ffprobe olmadan calisir (webp kapak ffmpeg ile PNG'ye cevrilir).
-  if (embedMetadata) args.push('--embed-thumbnail', '--embed-metadata');
+  if (embedMetadata) {
+    // Ham ses formatlari webm olabilir; yt-dlp webm'e kapak gomemez ve indirmeyi hatayla bitirir.
+    // Videolarda sorun yok: yt-dlp kapak icin webm yerine mkv secer.
+    if (!(option.kind === 'format' && !option.video)) args.push('--embed-thumbnail');
+    args.push('--embed-metadata');
+  }
   if (rateLimit) args.push('--limit-rate', rateLimit);
   if (ffmpegPath) args.push('--ffmpeg-location', ffmpegPath);
   args.push(...networkArgs(network), ...jsRuntimeArgs(denoPath), ...urlArgs(url));

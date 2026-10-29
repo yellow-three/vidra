@@ -261,8 +261,10 @@ export const useQueueStore = create<QueueState>()((set, get) => {
         if (result === null) {
           // Siradayken duraklatildi ya da iptal edildi; durumu pause/cancel yazdi.
         } else if (result.status === 'paused') {
+          log.info(`İndirme duraklatıldı ${task.url}`);
           force(id, { status: 'paused', speed: '', eta: '', partial: { destination: result.destination, since: result.startedMs } });
         } else if (result.status === 'cancelled') {
+          log.info(`İndirme iptal edildi ${task.url}`);
           force(id, { status: 'cancelled', message: undefined, partial: undefined });
         } else if (result.status === 'error') {
           log.error(`İndirme hatası ${task.url} (${formatId}): ${result.message}${result.detail ? `\n${result.detail}` : ''}`);

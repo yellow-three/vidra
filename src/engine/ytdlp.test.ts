@@ -160,6 +160,9 @@ describe('ham format secimi', () => {
     expect(audio.join(' ')).toContain('-f 251 ');
     expect(audio).not.toContain('--embed-subs');
     expect(audio).not.toContain('-x');
+    const withMeta = buildDownloadArgs({ url: 'U', option: parseOption('fmt-a-251')!, outDir: '/o', subtitles: false, embedMetadata: true });
+    expect(withMeta).toContain('--embed-metadata');
+    expect(withMeta).not.toContain('--embed-thumbnail');
   });
 });
 
