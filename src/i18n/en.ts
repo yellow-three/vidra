@@ -147,6 +147,7 @@ const en: Messages = {
     retry: 'Retry',
     remove: 'Remove',
     openFolder: 'Open folder',
+    report: 'Report a problem',
     detail: 'Details',
     badge: {
       analyzing: 'Analyzing',
@@ -282,6 +283,9 @@ const en: Messages = {
     updating: 'Updating...',
     update: 'Update',
     updateFailed: (e) => `Update failed: ${e}`,
+    logs: 'Log files',
+    logsHint: 'You can attach vidra.log when reporting a problem.',
+    openLogs: 'Open folder',
     autoUpdate: 'Update yt-dlp automatically',
     autoUpdateHint: 'Downloads can break when YouTube changes; yt-dlp is updated once a week when the app starts.',
     app: 'App',

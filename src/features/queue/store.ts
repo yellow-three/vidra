@@ -17,6 +17,7 @@ import { diskShortage } from './diskSpace';
 import { notifyComplete } from './notify';
 import { loadTasks, saveTasks } from './persistence';
 import { msg } from '../../i18n';
+import { log } from '../../lib/log';
 
 export const DEFAULT_CONCURRENT_DOWNLOADS = 2;
 const limiter = createLimiter(DEFAULT_CONCURRENT_DOWNLOADS);
@@ -144,7 +145,9 @@ export const useQueueStore = create<QueueState>()((set, get) => {
         detail: undefined,
       });
     } catch (error) {
-      update(id, { status: 'error', ...errorFields(error) });
+      const fields = errorFields(error);
+      log.warn(`Analiz hatası ${url}: ${fields.message}${fields.detail ? `\n${fields.detail}` : ''}`);
+      update(id, { status: 'error', ...fields });
     }
   }
 
@@ -233,6 +236,7 @@ export const useQueueStore = create<QueueState>()((set, get) => {
           const shortage = diskShortage(await appApi.freeSpace(outDir).catch(() => null), bytes);
           if (shortage) return { status: 'error', message: shortage } satisfies DownloadResult;
           update(id, { status: 'downloading' });
+          log.info(`İndirme başladı ${task.url} (${formatId})`);
           return engine.download(
             {
               id,
@@ -261,8 +265,10 @@ export const useQueueStore = create<QueueState>()((set, get) => {
         } else if (result.status === 'cancelled') {
           force(id, { status: 'cancelled', message: undefined, partial: undefined });
         } else if (result.status === 'error') {
+          log.error(`İndirme hatası ${task.url} (${formatId}): ${result.message}${result.detail ? `\n${result.detail}` : ''}`);
           update(id, { status: 'error', message: result.message, detail: result.detail });
         } else {
+          log.info(`İndirme tamamlandı ${task.url}: ${result.filePath}`);
           update(id, { status: 'complete', percent: 100, filePath: result.filePath, partial: undefined });
           batch = { count: batch.count + 1, lastTitle: task.title };
           await saveCompleted(find(id) ?? task, formatId, result.filePath, result.fileSize);

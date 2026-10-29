@@ -147,6 +147,7 @@ const tr = {
     retry: 'Tekrar dene',
     remove: 'Kaldır',
     openFolder: 'Klasörü aç',
+    report: 'Hata bildir',
     detail: 'Ayrıntı',
     badge: {
       analyzing: 'Analiz ediliyor',
@@ -283,6 +284,9 @@ const tr = {
     updating: 'Güncelleniyor...',
     update: 'Güncelle',
     updateFailed: (e: string) => `Güncelleme başarısız: ${e}`,
+    logs: 'Kayıt dosyaları',
+    logsHint: 'Hata bildirirken vidra.log dosyasını ekleyebilirsiniz.',
+    openLogs: 'Klasörü aç',
     autoUpdate: 'yt-dlp\'yi otomatik güncelle',
     autoUpdateHint: 'YouTube değiştikçe indirmeler bozulabilir; uygulama açılırken haftada bir güncellenir.',
     app: 'Uygulama',

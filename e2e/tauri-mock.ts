@@ -173,6 +173,8 @@ function install(options: MockOptions) {
       return null;
     },
     'plugin:process|restart': () => null,
+    'plugin:log|log': () => null,
+    'plugin:opener|open_url': () => null,
     'plugin:resources|close': () => null,
   };
 

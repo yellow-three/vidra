@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { HardDrive, Info, MousePointerClick, Package, Palette, RefreshCw, SlidersHorizontal } from 'lucide-react';
+import { FolderOpen, HardDrive, Info, MousePointerClick, Package, Palette, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import { applyClipboardMode } from '../queue/bootstrap';
 import type { ClipboardMode } from '../queue/duplicates';
 import type { AppSettings } from '../../types';
@@ -156,6 +156,16 @@ export default function SettingsForm() {
           checked={settings.autoUpdateYtdlp ?? true}
           onChange={(v) => updateAndSave('autoUpdateYtdlp', v)}
         />
+        <div className="divider my-0" />
+        <div className="flex items-center gap-3">
+          <span>
+            <span className="block text-sm">{m.logs}</span>
+            <span className="block text-xs text-base-content/60">{m.logsHint}</span>
+          </span>
+          <button onClick={() => void appApi.openLogFolder()} className="btn btn-sm ml-auto gap-1.5">
+            <FolderOpen size={14} /> {m.openLogs}
+          </button>
+        </div>
         <div className="divider my-0" />
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm">{m.app}</span>

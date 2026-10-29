@@ -1,4 +1,5 @@
-import { ChevronDown, ChevronUp, CircleAlert, FolderOpen, Info, ListPlus, ListVideo, RotateCcw, X } from 'lucide-react';
+import { Bug, ChevronDown, ChevronUp, CircleAlert, FolderOpen, Info, ListPlus, ListVideo, RotateCcw, X } from 'lucide-react';
+import { reportIssue } from './reportIssue';
 import { appApi } from '../../lib/appApi';
 import { isAudioOptionId, isVideoInPlaylist } from '../../engine/ytdlp';
 import type { Task } from '../../types';
@@ -131,6 +132,9 @@ export default function TaskCard({
                   <p className="font-mono break-words whitespace-pre-wrap mt-1">{task.detail}</p>
                 </details>
               )}
+              <button onClick={() => void reportIssue(task)} className="btn btn-ghost btn-xs gap-1 self-start -ml-2">
+                <Bug size={12} /> {m.task.report}
+              </button>
             </div>
           </div>
         )}

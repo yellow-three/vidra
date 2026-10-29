@@ -28,6 +28,8 @@ serde_json = "1"
 tauri-plugin-fs = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
+# Hata bildirimleri icin kayit dosyasi (uygulama kayit klasorunde vidra.log).
+tauri-plugin-log = "2"
 dirs = "7"
 # Ilk acilistaki arac indirmesi (tools.rs); updater ile ayni reqwest/rustls (ring) kurulumu.
 reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "system-proxy", "socks"] }

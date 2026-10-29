@@ -271,6 +271,30 @@ fn process_kill(id: u32, state: State<'_, AppState>) -> bool {
     state.processes.kill(id)
 }
 
+/// Kayitlar uygulamanin kayit klasorunde tek dosyada tutulur; 2 MB'i gecince eskisi silinir.
+fn log_plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
+    use tauri_plugin_log::{RotationStrategy, Target, TargetKind};
+    tauri_plugin_log::Builder::new()
+        .targets([
+            Target::new(TargetKind::LogDir { file_name: Some("vidra".into()) }),
+            Target::new(TargetKind::Stdout),
+        ])
+        .level(tauri_plugin_log::log::LevelFilter::Info)
+        .max_file_size(2_000_000)
+        .rotation_strategy(RotationStrategy::KeepOne)
+        .build()
+}
+
+/// Kayit klasorunu dosya yoneticisinde acar (Ayarlar > Sistem, hata bildirirken eklemek icin).
+#[tauri::command]
+fn open_log_folder(app: AppHandle) -> CommandResult<Value> {
+    use tauri_plugin_opener::OpenerExt;
+    let dir = app.path().app_log_dir().map_err(|e| e.to_string())?;
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    app.opener().open_path(dir.to_string_lossy(), None::<&str>).map_err(|e| e.to_string())?;
+    Ok(ok())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default();
@@ -292,6 +316,7 @@ pub fn run() {
             .build(),
     );
     builder
+        .plugin(log_plugin())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -329,6 +354,7 @@ pub fn run() {
             open_file,
             files_exist,
             free_space,
+            open_log_folder,
             start_clipboard_monitor,
             stop_clipboard_monitor,
             process_spawn,

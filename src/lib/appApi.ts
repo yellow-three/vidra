@@ -35,6 +35,7 @@ export const appApi: AppApi = {
   openFile: (filePath) => invokeResult('open_file', { filePath }),
   filesExist: (paths) => invoke<boolean[]>('files_exist', { paths }),
   freeSpace: (path) => invoke<number | null>('free_space', { path }),
+  openLogFolder: () => invokeResult('open_log_folder'),
 
   checkDependencies: () => invoke('check_dependencies'),
   toolsStatus: () => invoke('tools_status'),
