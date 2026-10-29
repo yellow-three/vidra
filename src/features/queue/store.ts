@@ -68,16 +68,12 @@ function newId(): string {
 const isActive = (t: Task) => t.status === 'queued' || t.status === 'downloading';
 
 
-/**
- * Bir arada baslatilan indirmeler bitince tek bildirim ve tek klasor penceresi:
- * 50 videoluk listede her dosya icin pencere acilmasin.
- */
+/** Bir arada baslatilan indirmeler bitince tek bildirim: 50 videoluk listede her dosya icin bildirim gitmesin. */
 interface Batch {
   count: number;
   lastTitle: string;
-  lastPath: string;
 }
-let batch: Batch = { count: 0, lastTitle: '', lastPath: '' };
+let batch: Batch = { count: 0, lastTitle: '' };
 
 export const useQueueStore = create<QueueState>()((set, get) => {
   /** Iptal edilmis gorevler gec gelen sonuclarla geri acilmaz. */
@@ -163,13 +159,12 @@ export const useQueueStore = create<QueueState>()((set, get) => {
     });
   }
 
-  /** Son indirme de bitince toplu bildirim ve klasor; hata/iptal de topluluk icindedir. */
-  function finishBatchIfIdle(autoOpenFolder: boolean) {
+  /** Son indirme de bitince toplu bildirim; hata/iptal de topluluk icindedir. */
+  function finishBatchIfIdle() {
     if (get().tasks.some(isActive) || batch.count === 0) return;
     const done = batch;
-    batch = { count: 0, lastTitle: '', lastPath: '' };
+    batch = { count: 0, lastTitle: '' };
     notifyComplete(done.count === 1 ? done.lastTitle : msg().notify.batch(done.count));
-    if (autoOpenFolder) void appApi.openFileLocation(done.lastPath);
   }
 
   return {
@@ -252,11 +247,11 @@ export const useQueueStore = create<QueueState>()((set, get) => {
         } else if (result.status === 'error') {
           update(id, { status: 'error', message: result.message, detail: result.detail });
         } else {
-          update(id, { status: 'complete', percent: 100 });
-          batch = { count: batch.count + 1, lastTitle: task.title, lastPath: result.filePath };
+          update(id, { status: 'complete', percent: 100, filePath: result.filePath });
+          batch = { count: batch.count + 1, lastTitle: task.title };
           await saveCompleted(find(id) ?? task, formatId, result.filePath, result.fileSize);
         }
-        finishBatchIfIdle(settings.autoOpenFolder ?? true);
+        finishBatchIfIdle();
       } catch (error) {
         update(id, { status: 'error', ...errorFields(error) });
       }

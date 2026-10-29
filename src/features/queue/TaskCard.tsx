@@ -1,4 +1,5 @@
-import { ChevronDown, ChevronUp, CircleAlert, Info, ListPlus, ListVideo, RotateCcw, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, CircleAlert, FolderOpen, Info, ListPlus, ListVideo, RotateCcw, X } from 'lucide-react';
+import { appApi } from '../../lib/appApi';
 import { isVideoInPlaylist } from '../../engine/ytdlp';
 import type { Task } from '../../types';
 import DownloadProgress from './DownloadProgress';
@@ -89,6 +90,11 @@ export default function TaskCard({
                   <ChevronDown size={14} />
                 </button>
               </div>
+            )}
+            {task.status === 'complete' && task.filePath && (
+              <button onClick={() => void appApi.openFileLocation(task.filePath!)} className="btn btn-ghost btn-sm gap-1.5">
+                <FolderOpen size={16} /> {m.task.openFolder}
+              </button>
             )}
             {canRetry && (
               <button onClick={() => onRetry(task)} className="btn btn-ghost btn-sm btn-square" aria-label={m.task.retry}>

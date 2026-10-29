@@ -186,9 +186,17 @@ fn reveal_file(file_path: &str) {
     }
     #[cfg(target_os = "windows")]
     {
-        let _ = std::process::Command::new("explorer")
-            .arg(format!("/select,{}", file_path))
-            .spawn();
+        use std::os::windows::process::CommandExt;
+        let path = file_path.replace('/', "\\");
+        let mut cmd = std::process::Command::new("explorer");
+        if std::path::Path::new(&path).is_file() {
+            // Explorer kendi ayristirmasini yapar: Rust'in arguman tirnaklamasi (`"/select,C:\a b"`)
+            // tanimadigi icin Belgelerim'i acardi. Yol tirnak icinde, `/select,` disarida olmali.
+            cmd.raw_arg(format!("/select,\"{path}\""));
+        } else if let Some(dir) = std::path::Path::new(&path).parent() {
+            cmd.arg(dir);
+        }
+        let _ = cmd.spawn();
     }
 }
 

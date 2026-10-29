@@ -88,12 +88,6 @@ export default function SettingsForm() {
         </div>
         <div className="divider my-0" />
         <ToggleRow
-          label={m.autoOpen}
-          description={m.autoOpenHint}
-          checked={settings.autoOpenFolder ?? true}
-          onChange={(v) => updateAndSave('autoOpenFolder', v)}
-        />
-        <ToggleRow
           label={m.subtitles}
           description={m.subtitlesHint}
           checked={settings.downloadSubtitles ?? false}

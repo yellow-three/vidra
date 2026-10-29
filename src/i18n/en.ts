@@ -137,6 +137,7 @@ const en: Messages = {
     moveDown: 'Move down',
     retry: 'Retry',
     remove: 'Remove',
+    openFolder: 'Open folder',
     detail: 'Details',
     badge: {
       analyzing: 'Analyzing',
@@ -241,8 +242,6 @@ const en: Messages = {
     format: 'Format',
     formatVideo: 'MP4 (Video)',
     formatAudio: 'MP3 (Audio)',
-    autoOpen: 'Open folder automatically',
-    autoOpenHint: 'Opens the folder once when downloads finish, not once per file.',
     subtitles: 'Embed subtitles',
     subtitlesHint: 'Subtitles in the chosen languages are added to the video when available.',
     subtitleLangs: 'Subtitle languages',
