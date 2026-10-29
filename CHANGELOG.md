@@ -4,6 +4,8 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/); sürümler [
 
 ## [Yayınlanmamış]
 
+## [0.3.0] - 2026-10-29
+
 ### Eklenenler
 - yt-dlp'nin desteklediği tüm siteler (Vimeo, Dailymotion, SoundCloud...).
 - "Tüm formatlar": yt-dlp'nin listelediği her format (VP9/AV1, 60 fps, HDR, Opus) kodek ve boyutuyla.
@@ -43,7 +45,8 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/); sürümler [
 
 - İlk sürüm ("YouTube Downloader" adıyla).
 
-[Yayınlanmamış]: https://github.com/yellow-three/vidra/compare/v0.2.2...HEAD
+[Yayınlanmamış]: https://github.com/yellow-three/vidra/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/yellow-three/vidra/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/yellow-three/vidra/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/yellow-three/vidra/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/yellow-three/vidra/compare/v0.1.0...v0.2.0

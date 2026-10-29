@@ -31,6 +31,11 @@
     <control>keyboard</control>
   </supports>
   <releases>
+    <release version="0.3.0" date="2026-10-29">
+      <description>
+        <p>Downloads from every site yt-dlp supports, every format yt-dlp lists, pause and resume, a tray icon while downloading in the background, a free-space check, a clipboard setting and a log file with a Report a problem button.</p>
+      </description>
+    </release>
     <release version="0.2.2" date="2026-10-29">
       <description>
         <p>Finished downloads get an Open folder button instead of the folder opening by itself, and on Windows the download folder opens instead of Documents.</p>
