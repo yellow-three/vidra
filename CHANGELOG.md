@@ -4,6 +4,9 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/); sürümler [
 
 ## [Yayınlanmamış]
 
+### Düzeltilenler
+- "Kapatınca tepside çalış" açıkken pencere, indirme olmasa da tepsiye geçiyor (önceden yalnızca indirme sürerken geçiyor, aksi halde uygulama kapanıyordu). "Arka planda çalışıyor" bildirimi oturumda bir kez gösteriliyor.
+
 ## [0.3.0] - 2026-10-29
 
 ### Eklenenler
