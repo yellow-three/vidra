@@ -3,6 +3,7 @@ pub mod appimage;
 pub mod legacy;
 mod cookies;
 mod dependencies;
+mod disk;
 mod events;
 mod system_tools;
 mod tools;
@@ -225,6 +226,12 @@ fn files_exist(paths: Vec<String>) -> Vec<bool> {
         .collect()
 }
 
+/// Klasorun diskindeki bos alan (bayt); olculemezse `None` (kontrol atlanir).
+#[tauri::command]
+fn free_space(path: String) -> Option<u64> {
+    disk::free_space(std::path::Path::new(&path))
+}
+
 #[tauri::command]
 fn start_clipboard_monitor(app: AppHandle, state: State<'_, AppState>) -> CommandResult<Value> {
     let mut monitor = state.clipboard_monitor.lock().map_err(|e| e.to_string())?;
@@ -321,6 +328,7 @@ pub fn run() {
             open_file_location,
             open_file,
             files_exist,
+            free_space,
             start_clipboard_monitor,
             stop_clipboard_monitor,
             process_spawn,

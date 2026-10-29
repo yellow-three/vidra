@@ -105,6 +105,8 @@ const en: Messages = {
     duplicateInHistory: 'You downloaded this video before; it is on the History page.',
     interrupted: 'Interrupted when the app closed; press Download to resume.',
     analysisInterrupted: 'Lookup was interrupted; please try again.',
+    diskFull: (needed, free) =>
+      `Not enough free disk space: about ${needed} needed, ${free} free. Free up space or pick another download folder in Settings.`,
   },
 
   addUrl: {

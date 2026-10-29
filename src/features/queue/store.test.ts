@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   fetchHistory: vi.fn(),
   openFileLocation: vi.fn(),
   notify: vi.fn(),
+  freeSpace: vi.fn(),
 }));
 
 vi.mock('../../engine', () => ({
@@ -26,7 +27,7 @@ vi.mock('../../engine', () => ({
 vi.mock('../settings/queries', () => ({ fetchSettings: async () => settings }));
 vi.mock('../history/queries', () => ({ addHistory: mocks.addHistory, fetchHistory: mocks.fetchHistory }));
 vi.mock('../../lib/appApi', () => ({
-  appApi: { openFileLocation: mocks.openFileLocation, getDownloadFolder: async () => '/default' },
+  appApi: { openFileLocation: mocks.openFileLocation, getDownloadFolder: async () => '/default', freeSpace: mocks.freeSpace },
 }));
 vi.mock('./notify', () => ({ notifyComplete: mocks.notify }));
 
@@ -60,6 +61,7 @@ async function addReadyTask(url: string, title = 'Video') {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.fetchHistory.mockResolvedValue([]);
+  mocks.freeSpace.mockResolvedValue(null);
   for (const key of ['defaultFormat', 'maxConcurrentDownloads', 'cookiesFromBrowser', 'proxy', 'rateLimit', 'subtitleLangs', 'playlistSubfolder']) {
     delete settings[key];
   }
@@ -380,5 +382,16 @@ describe('queue store', () => {
     await Promise.all(runs);
     expect(calls).toHaveLength(1);
     expect(mocks.pause).not.toHaveBeenCalled();
+  });
+
+  it('diskte yer yoksa indirmeyi baslatmaz', async () => {
+    const calls = controllableDownload();
+    const id = await addReadyTask('https://youtu.be/a');
+    mocks.freeSpace.mockResolvedValueOnce(50 * 1024 ** 2);
+    await useQueueStore.getState().startDownload(id);
+    expect(calls).toHaveLength(0);
+    expect(mocks.freeSpace).toHaveBeenCalledWith('/out');
+    expect(task(id).status).toBe('error');
+    expect(task(id).message).toContain('Diskte yeterli boş alan yok');
   });
 });

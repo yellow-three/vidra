@@ -105,6 +105,8 @@ const tr = {
     duplicateInHistory: 'Bu video daha önce indirildi; Geçmiş sayfasında bulabilirsiniz.',
     interrupted: 'Uygulama kapandığında yarıda kaldı; İndir ile kaldığı yerden devam eder.',
     analysisInterrupted: 'Analiz yarıda kaldı; tekrar deneyin.',
+    diskFull: (needed: string, free: string) =>
+      `Diskte yeterli boş alan yok: yaklaşık ${needed} gerekiyor, ${free} boş. Yer açın ya da Ayarlar'dan başka bir indirme klasörü seçin.`,
   },
 
   addUrl: {

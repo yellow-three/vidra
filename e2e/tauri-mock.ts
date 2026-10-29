@@ -13,6 +13,8 @@ export interface MockOptions {
   /** Kurulum ekrani: bu bilesenin indirmesi bir kez hata versin. */
   failInstall?: string;
   history?: Record<string, unknown>[];
+  /** Indirme klasorunun diskindeki bos alan (bayt); yoksa olculemedi. */
+  freeSpace?: number;
   /** Sunulacak uygulama guncellemesi; yoksa "guncel". */
   update?: { version: string; body: string } | null;
 }
@@ -132,6 +134,7 @@ function install(options: MockOptions) {
       return null;
     },
     files_exist: (args: { paths: string[] }) => args.paths.map((p) => !p.includes('silinmis')),
+    free_space: () => options.freeSpace ?? null,
     process_spawn: spawn,
     process_kill: ({ id }) => {
       const d = state.downloads.find((x) => x.pid === id);

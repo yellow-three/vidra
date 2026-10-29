@@ -4,7 +4,7 @@
 import { create } from 'zustand';
 import { engine } from '../../engine';
 import { EngineError } from '../../engine/errors';
-import type { InfoOptions, NetworkOptions, TimeRange, VideoInfo } from '../../engine/types';
+import type { DownloadResult, InfoOptions, NetworkOptions, TimeRange, VideoInfo } from '../../engine/types';
 import { formatFilesize, optionLabel, parseOption } from '../../engine/ytdlp';
 import { appApi } from '../../lib/appApi';
 import type { AppSettings, Task } from '../../types';
@@ -13,6 +13,7 @@ import { fetchSettings } from '../settings/queries';
 import { pickDefaultFormat } from './defaultFormat';
 import { isHttpUrl, mergeClipboardLinks, splitUrls, videoKey, type ClipboardMode } from './duplicates';
 import { createLimiter } from './limiter';
+import { diskShortage } from './diskSpace';
 import { notifyComplete } from './notify';
 import { loadTasks, saveTasks } from './persistence';
 import { msg } from '../../i18n';
@@ -227,6 +228,10 @@ export const useQueueStore = create<QueueState>()((set, get) => {
         const result = await limiter.run(id, async () => {
           // Ayarlar okunurken iptal edildiyse hic baslama.
           if (find(id)?.status === 'cancelled') return { status: 'cancelled' } as const;
+          // Sira gelince olculur: bekleyen indirmeler arasinda baskalari diski doldurmus olabilir.
+          const bytes = task.formats?.find((f) => f.formatId === formatId)?.bytes;
+          const shortage = diskShortage(await appApi.freeSpace(outDir).catch(() => null), bytes);
+          if (shortage) return { status: 'error', message: shortage } satisfies DownloadResult;
           update(id, { status: 'downloading' });
           return engine.download(
             {

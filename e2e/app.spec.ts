@@ -97,6 +97,15 @@ test('indirme duraklatilir ve kaldigi yerden surdurulur', async ({ page }) => {
   await expect(card).toContainText('İndiriliyor');
 });
 
+test('diskte yer yoksa indirme baslamaz ve neden gosterilir', async ({ page }) => {
+  await mockTauri(page, { settings: accepted, freeSpace: 10 * 1024 ** 2 });
+  await page.goto('/');
+  await analyze(page);
+  await page.getByRole('button', { name: 'İndir', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Diskte yeterli boş alan yok');
+  expect(await page.evaluate(() => (window as any).__mock.state.downloads.length)).toBe(0);
+});
+
 test('indirme hatasi kartta gosterilir', async ({ page }) => {
   await mockTauri(page, { settings: accepted });
   await page.goto('/');
