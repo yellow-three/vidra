@@ -1,4 +1,4 @@
-// Sistem tepsisi: indirme surerken pencere kapatilinca uygulama tepside calismaya devam eder.
+// Sistem tepsisi: pencere kapatilinca uygulama (ve suren indirmeler) tepside calismaya devam eder.
 
 import { defaultWindowIcon, exit } from '@tauri-apps/api/app';
 import { Menu } from '@tauri-apps/api/menu';
@@ -9,6 +9,8 @@ import { sendNotification } from '@tauri-apps/plugin-notification';
 import { msg } from '../i18n';
 
 let tray: Promise<TrayIcon> | null = null;
+/** "Arka planda calisiyor" bildirimi oturumda bir kez gosterilir; her kapatista tekrarlanmaz. */
+let notified = false;
 
 export async function showWindow(): Promise<void> {
   const window = getCurrentWindow();
@@ -56,6 +58,8 @@ export async function hideToTray(): Promise<void> {
     return;
   }
   await window.hide();
+  if (notified) return;
+  notified = true;
   const m = msg().tray;
   sendNotification({ title: m.backgroundTitle, body: m.backgroundBody });
 }

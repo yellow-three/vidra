@@ -21,18 +21,19 @@ async function missingDependencies(): Promise<string[]> {
 }
 
 /**
- * Suren indirme varken pencere kapatilirsa: ayar aciksa tepsiye gizlenir, kapaliysa sorar
+ * Pencere kapatilinca: "Kapatinca tepside calis" aciksa (varsayilan) uygulama tepsiye gizlenir,
+ * cikis tepsi menusunden yapilir. Kapaliysa uygulama kapanir; suren indirme varsa once sorulur
  * (indirmeler kapaninca durur, process.rs kill_all).
  */
 function confirmCloseWithActiveDownloads(): void {
   void getCurrentWindow().onCloseRequested(async (event) => {
-    if (!hasActiveDownloads()) return;
     const settings = await fetchSettings().catch(() => null);
     if (settings?.closeToTray ?? true) {
       event.preventDefault();
       await hideToTray();
       return;
     }
+    if (!hasActiveDownloads()) return;
     const m = msg().closeDialog;
     const close = await ask(m.body, { title: m.title, kind: 'warning', okLabel: m.ok, cancelLabel: m.cancel });
     if (!close) event.preventDefault();

@@ -11,7 +11,7 @@ YouTube ve yt-dlp'nin desteklediği yüzlerce siteden video ve ses indiren masa�
 - Videonun yalnızca bir bölümünü indirme (başlangıç–bitiş)
 - Birden fazla linki tek seferde yapıştırma; kuyrukta ya da geçmişte olan video tekrar eklenince uyarı
 - Kuyruk: aynı anda kaç indirme yapılacağı ayarlanır, sıradakiler yukarı/aşağı taşınarak öne alınır; indirmeler duraklatılıp sürdürülebilir; uygulama kapansa da kuyruk kalır, yarıda kalan indirme kaldığı yerden sürer
-- İndirme sürerken pencere kapatılınca Vidra sistem tepsisinde çalışmaya devam eder
+- Pencere kapatılınca Vidra sistem tepsisinde çalışmaya devam eder (çıkış tepsi menüsünden; Ayarlar > Davranış'tan kapatılabilir)
 - İndirmeden önce disk alanı kontrolü
 - Pano izleme: kopyalanan YouTube linkleri (ya da istenirse tüm linkler) kutuya kendiliğinden gelir; Ayarlar > Davranış'tan kapatılabilir
 - Geçmiş: arama, dosyayı oynatma, yeniden indirme; diskten silinen dosyalar işaretlenir
