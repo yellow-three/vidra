@@ -1,4 +1,4 @@
-// "Hata bildir": hatanin ayrintilari dolu bir GitHub issue taslagi. Kullanici gondermeden once duzenleyebilir.
+// "Hata bildir": hatanin ayrintilariyla dolu GitHub hata formu. Kullanici gondermeden once duzenleyebilir.
 
 import { getVersion } from '@tauri-apps/api/app';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -15,34 +15,17 @@ export interface Environment {
   platform: string;
 }
 
+/** `.github/ISSUE_TEMPLATE/bug_report.yml` formunun alanlarini doldurur. */
 export function issueUrl(task: Pick<Task, 'url' | 'message' | 'detail' | 'selectedFormatId'>, env: Environment): string {
-  const detail = (task.detail ?? task.message ?? '').slice(-MAX_DETAIL);
-  const body = [
-    '### Ne oldu / What happened',
-    '',
-    task.message ?? '',
-    '',
-    '### Link',
-    '',
-    task.url,
-    '',
-    '### yt-dlp çıktısı / output',
-    '',
-    '```',
-    detail,
-    '```',
-    '',
-    '### Ortam / Environment',
-    '',
-    `- Vidra: ${env.appVersion}`,
-    `- yt-dlp: ${env.ytdlpVersion}`,
-    `- Format: ${task.selectedFormatId ?? '-'}`,
-    `- ${env.platform}`,
-    '',
-    '<!-- Kayıt dosyası: Ayarlar > Sistem > Kayıt dosyaları (vidra.log). Gerekirse buraya sürükleyin. -->',
-  ].join('\n');
   const title = `İndirme hatası: ${(task.message ?? '').split('\n')[0].slice(0, 80)}`;
-  return `${ISSUES_URL}?${new URLSearchParams({ title, body, labels: 'bug' })}`;
+  return `${ISSUES_URL}?${new URLSearchParams({
+    template: 'bug_report.yml',
+    title,
+    what: task.message ?? '',
+    link: task.url,
+    output: (task.detail ?? task.message ?? '').slice(-MAX_DETAIL),
+    versions: `Vidra ${env.appVersion}, yt-dlp ${env.ytdlpVersion}, format ${task.selectedFormatId ?? '-'}, ${env.platform}`,
+  })}`;
 }
 
 /** Surumleri toplayip taslagi tarayicida acar. */

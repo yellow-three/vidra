@@ -25,6 +25,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run lint
+        if: runner.os == 'Linux'
       - run: npm test
       - run: npx playwright install --with-deps chromium
       - run: npm run test:ui
@@ -54,10 +56,16 @@ jobs:
           node-version: 24
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
       - run: npm ci
+      - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+        if: runner.os == 'Linux'
+      # Her iki isletim sisteminde: Windows'a ozgu kod yalnizca orada derlenir.
+      - run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
       - run: cargo test --manifest-path src-tauri/Cargo.toml
       - name: Paket
         run: npm run tauri build -- --bundles ${{ matrix.bundles }}
@@ -67,3 +75,19 @@ jobs:
           path: src-tauri/target/release/bundle/
           if-no-files-found: error
           retention-days: 7
+
+  # Bilinen guvenlik aciklari: npm (calisma zamani bagimliliklari) ve RustSec.
+  # Bizi etkilemeyen RustSec kayitlari gerekcesiyle src-tauri/.cargo/audit.toml'da.
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: npm audit --omit=dev --audit-level=high
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+      - run: cargo audit
+        working-directory: src-tauri
