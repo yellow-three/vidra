@@ -34,7 +34,7 @@ dirs = "7"
 # Ilk acilistaki arac indirmesi (tools.rs); updater ile ayni reqwest/rustls (ring) kurulumu.
 reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "system-proxy", "socks"] }
 rustls = { version = "0.23", default-features = false, features = ["ring"] }
-sha2 = "0.10"
+sha2 = "0.11"
 # deno .zip olarak gelir (Windows'ta FFmpeg de).
 zip = { version = "9", default-features = false, features = ["deflate"] }
 
