@@ -84,6 +84,13 @@ const tr = {
     cancel: 'Vazgeç',
   },
 
+  tray: {
+    show: 'Vidra\'yı göster',
+    quit: 'Çık',
+    backgroundTitle: 'Vidra arka planda çalışıyor',
+    backgroundBody: 'İndirmeler sürüyor. Pencereyi geri açmak için tepsideki simgeye tıklayın ya da Vidra\'yı yeniden açın.',
+  },
+
   notify: {
     title: 'İndirme tamamlandı',
     batch: (n: number) => `${n} indirme tamamlandı.`,
@@ -262,6 +269,8 @@ const tr = {
     behavior: 'Davranış',
     clipboardMode: 'Pano izleme',
     clipboardModes: { youtube: 'Yalnızca YouTube linkleri', all: 'Tüm linkler', off: 'Kapalı' },
+    closeToTray: 'Kapatınca tepside çalış',
+    closeToTrayHint: 'İndirme sürerken pencereyi kapatırsanız Vidra sistem tepsisine geçer ve indirmeler sürer. Kapalıysa kapatmadan önce sorulur.',
     clipboardModeHint: 'Kopyaladığınız linkler indirme kutusuna kendiliğinden gelir. "Tüm linkler" yt-dlp\'nin desteklediği diğer siteler içindir.',
     appearance: 'Görünüm',
     language: 'Dil',

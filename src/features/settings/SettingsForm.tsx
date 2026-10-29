@@ -118,6 +118,12 @@ export default function SettingsForm() {
             hint={m.clipboardModeHint}
           />
         </div>
+        <ToggleRow
+          label={m.closeToTray}
+          description={m.closeToTrayHint}
+          checked={settings.closeToTray ?? true}
+          onChange={(v) => updateAndSave('closeToTray', v)}
+        />
       </Section>
 
       <Section title={m.appearance} icon={<Palette size={18} />}>

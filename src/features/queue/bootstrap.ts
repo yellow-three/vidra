@@ -8,6 +8,7 @@ import { setStatus, useAppStatus } from './appStatus';
 import { hasActiveDownloads, useQueueStore } from './store';
 import type { ClipboardMode } from './duplicates';
 import { fetchSettings } from '../settings/queries';
+import { hideToTray } from '../../app/tray';
 import { checkForAppUpdateInBackground } from '../settings/appUpdate';
 import { autoUpdateYtdlp } from '../settings/ytdlpAutoUpdate';
 
@@ -19,10 +20,19 @@ async function missingDependencies(): Promise<string[]> {
   return [!deps.ytdlp && 'yt-dlp', !deps.ffmpeg && 'FFmpeg', !deps.deno && 'deno'].filter((n): n is string => Boolean(n));
 }
 
-/** Suren indirme varken pencere kapatilirsa sorar; indirmeler kapaninca durur (process.rs kill_all). */
+/**
+ * Suren indirme varken pencere kapatilirsa: ayar aciksa tepsiye gizlenir, kapaliysa sorar
+ * (indirmeler kapaninca durur, process.rs kill_all).
+ */
 function confirmCloseWithActiveDownloads(): void {
   void getCurrentWindow().onCloseRequested(async (event) => {
     if (!hasActiveDownloads()) return;
+    const settings = await fetchSettings().catch(() => null);
+    if (settings?.closeToTray ?? true) {
+      event.preventDefault();
+      await hideToTray();
+      return;
+    }
     const m = msg().closeDialog;
     const close = await ask(m.body, { title: m.title, kind: 'warning', okLabel: m.ok, cancelLabel: m.cancel });
     if (!close) event.preventDefault();

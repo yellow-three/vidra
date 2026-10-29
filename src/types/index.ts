@@ -67,6 +67,8 @@ export interface AppSettings {
   /** Son basarili otomatik yt-dlp guncellemesi, Unix ms. */
   ytdlpCheckedAt?: number;
   legalAccepted?: boolean;
+  /** Indirme surerken pencere kapatilinca tepside calismaya devam et (varsayilan acik). */
+  closeToTray?: boolean;
   /** Kopyalanan linklerin kutuya gelmesi (varsayilan `youtube`). */
   clipboardMode?: 'off' | 'youtube' | 'all';
   /** Arayuz dili; bos ise sistem dili. */

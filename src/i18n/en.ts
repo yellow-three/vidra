@@ -84,6 +84,13 @@ const en: Messages = {
     cancel: 'Cancel',
   },
 
+  tray: {
+    show: 'Show Vidra',
+    quit: 'Quit',
+    backgroundTitle: 'Vidra is running in the background',
+    backgroundBody: 'Downloads continue. Click the tray icon or open Vidra again to bring the window back.',
+  },
+
   notify: {
     title: 'Download complete',
     batch: (n) => `${n} downloads complete.`,
@@ -261,6 +268,8 @@ const en: Messages = {
     behavior: 'Behavior',
     clipboardMode: 'Clipboard watching',
     clipboardModes: { youtube: 'YouTube links only', all: 'All links', off: 'Off' },
+    closeToTray: 'Keep running in the tray',
+    closeToTrayHint: 'If you close the window while downloading, Vidra moves to the system tray and the downloads continue. When off, you are asked before closing.',
     clipboardModeHint: 'Links you copy appear in the download box by themselves. "All links" is for the other sites yt-dlp supports.',
     appearance: 'Appearance',
     language: 'Language',
