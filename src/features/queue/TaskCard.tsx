@@ -1,5 +1,8 @@
-import { Bug, ChevronDown, ChevronUp, CircleAlert, FolderOpen, Info, ListPlus, ListVideo, RotateCcw, X } from 'lucide-react';
+import { useState } from 'react';
+import { Bug, ChevronDown, ChevronUp, CircleAlert, FolderOpen, Info, ListPlus, ListVideo, Radio, RotateCcw, X } from 'lucide-react';
+import { errorKind } from '../../engine/errors';
 import { reportIssue } from './reportIssue';
+import { useQueueStore } from './store';
 import { appApi } from '../../lib/appApi';
 import { isAudioOptionId, isVideoInPlaylist } from '../../engine/ytdlp';
 import type { Task } from '../../types';
@@ -69,6 +72,7 @@ export default function TaskCard({
             <p className="text-xs text-base-content/50 truncate">{task.url}</p>
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge task={task} />
+              {task.meta?.live === 'is_live' && <span className="badge badge-error badge-sm gap-1"><Radio size={12} /> {m.task.live}</span>}
               {task.playlist && (
                 <span className="badge badge-ghost badge-sm gap-1 max-w-full" title={task.playlist}>
                   <ListVideo size={12} className="shrink-0" /><span className="truncate">{task.playlist}</span>
@@ -138,6 +142,12 @@ export default function TaskCard({
                   <p className="font-mono break-words whitespace-pre-wrap mt-1">{task.detail}</p>
                 </details>
               )}
+              {errorKind(task.detail) === 'password' && <PasswordRetry task={task} />}
+              {errorKind(task.detail) === 'upcoming' && (
+                <button onClick={() => void useQueueStore.getState().waitForLive(task.id)} className="btn btn-xs btn-soft gap-1 self-start">
+                  <Radio size={12} /> {m.task.waitForLive}
+                </button>
+              )}
               <button onClick={() => void reportIssue(task)} className="btn btn-ghost btn-xs gap-1 self-start -ml-2">
                 <Bug size={12} /> {m.task.report}
               </button>
@@ -146,5 +156,25 @@ export default function TaskCard({
         )}
       </div>
     </article>
+  );
+}
+
+/** Sifreli video: sifre burada girilir, video yeniden analiz edilir (sifre diske yazilmaz). */
+function PasswordRetry({ task }: { task: Task }) {
+  const m = useT().task;
+  const [password, setPassword] = useState('');
+  const submit = () => password && void useQueueStore.getState().retryWithPassword(task.id, password);
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="join self-start">
+      <input
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder={m.password}
+        aria-label={m.password}
+        className="input input-xs join-item w-44"
+      />
+      <button type="submit" disabled={!password} className="btn btn-xs join-item">{m.retryWithPassword}</button>
+    </form>
   );
 }

@@ -117,7 +117,10 @@ export class DesktopEngine implements DownloadEngine {
         if (!parsed) return;
         if (parsed.type === 'destination') destination = parsed.path;
         else if (parsed.type === 'file') filePath = parsed.path;
-        else if (Math.floor(parsed.percent) !== lastPercent) {
+        else if (parsed.downloaded) {
+          // Canli yayin: toplam bilinmez, inen miktar gosterilir.
+          onProgress({ percent: 0, speed: parsed.speed, eta: '', downloaded: parsed.downloaded });
+        } else if (Math.floor(parsed.percent) !== lastPercent) {
           lastPercent = Math.floor(parsed.percent);
           onProgress({ percent: lastPercent, speed: parsed.speed, eta: parsed.eta });
         }

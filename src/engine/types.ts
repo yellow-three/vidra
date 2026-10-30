@@ -40,6 +40,8 @@ export interface VideoMeta {
   autoSubtitles?: string[];
   /** Videodaki bolum sayisi (bolumlere ayirma icin). */
   chapters?: number;
+  /** Canli yayin durumu: `is_live` suren yayin, `is_upcoming` henuz baslamamis. */
+  live?: 'is_live' | 'is_upcoming';
 }
 
 /** Indirme sonrasi islemler (Ayarlar > Sonradan isleme ve video secenekleri). */
@@ -85,6 +87,12 @@ export interface NetworkOptions {
   /** `--cookies-from-browser` degeri, orn. `firefox` ya da `chrome:/profil/yolu`. */
   cookiesFromBrowser?: string;
   proxy?: string;
+  /** Sifreli videolar (Vimeo vb.) icin `--video-password`. */
+  videoPassword?: string;
+  /** `.netrc` ile site girisi: `true` varsayilan dosya, metin ise dosya yolu. */
+  netrc?: boolean | string;
+  /** Bu yasin ustundeki icerik indirilmez (`--age-limit`). */
+  ageLimit?: number;
 }
 
 export interface InfoOptions extends NetworkOptions {
@@ -96,6 +104,8 @@ export interface DownloadProgress {
   percent: number;
   speed: string;
   eta: string;
+  /** Inen miktar; toplam bilinmeyen canli yayinlarda yuzde yerine gosterilir. */
+  downloaded?: string;
 }
 
 export interface DownloadRequest extends NetworkOptions, PostProcessing {
@@ -136,6 +146,10 @@ export interface DownloadRequest extends NetworkOptions, PostProcessing {
   playlistIndex?: string;
   /** YYYYMMDD: bu tarihten once yuklenen video indirilmez (`--dateafter`). */
   dateAfter?: string;
+  /** Canli yayini baslangicindan itibaren kaydeder (`--live-from-start`). */
+  liveFromStart?: boolean;
+  /** Henuz baslamamis yayini bekler, baslayinca indirir (`--wait-for-video`). */
+  waitForVideo?: boolean;
 }
 
 /** `mark`: sponsor bolumleri dosyaya bolum olarak eklenir; `remove`: dosyadan kesilir. */

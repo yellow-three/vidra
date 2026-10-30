@@ -34,10 +34,10 @@ Zaten kullanılanlar: format seçimi ve sıralama (`-f`, `-S`), birleştirme, MP
 
 ## Grup 4: canlı yayın, giriş, özel durumlar
 
-- [ ] **21. Canlı yayın** (`--live-from-start`, `--wait-for-video`): Baştan indirme, planlanmış yayını bekleme.
-- [ ] **22. Şifreli videolar** (`--video-password`).
-- [ ] **23. Kullanıcı adı ve parolayla giriş** (`--username`, `--password`, `--netrc`).
-- [ ] **24. Yaş sınırı** (`--age-limit`).
+- [x] **21. Canlı yayın** (`--live-from-start`, `--wait-for-video`): Baştan indirme, planlanmış yayını bekleme.
+- [x] **22. Şifreli videolar** (`--video-password`).
+- [x] **23. Site girişi** (`--netrc`): Şifreler uygulamada saklanmasın diye kullanıcı adı/parola alanı yerine .netrc dosyası kullanılır.
+- [x] **24. Yaş sınırı** (`--age-limit`).
 
 ## Grup 5: ağ ve dosya sistemi
 

@@ -5,7 +5,7 @@ import { create } from 'zustand';
 import { engine } from '../../engine';
 import { EngineError } from '../../engine/errors';
 import type { DownloadResult, InfoOptions, NetworkOptions, TimeRange, VideoInfo } from '../../engine/types';
-import { formatFilesize, optionLabel, parseOption } from '../../engine/ytdlp';
+import { BEST_ID, formatFilesize, optionLabel, parseOption, playlistOptions } from '../../engine/ytdlp';
 import { appApi } from '../../lib/appApi';
 import type { AppSettings, Task } from '../../types';
 import { addHistory, fetchHistory } from '../history/queries';
@@ -28,9 +28,12 @@ const errorFields = (error: unknown): Pick<Task, 'message' | 'detail'> => ({
   detail: error instanceof EngineError ? error.detail : undefined,
 });
 
-const networkOptions = (s: AppSettings | null): NetworkOptions => ({
+const networkOptions = (s: AppSettings | null, task?: Pick<Task, 'videoPassword'>): NetworkOptions => ({
   cookiesFromBrowser: s?.cookiesFromBrowser || undefined,
   proxy: s?.proxy?.trim() || undefined,
+  netrc: s?.useNetrc ? (s.netrcPath?.trim() || true) : undefined,
+  ageLimit: s?.ageLimit || undefined,
+  videoPassword: task?.videoPassword || undefined,
 });
 
 export interface PlaylistAddOptions {
@@ -81,7 +84,7 @@ interface QueueState {
   /** Yalnizca bir araligi indirmek icin; `undefined` tum videoyu secer. */
   setSection(id: string, section: TimeRange | undefined): void;
   /** Bu video icin altyazi ve dosya adi; `undefined` ayardaki varsayilana doner. */
-  setVideoOptions(id: string, options: Partial<Pick<Task, 'subtitles' | 'subtitleLangs' | 'filenamePattern' | 'splitChapters'>>): void;
+  setVideoOptions(id: string, options: Partial<Pick<Task, 'subtitles' | 'subtitleLangs' | 'filenamePattern' | 'splitChapters' | 'liveFromStart'>>): void;
   startDownload(id: string): Promise<void>;
   /** Format secimini bekleyen tum gorevleri listedeki sirayla kuyruga alir. */
   startAll(): Promise<void>;
@@ -91,6 +94,10 @@ interface QueueState {
   /** Duraklatilan indirmeyi kaldigi yerden surdurur. */
   resume(id: string): Promise<void>;
   retry(id: string): Promise<void>;
+  /** Sifreli videoyu verilen sifreyle yeniden analiz eder. */
+  retryWithPassword(id: string, password: string): Promise<void>;
+  /** Henuz baslamamis yayini bekleyip baslayinca varsayilan formatla indirir. */
+  waitForLive(id: string): Promise<void>;
   move(id: string, direction: 'up' | 'down'): void;
   /** Tamamlanan ve iptal edilen gorevleri listeden kaldirir. */
   clearFinished(): void;
@@ -179,7 +186,7 @@ export const useQueueStore = create<QueueState>()((set, get) => {
   async function runAnalysis(id: string, url: string, options: Pick<InfoOptions, 'playlist'> = {}) {
     try {
       const settings = await fetchSettings().catch(() => null);
-      const info = await engine.getInfo(url, { ...networkOptions(settings), ...options });
+      const info = await engine.getInfo(url, { ...networkOptions(settings, find(id)), ...options });
       if (info.entries) {
         await offerPlaylist(id, info, settings);
         return;
@@ -344,10 +351,12 @@ export const useQueueStore = create<QueueState>()((set, get) => {
               embedMetadata: settings.embedMetadata ?? true,
               filenamePattern: task.filenamePattern ?? resolvePattern(settings.filenameTemplate, settings.filenameCustom),
               rateLimit: settings.rateLimit || undefined,
+              liveFromStart: task.liveFromStart,
+              waitForVideo: task.waitForVideo,
               partialSince: task.partial?.since,
-              ...networkOptions(settings),
+              ...networkOptions(settings, find(id) ?? task),
             },
-            (p) => update(id, { percent: p.percent, speed: p.speed, eta: p.eta }),
+            (p) => update(id, { percent: p.percent, speed: p.speed, eta: p.eta, downloaded: p.downloaded }),
           );
         });
 
@@ -410,6 +419,19 @@ export const useQueueStore = create<QueueState>()((set, get) => {
     },
 
     resume: (id) => get().startDownload(id),
+
+    async retryWithPassword(id, password) {
+      force(id, { videoPassword: password });
+      await get().retry(id);
+    },
+
+    async waitForLive(id) {
+      const settings = await fetchSettings().catch(() => null);
+      // Bicimler yayin baslamadan bilinmez; ayardaki varsayilan tur (ses ya da en iyi video) secilir.
+      const formatId = settings?.defaultFormat === 'mp3' ? 'audio-mp3' : BEST_ID;
+      force(id, { formats: playlistOptions(), selectedFormatId: formatId, waitForVideo: true, message: undefined, detail: undefined });
+      await get().startDownload(id);
+    },
 
     async retry(id) {
       const task = find(id);

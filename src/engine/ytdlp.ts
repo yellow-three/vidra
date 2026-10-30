@@ -203,6 +203,7 @@ export function playlistOptions(): FormatOption[] {
 /** `yt-dlp -J --flat-playlist` ciktisinin kullandigimiz alanlari. */
 interface InfoJson {
   _type?: string;
+  live_status?: string | null;
   chapters?: unknown[] | null;
   subtitles?: Record<string, unknown>;
   automatic_captions?: Record<string, unknown>;
@@ -258,6 +259,7 @@ export function parseInfo(json: string, url: string): VideoInfo {
       subtitles: Object.keys(data.subtitles ?? {}).filter((l) => l !== 'live_chat'),
       // YouTube her dile ceviri sunar; yalnizca konusmanin ozgun dili (`xx-orig`) gosterilir.
       chapters: data.chapters?.length,
+      live: data.live_status === 'is_live' || data.live_status === 'is_upcoming' ? data.live_status : undefined,
       autoSubtitles: Object.keys(data.automatic_captions ?? {}).filter((l) => l.endsWith('-orig')).map((l) => l.slice(0, -5)),
     },
   };
@@ -276,10 +278,13 @@ export function jsRuntimeArgs(denoPath?: string | null): string[] {
   return denoPath ? ['--js-runtimes', `deno:${denoPath}`] : [];
 }
 
-export function networkArgs({ cookiesFromBrowser, proxy }: NetworkOptions): string[] {
+export function networkArgs({ cookiesFromBrowser, proxy, videoPassword, netrc, ageLimit }: NetworkOptions): string[] {
   return [
     ...(cookiesFromBrowser ? ['--cookies-from-browser', cookiesFromBrowser] : []),
     ...(proxy ? ['--proxy', proxy] : []),
+    ...(videoPassword ? ['--video-password', videoPassword] : []),
+    ...(netrc ? ['--netrc', ...(typeof netrc === 'string' ? ['--netrc-location', netrc] : [])] : []),
+    ...(ageLimit ? ['--age-limit', String(ageLimit)] : []),
   ];
 }
 
@@ -382,6 +387,8 @@ export interface DownloadArgsInput extends NetworkOptions, PostProcessing {
   playlistIndex?: string;
   /** YYYYMMDD; daha once yuklenen videolar indirilmez. */
   dateAfter?: string;
+  liveFromStart?: boolean;
+  waitForVideo?: boolean;
 }
 
 /** Kopan baglantida indirme yarida kalmasin: istek ve parca basina 10 deneme, artan bekleme. */
@@ -393,7 +400,7 @@ const SPONSOR_REMOVE = 'sponsor,selfpromo,interaction';
 export function buildDownloadArgs({
   url, option, outDir, ffmpegPath, subtitles, embedMetadata, filenamePattern, rateLimit, denoPath,
   subtitleLangs, subfolder, section, sponsorBlock, subtitleFile, autoSubtitles, concurrentFragments,
-  sleepInterval, maxFilesize, mp3Quality, playlistIndex, dateAfter,
+  sleepInterval, maxFilesize, mp3Quality, playlistIndex, dateAfter, liveFromStart, waitForVideo,
   splitChapters, removeChapters, remux, parseArtist, writeThumbnail, writeDescription, writeInfoJson, writeComments,
   serverMtime, ...network
 }: DownloadArgsInput): string[] {
@@ -475,6 +482,9 @@ export function buildDownloadArgs({
   if (sleepInterval) args.push('--sleep-interval', String(sleepInterval), '--sleep-requests', '1');
   if (maxFilesize) args.push('--max-filesize', maxFilesize);
   if (dateAfter) args.push('--dateafter', dateAfter);
+  if (liveFromStart) args.push('--live-from-start');
+  // Yayin baslayana kadar 30 sn ile 10 dk arasi araliklarla tekrar bakilir.
+  if (waitForVideo) args.push('--wait-for-video', '30-600');
   args.push(...postProcessingArgs(option, outDir, subfolder, {
     splitChapters, removeChapters, remux, parseArtist, writeThumbnail, writeDescription, writeInfoJson, writeComments, serverMtime,
   }));
@@ -508,7 +518,7 @@ export function postProcessingArgs(option: DownloadOption, outDir: string, subfo
 }
 
 export type OutputLine =
-  | { type: 'progress'; percent: number; speed: string; eta: string }
+  | { type: 'progress'; percent: number; speed: string; eta: string; downloaded?: string }
   | { type: 'destination'; path: string }
   | { type: 'file'; path: string };
 
@@ -548,6 +558,7 @@ export function parseOutputLine(line: string): OutputLine | null {
     percent,
     speed: p.speed != null ? `${formatFilesize(p.speed)}/s` : '',
     eta: p.eta != null ? formatEta(p.eta) : '',
+    ...(!total && p.downloaded_bytes && p.status !== 'finished' ? { downloaded: formatFilesize(p.downloaded_bytes) } : {}),
   };
 }
 

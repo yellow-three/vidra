@@ -204,6 +204,7 @@ const tr = {
     subtitles: 'Altyazıları göm',
     defaultFilename: 'Varsayılan (Ayarlar)',
     splitChapters: (n: number) => `Bölümlere ayır (${n} ayrı dosya)`,
+    liveFromStart: 'Canlı yayını en baştan kaydet (kapalıyken şu andan itibaren); yayın bitince dosya tamamlanır',
     languages: 'Bu videodaki altyazılar',
     auto: 'otomatik',
     none: 'Bu videoda altyazı bulunamadı.',
@@ -259,6 +260,11 @@ const tr = {
     remove: 'Kaldır',
     openFolder: 'Klasörü aç',
     report: 'Hata bildir',
+    live: 'CANLI',
+    waitForLive: 'Başlayınca indir',
+    waitingForLive: 'Yayının başlaması bekleniyor…',
+    password: 'Video şifresi',
+    retryWithPassword: 'Şifreyle dene',
     detail: 'Ayrıntı',
     badge: {
       analyzing: 'Analiz ediliyor',
@@ -469,6 +475,13 @@ const tr = {
 
   network: {
     title: 'Ağ ve hesap',
+    netrc: '.netrc ile giriş yap',
+    netrcHint: 'Kullanıcı adı ve şifre isteyen siteler için yt-dlp, .netrc dosyasındaki bilgileri kullanır (örn. "machine vimeo login ad password şifre"). Şifreler uygulamada saklanmaz.',
+    netrcPath: '.netrc dosyası',
+    ageLimit: 'Yaş sınırı',
+    ageLimitOff: 'Yok',
+    ageLimitUnder: (n: number) => `${n} yaş ve altı için uygun`,
+    ageLimitHint: 'Bu yaşa uygun olmayan içerik indirilmez (siteler yaş bilgisini verdiği ölçüde).',
     cookies: 'Tarayıcı çerezleri',
     none: 'Kullanma',
     cookiesHint:
@@ -500,7 +513,8 @@ const tr = {
     cookies: 'Tarayıcı çerezleri okunamadı. Tarayıcıyı kapatıp tekrar deneyin ya da Ayarlar\'dan başka bir tarayıcı seçin (Windows\'ta Firefox önerilir).',
     geo: 'Video bölgenizde yayınlanmıyor. Proxy ayarı ile deneyebilirsiniz.',
     unavailable: 'Video kullanılamıyor; silinmiş veya kaldırılmış olabilir.',
-    upcoming: 'Video henüz yayınlanmadı.',
+    upcoming: 'Yayın henüz başlamadı. "Başlayınca indir" ile yayın başladığında kendiliğinden indirilir.',
+    password: 'Video şifreli. Şifreyi girip tekrar deneyin.',
     unsupported: 'yt-dlp bu linki desteklemiyor. Video sayfasının ya da oynatma listesinin linkini yapıştırın.',
     format: 'Seçilen format bu video için yok. Başka bir kalite seçin.',
     forbidden: 'YouTube indirmeyi reddetti (403). Ayarlar\'dan yt-dlp\'yi güncelleyip tekrar deneyin.',

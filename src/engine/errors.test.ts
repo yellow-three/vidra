@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { setLanguage } from '../i18n';
-import { friendlyError } from './errors';
+import { errorKind, friendlyError } from './errors';
 
 describe('friendlyError', () => {
   it('bot dogrulamasinda cerez ayarini onerir, ham metni saklar', () => {
@@ -33,5 +33,11 @@ describe('friendlyError', () => {
     } finally {
       setLanguage('tr');
     }
+  });
+
+  it('sifreli video ve baslamamis yayin turunu tanir', () => {
+    expect(errorKind('ERROR: [vimeo] 123: This video is protected by a password, use the --video-password option')).toBe('password');
+    expect(errorKind('ERROR: [youtube] x: This live event will begin in 3 hours.')).toBe('upcoming');
+    expect(errorKind(undefined)).toBeNull();
   });
 });

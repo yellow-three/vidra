@@ -32,6 +32,14 @@ export interface Task {
   meta?: VideoMeta;
   /** Bu video icin altyazi gomme; bos ise ayardaki varsayilan. */
   subtitles?: boolean;
+  /** Canli yayini en bastan kaydet. */
+  liveFromStart?: boolean;
+  /** Henuz baslamamis yayini bekle. */
+  waitForVideo?: boolean;
+  /** Sifreli video icin sifre; diske (kuyruk kaydina) yazilmaz. */
+  videoPassword?: string;
+  /** Canli yayinda inen miktar. */
+  downloaded?: string;
   /** Bu video bolumlere ayrilsin mi; bos ise ayardaki varsayilan. */
   splitChapters?: boolean;
   /** Listedeki sira, orn. `03` (dosya adindaki Sira no). */
@@ -99,6 +107,12 @@ export interface AppSettings extends PostProcessing {
   closeToTray?: boolean;
   /** Kopyalanan linklerin kutuya gelmesi (varsayilan `youtube`). */
   clipboardMode?: 'off' | 'youtube' | 'all';
+  /** `.netrc` dosyasindaki kullanici adi/sifre ile site girisi. */
+  useNetrc?: boolean;
+  /** Bos ise varsayilan `~/.netrc`. */
+  netrcPath?: string;
+  /** Bu yasin ustundeki icerik indirilmez; 0/bos sinirsiz. */
+  ageLimit?: number;
   subscriptions?: Subscription[];
   /** Acilista abonelikleri kontrol et (varsayilan acik). */
   checkSubscriptionsOnStart?: boolean;

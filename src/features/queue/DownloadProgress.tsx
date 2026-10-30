@@ -26,9 +26,13 @@ export default function DownloadProgress({ task, onCancel }: { task: Task; onCan
           <span>{m.task.queuedWaiting}</span>
         ) : (
           <>
-            <span className="font-semibold text-base-content">%{task.percent}</span>
+            <span className="font-semibold text-base-content">
+              {task.downloaded ? task.downloaded : `%${task.percent}`}
+            </span>
             {paused ? (
               <span>{m.task.pausedHint}</span>
+            ) : task.waitForVideo && !task.downloaded && task.percent === 0 ? (
+              <span>{m.task.waitingForLive}</span>
             ) : (
               <>
                 {task.speed && <span>{task.speed}</span>}

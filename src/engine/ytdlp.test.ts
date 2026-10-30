@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  networkArgs,
   postProcessingArgs,
   rawOptions,
   buildDownloadArgs,
@@ -221,6 +222,26 @@ describe('grup 3: sonradan isleme', () => {
     ]);
     expect(postProcessingArgs({ kind: 'mp3' }, '/out', undefined, { remux: 'mkv' })).toEqual([]);
     expect(postProcessingArgs({ kind: 'best' }, '/out', undefined, {})).toEqual([]);
+  });
+});
+
+describe('grup 4: canli yayin, sifre, giris, yas siniri', () => {
+  it('ag seceneklerine sifre, .netrc ve yas sinirini ekler', () => {
+    expect(networkArgs({ videoPassword: 'gizli', netrc: true, ageLimit: 13 }))
+      .toEqual(['--video-password', 'gizli', '--netrc', '--age-limit', '13']);
+    expect(networkArgs({ netrc: '/home/u/.netrc' })).toEqual(['--netrc', '--netrc-location', '/home/u/.netrc']);
+  });
+
+  it('canli yayini bastan kaydeder ya da baslamasini bekler', () => {
+    const args = buildDownloadArgs({ url: 'U', outDir: '/o', option: { kind: 'best' }, subtitles: false, liveFromStart: true, waitForVideo: true });
+    expect(args.join(' ')).toContain('--live-from-start --wait-for-video 30-600');
+  });
+
+  it('toplami bilinmeyen (canli) indirmede inen miktari verir; yayin durumunu okur', () => {
+    const line = '[progress] ' + JSON.stringify({ status: 'downloading', downloaded_bytes: 5 * 1024 ** 2, speed: 1024 });
+    expect(parseOutputLine(line)).toMatchObject({ percent: 0, downloaded: '5.0 MB' });
+    expect(parseInfo(JSON.stringify({ title: 'Y', formats: [], live_status: 'is_live' }), 'U').meta?.live).toBe('is_live');
+    expect(parseInfo(JSON.stringify({ title: 'Y', formats: [], live_status: 'was_live' }), 'U').meta?.live).toBeUndefined();
   });
 });
 

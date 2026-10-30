@@ -83,6 +83,17 @@ export default function VideoOptions({ task }: { task: Task }) {
           </p>
         )
       )}
+      {task.meta?.live === 'is_live' && (
+        <label className="flex items-center gap-2 cursor-pointer text-sm">
+          <input
+            type="checkbox"
+            className="checkbox checkbox-sm"
+            checked={task.liveFromStart ?? false}
+            onChange={(e) => setVideoOptions(task.id, { liveFromStart: e.target.checked })}
+          />
+          {m.videoOptions.liveFromStart}
+        </label>
+      )}
       {(task.meta?.chapters ?? 0) > 1 && (
         <label className="flex items-center gap-2 cursor-pointer text-sm">
           <input
