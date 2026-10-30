@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { mockTauri } from './tauri-mock';
+import { RELEASES } from '../src/features/whatsNew/releases';
 
 const URL = 'https://www.youtube.com/watch?v=jNQXAC9IVRw';
 const accepted = { legalAccepted: true };
@@ -457,7 +458,8 @@ test('sistem temasinda acik ve koyu mod icin secilen temalar kullanilir; yenilik
 
   await page.getByRole('tab', { name: 'Sistem' }).click();
   await page.getByRole('button', { name: 'Bu sürümde neler var' }).click();
-  await expect(page.getByRole('dialog', { name: /yenilikler/ })).toContainText('Tarayıcı eklentisi');
+  // Ayarlardan acilinca guncel surumun notlari gelir; metin her surumde degistigi icin kaynaktan alinir.
+  await expect(page.getByRole('dialog', { name: /yenilikler/ })).toContainText(RELEASES[0].notes.tr[0].title);
 });
 
 test('tema: sistem secimi isletim sistemine gore YouTube temasini kullanir', async ({ page }) => {

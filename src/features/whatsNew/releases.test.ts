@@ -9,8 +9,9 @@ describe('yenilikler', () => {
 
   it('atlanan surumlerin notlarini da gosterir; ilk kez ise yalnizca bu surumu', () => {
     expect(releasesSince('0.4.0', '0.5.0').map((r) => r.version)).toEqual(['0.5.0']);
-    expect(releasesSince('0.3.0', '0.9.0').map((r) => r.version)).toEqual(['0.5.0']);
+    expect(releasesSince('0.4.0', '0.5.1').map((r) => r.version)).toEqual(['0.5.1', '0.5.0']);
+    expect(releasesSince('0.3.0', '0.5.0').map((r) => r.version)).toEqual(['0.5.0']);
     expect(releasesSince('0.5.0', '0.5.0').map((r) => r.version)).toEqual(['0.5.0']);
-    expect(releasesSince(undefined, '0.5.0').map((r) => r.version)).toEqual(['0.5.0']);
+    expect(releasesSince(undefined, '0.5.1').map((r) => r.version)).toEqual(['0.5.1']);
   });
 });
