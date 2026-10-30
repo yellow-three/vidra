@@ -86,7 +86,7 @@ export default function QueuePage() {
             <span className={`status shrink-0 ${depsReady ? 'status-success' : 'status-warning'}`} aria-hidden />
             <span className="truncate">{status(m)}</span>
             {appUpdate && (
-              <Link to="/settings" className="link link-hover text-secondary inline-flex items-center gap-1 shrink-0">
+              <Link to="/settings?tab=system" className="link link-hover text-secondary inline-flex items-center gap-1 shrink-0">
                 <Sparkles size={12} /> {m.queue.newVersion(appUpdate.version)}
               </Link>
             )}

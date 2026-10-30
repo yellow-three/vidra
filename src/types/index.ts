@@ -72,6 +72,12 @@ export interface AppSettings extends PostProcessing, FileOptions {
   defaultFormat?: string;
   /** 'system', 'vidra-dark' | 'vidra-light' ya da bir daisyUI tema adi. */
   theme?: string;
+  /** Tema "Sistem" iken acik modda kullanilan tema (varsayilan vidra-light). */
+  themeLight?: string;
+  /** Tema "Sistem" iken koyu modda kullanilan tema (varsayilan vidra-dark). */
+  themeDark?: string;
+  /** Yenilikler penceresinin en son gosterildigi surum. */
+  lastSeenVersion?: string;
   downloadSubtitles?: boolean;
   /** `--sub-langs` degeri (varsayilan `tr,en`). */
   subtitleLangs?: string;

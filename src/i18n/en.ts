@@ -10,6 +10,7 @@ const en: Messages = {
     queue: 'Download',
     history: 'History',
     subscriptions: 'Subscriptions',
+    whatsNew: 'What\'s new in this version',
     convert: 'Convert',
     settings: 'Settings',
     activeDownloads: (n) => `${n} download${n === 1 ? '' : 's'} running`,
@@ -253,6 +254,11 @@ const en: Messages = {
     lastChecked: (when) => `Last checked: ${when}`,
   },
 
+  whatsNew: {
+    title: (v) => `Vidra ${v}: what's new`,
+    close: 'OK',
+  },
+
   playlist: {
     intro: (n) => `This link is a playlist with ${n} videos. Choose the ones to add to the queue.`,
     search: 'Search the playlist',
@@ -431,6 +437,14 @@ const en: Messages = {
     themeSystem: 'System',
     themeDark: 'Vidra Dark',
     themeLight: 'Vidra Light',
+    changeTheme: 'Change',
+    changeThemeLabel: 'Change theme',
+    whatsNew: 'What\'s new in this version',
+    tabsLabel: 'Settings groups',
+    tabs: { general: 'General', downloads: 'Downloads', network: 'Network and account', system: 'System' },
+    themeForLight: 'When the system is light',
+    themeForDark: 'When the system is dark',
+    done: 'Done',
     system: 'System',
     unknown: 'Unknown',
     updating: 'Updating...',

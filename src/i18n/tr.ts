@@ -10,6 +10,7 @@ const tr = {
     queue: 'İndir',
     history: 'Geçmiş',
     subscriptions: 'Abonelikler',
+    whatsNew: 'Bu sürümde neler var',
     convert: 'Dönüştür',
     settings: 'Ayarlar',
     activeDownloads: (n: number) => `${n} indirme sürüyor`,
@@ -253,6 +254,11 @@ const tr = {
     lastChecked: (when: string) => `Son kontrol: ${when}`,
   },
 
+  whatsNew: {
+    title: (v: string) => `Vidra ${v}: yenilikler`,
+    close: 'Tamam',
+  },
+
   playlist: {
     intro: (n: number) => `Bu link ${n} videoluk bir oynatma listesi. Kuyruğa eklemek istediklerinizi seçin.`,
     search: 'Listede ara',
@@ -432,6 +438,14 @@ const tr = {
     themeSystem: 'Sistem',
     themeDark: 'Vidra Koyu',
     themeLight: 'Vidra Açık',
+    changeTheme: 'Değiştir',
+    changeThemeLabel: 'Temayı değiştir',
+    whatsNew: 'Bu sürümde neler var',
+    tabsLabel: 'Ayar grupları',
+    tabs: { general: 'Genel', downloads: 'İndirme', network: 'Ağ ve hesap', system: 'Sistem' },
+    themeForLight: 'Sistem açık moddayken',
+    themeForDark: 'Sistem koyu moddayken',
+    done: 'Tamam',
     system: 'Sistem',
     unknown: 'Bilinmiyor',
     updating: 'Güncelleniyor...',

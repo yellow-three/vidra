@@ -5,6 +5,7 @@ import { APP_THEMES, isDarkTheme, useTheme } from './ThemeContext';
 import { useQueueStore } from '../features/queue/store';
 import { useAppVersion } from '../features/settings/appUpdate';
 import { useT } from '../i18n';
+import { openWhatsNew } from '../features/whatsNew/WhatsNew';
 
 const LINKS: { to: string; label: 'queue' | 'history' | 'subscriptions' | 'convert' | 'settings'; icon: LucideIcon }[] = [
   { to: '/', label: 'queue', icon: Download },
@@ -50,7 +51,9 @@ export default function Sidebar({ drawerId }: { drawerId: string }) {
       </nav>
 
       <div className="p-3 border-t border-base-300 flex items-center justify-between">
-        <span className="text-xs text-base-content/50">{version ? `v${version}` : ''}</span>
+        <button onClick={openWhatsNew} className="text-xs text-base-content/50 hover:text-base-content link link-hover" title={m.whatsNew}>
+          {version ? `v${version}` : ''}
+        </button>
         <label className="swap swap-rotate btn btn-ghost btn-sm btn-circle" aria-label={dark ? m.toLight : m.toDark}>
           <input
             type="checkbox"

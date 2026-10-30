@@ -20,6 +20,11 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/); sürümler [
 - Sonradan işleme: bölümlere ayırma, bölüm kesme, MP4/MKV kap değiştirme, sanatçı/şarkı etiketleri, kapak/açıklama/bilgi/yorum dosyaları, dosya tarihi.
 - Canlı yayınları baştan kaydetme, başlamamış yayını bekleyip indirme, şifreli videolar, .netrc ile giriş, yaş sınırı.
 - Tarayıcı taklidi, bölge, IPv4/IPv6; klasör düzeni, sade/Windows uyumlu dosya adları, en uzun ad, üzerine yazma, aria2.
+- "Yenilikler" penceresi: yeni sürüme geçince bir kez açılır; Ayarlar'dan ve kenar çubuğundaki sürümden de açılır.
+
+### Değişenler
+- Ayarlar sekmelere ayrıldı (Genel, İndirme, Ağ ve hesap, Sistem); temalar ayrı pencerede seçilir.
+- "Sistem" teması seçiliyken açık ve koyu mod için kullanılacak temalar seçilebilir.
 
 ### Düzeltilenler
 - Bir altyazı dili alınamadığında (YouTube 429) indirmenin tamamı başarısız oluyordu.

@@ -252,6 +252,7 @@ test('kuyrukta arar, duruma gore suzer ve secilenleri toplu duraklatir', async (
 test('cerez, proxy ve kapak ayarlari yt-dlp argumanlarina yansir', async ({ page }) => {
   await mockTauri(page, { settings: accepted });
   await page.goto('/settings');
+  await page.getByRole('tab', { name: 'Ağ ve hesap' }).click();
   await page.getByRole('combobox').filter({ has: page.getByRole('option', { name: 'Firefox' }) }).selectOption('firefox');
   const proxy = page.getByLabel('Proxy');
   await proxy.fill('ftp://yanlis');
@@ -393,6 +394,7 @@ test('gecmiste arar, silinmis dosyayi isaretler, yeniden indirir', async ({ page
 test('ayarlar: yt-dlp surumu ve guncelleme', async ({ page }) => {
   await mockTauri(page, { settings: accepted });
   await page.goto('/settings');
+  await page.getByRole('tab', { name: 'Sistem' }).click();
   await expect(page.getByText('2026.10.21')).toBeVisible();
   await page.getByRole('button', { name: 'Güncelle', exact: true }).click();
   await expect(page.getByText('2026.10.22')).toBeVisible();
@@ -414,6 +416,7 @@ test('uygulama guncellemesi: durum cubugunda haber verir, ayarlardan kurulup yen
 test('uygulama guncel ise surum ve durum gosterilir', async ({ page }) => {
   await mockTauri(page, { settings: accepted });
   await page.goto('/settings');
+  await page.getByRole('tab', { name: 'Sistem' }).click();
   await expect(page.getByText('0.1.0', { exact: true })).toBeVisible();
   await expect(page.getByRole('status')).toHaveText('Güncel');
   await expect(page.getByRole('link', { name: /Yeni sürüm/ })).toHaveCount(0);
@@ -424,12 +427,28 @@ test('tema: ayarlardan secilen daisyUI temasi uygulanir ve kaydedilir', async ({
   await page.goto('/settings');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'vidra-dark');
 
+  await page.getByRole('button', { name: 'Temayı değiştir' }).click();
   await page.getByRole('radio', { name: /Vidra Açık/ }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'vidra-light');
   await page.getByRole('radio', { name: /Dracula/ }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dracula');
   await expect(page.getByRole('radio', { name: /Dracula/ })).toHaveAttribute('aria-checked', 'true');
   expect(await calls(page, 'save_settings')).toContainEqual({ settings: { theme: 'dracula' } });
+});
+
+test('sistem temasinda acik ve koyu mod icin secilen temalar kullanilir; yenilikler penceresi acilir', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await mockTauri(page, { settings: { ...accepted, theme: 'system', themeDark: 'dracula' } });
+  await page.goto('/settings');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dracula');
+  await page.getByRole('combobox').filter({ has: page.getByRole('option', { name: 'Night' }) }).selectOption('night');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'night');
+  await page.emulateMedia({ colorScheme: 'light' });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'vidra-light');
+
+  await page.getByRole('tab', { name: 'Sistem' }).click();
+  await page.getByRole('button', { name: 'Bu sürümde neler var' }).click();
+  await expect(page.getByRole('dialog', { name: /yenilikler/ })).toContainText('Abonelikler');
 });
 
 test('tema: sistem secimi isletim sistemine gore YouTube temasini kullanir', async ({ page }) => {
@@ -469,6 +488,7 @@ test('dil: sistem dili Ingilizceyse arayuz Ingilizce, ayardan Turkceye gecer', a
 test('SponsorBlock: ffprobe indirilince secilir ve indirmeye eklenir', async ({ page }) => {
   await mockTauri(page, { settings: accepted });
   await page.goto('/settings');
+  await page.getByRole('tab', { name: 'İndirme' }).click();
   await expect(page.getByText('SponsorBlock için ffprobe gerekir')).toBeVisible();
   await page.getByRole('button', { name: 'ffprobe\'u indir ve kur' }).click();
   await expect(page.getByText('ffprobe kurulu.')).toBeVisible();
@@ -532,6 +552,7 @@ test('yalnizca surumu eskiyen bilesen varsa kurulum atlanabilir', async ({ page 
   expect(await calls(page, 'install_tool')).toEqual([]);
 
   await page.getByRole('link', { name: 'Ayarlar' }).click();
+  await page.getByRole('tab', { name: 'Sistem' }).click();
   const row = page.getByRole('listitem').filter({ hasText: 'deno' });
   await expect(row).toContainText('Yeni sürümü indirilmeli');
   await row.getByRole('button', { name: 'İndir' }).click();
@@ -551,10 +572,14 @@ test('sistemde bulunan FFmpeg indirilmez, istenirse yine de indirilir', async ({
   expect((await calls(page, 'install_tool')).map((a: any) => a.tool)).toEqual(['yt-dlp', 'deno']);
 
   await page.getByRole('link', { name: 'Ayarlar' }).click();
+  await page.getByRole('tab', { name: 'Sistem' }).click();
   const row = page.getByRole('listitem').filter({ hasText: 'FFmpeg' });
   await expect(row).toContainText('Sistemde bulundu');
+  // SponsorBlock bolumu Indirme sekmesinde; sistemdeki ffprobe kaldirilamaz.
+  await page.getByRole('tab', { name: 'İndirme' }).click();
   await expect(page.getByText('ffprobe kurulu.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Kaldır' })).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Sistem' }).click();
   await row.getByRole('button', { name: 'Yine de indir' }).click();
   await expect(row).toContainText('İndirildi');
   expect((await calls(page, 'install_tool')).at(-1)).toMatchObject({ tool: 'ffmpeg', withFfprobe: true });
