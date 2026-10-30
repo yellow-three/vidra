@@ -31,6 +31,11 @@
     <control>keyboard</control>
   </supports>
   <releases>
+    <release version="0.4.0" date="2026-10-30">
+      <description>
+        <p>Search, status filters and bulk actions in the download queue, a dialog to choose which playlist videos to add, best-combination format choices, and a status bar that stays visible.</p>
+      </description>
+    </release>
     <release version="0.3.1" date="2026-10-30">
       <description>
         <p>Closing the window always moves Vidra to the tray when "Keep running in the tray" is on, not only while downloading.</p>
