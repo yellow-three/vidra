@@ -65,7 +65,7 @@ beforeEach(() => {
   for (const key of ['defaultFormat', 'maxConcurrentDownloads', 'cookiesFromBrowser', 'proxy', 'rateLimit', 'subtitleLangs', 'playlistSubfolder']) {
     delete settings[key];
   }
-  useQueueStore.setState({ tasks: [], url: '' });
+  useQueueStore.setState({ tasks: [], url: '', playlistPicks: [] });
 });
 
 describe('queue store', () => {
@@ -151,22 +151,42 @@ describe('queue store', () => {
     expect(task(id).status).toBe('cancelled');
   });
 
-  it('oynatma listesini ayni yerde videolarina acar', async () => {
+  it('oynatma listesini once secime sunar, yalnizca secilen videolari ayni yere ekler', async () => {
+    mocks.fetchHistory.mockResolvedValue([{ url: 'https://youtu.be/3' }]);
     mocks.getInfo.mockResolvedValueOnce({
       title: 'Liste',
       url: 'L',
       formats: playlistOptions(),
-      entries: [{ url: 'https://youtu.be/1', title: 'Bir' }, { url: 'https://youtu.be/2', title: 'Iki' }],
+      entries: [
+        { url: 'https://youtu.be/1', title: 'Bir' }, { url: 'https://youtu.be/2', title: 'Iki' }, { url: 'https://youtu.be/3', title: 'Uc' },
+      ],
     } satisfies VideoInfo);
     useQueueStore.getState().setUrl('https://www.youtube.com/playlist?list=PL');
     await useQueueStore.getState().analyze();
 
+    // Kuyruga hicbir sey eklenmedi; secim bekleniyor.
+    const [pick] = useQueueStore.getState().playlistPicks;
+    expect(pick.info.entries).toHaveLength(3);
+    expect([...pick.downloaded]).toEqual(['youtu.be/3']);
+    expect(useQueueStore.getState().tasks.map((t) => t.status)).toEqual(['analyzing']);
+
+    useQueueStore.getState().confirmPlaylist(pick.taskId, ['https://youtu.be/1', 'https://youtu.be/3']);
     const tasks = useQueueStore.getState().tasks;
     expect(tasks.map((t) => [t.title, t.status, t.playlist])).toEqual([
       ['Bir', 'ready-to-select', 'Liste'],
-      ['Iki', 'ready-to-select', 'Liste'],
+      ['Uc', 'ready-to-select', 'Liste'],
     ]);
-    expect(new Set(tasks.map((t) => t.id)).size).toBe(2);
+    expect(tasks[1].message).toBe(tr.queue.duplicateInHistory);
+    expect(useQueueStore.getState().playlistPicks).toEqual([]);
+  });
+
+  it('liste secimi iptal edilince yer tutucu kuyruktan kalkar', async () => {
+    mocks.getInfo.mockResolvedValueOnce({ title: 'Liste', url: 'L', formats: [], entries: [{ url: 'u', title: 'X' }] } satisfies VideoInfo);
+    useQueueStore.getState().setUrl('https://www.youtube.com/playlist?list=PL');
+    await useQueueStore.getState().analyze();
+    useQueueStore.getState().dismissPlaylist(useQueueStore.getState().playlistPicks[0].taskId);
+    expect(useQueueStore.getState().tasks).toEqual([]);
+    expect(useQueueStore.getState().playlistPicks).toEqual([]);
   });
 
   it('listedeki videodan listenin tamamini ister', async () => {
@@ -174,6 +194,7 @@ describe('queue store', () => {
     mocks.getInfo.mockResolvedValueOnce({ title: 'Liste', url: 'L', formats: [], entries: [{ url: 'u', title: 'X' }] });
     await useQueueStore.getState().expandPlaylist(id);
     expect(mocks.getInfo).toHaveBeenLastCalledWith('https://www.youtube.com/watch?v=a&list=PL', expect.objectContaining({ playlist: true }));
+    useQueueStore.getState().confirmPlaylist(id, ['u']);
     expect(useQueueStore.getState().tasks.map((t) => t.title)).toEqual(['X']);
   });
 
@@ -291,6 +312,7 @@ describe('queue store', () => {
     } satisfies VideoInfo);
     useQueueStore.getState().setUrl('https://www.youtube.com/playlist?list=PL');
     await useQueueStore.getState().analyze();
+    useQueueStore.getState().confirmPlaylist(useQueueStore.getState().playlistPicks[0].taskId, ['https://youtu.be/1']);
     const id = useQueueStore.getState().tasks[0].id;
     useQueueStore.getState().setSection(id, { start: 5, end: 20 });
 
