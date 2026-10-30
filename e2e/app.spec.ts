@@ -189,13 +189,31 @@ test('listedeki bir video tek basina eklenir, istenirse liste acilir', async ({ 
   await expect(page.getByRole('article', { name: 'Me at the zoo' })).toHaveCount(0);
 });
 
+test('liste penceresinde secim araclari; liste takip edilir ve abonelikte yeni video yok', async ({ page }) => {
+  await mockTauri(page, { settings: accepted });
+  await page.goto('/');
+  await analyze(page, 'https://www.youtube.com/playlist?list=PL123');
+  const dialog = page.getByRole('dialog', { name: 'Örnek liste' });
+  await dialog.getByRole('checkbox', { name: 'Ters sırada ekle' }).check();
+  await dialog.getByRole('checkbox', { name: 'Bu listeyi takip et' }).check();
+  await dialog.getByRole('button', { name: '2 videoyu ekle' }).click();
+  // Ters sirada: ikinci video ustte.
+  await expect(page.getByRole('article').first()).toHaveAttribute('aria-label', 'İkinci video');
+
+  await page.getByRole('link', { name: 'Abonelikler' }).click();
+  await expect(page.getByRole('list', { name: 'Abonelikler' })).toContainText('Örnek liste');
+  await page.getByRole('button', { name: 'Kontrol et', exact: true }).click();
+  await expect(page.getByText('Yeni video yok.')).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
 test('liste secim penceresinde vazgecilirse hicbir sey eklenmez', async ({ page }) => {
   await mockTauri(page, { settings: accepted });
   await page.goto('/');
   await analyze(page, 'https://www.youtube.com/playlist?list=PL123');
   const dialog = page.getByRole('dialog', { name: 'Örnek liste' });
   await dialog.getByRole('searchbox', { name: 'Listede ara' }).fill('ikinci');
-  await expect(dialog.getByRole('checkbox')).toHaveCount(1);
+  await expect(dialog.getByRole('list').getByRole('checkbox')).toHaveCount(1);
   await dialog.getByRole('button', { name: 'Vazgeç' }).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.getByRole('article')).toHaveCount(0);

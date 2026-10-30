@@ -101,7 +101,7 @@ export class DesktopEngine implements DownloadEngine {
 
     let destination = '';
     let filePath = '';
-    let tooLarge = false;
+    let skipped: 'size' | 'date' | null = null;
     let lastPercent = -1;
     const stderr: string[] = [];
     // Surdurulen indirmede ilk denemenin dosyalari da bu indirmenindir.
@@ -111,7 +111,8 @@ export class DesktopEngine implements DownloadEngine {
       onStderr: (line) => stderr.push(line),
       onStdout: (line) => {
         // `--max-filesize` asilinca yt-dlp dosya yazmadan basariyla cikar; neden bu satirdadir.
-        if (line.includes('larger than max-filesize')) tooLarge = true;
+        if (line.includes('larger than max-filesize')) skipped = 'size';
+        else if (line.includes('upload date is not in range')) skipped = 'date';
         const parsed = parseOutputLine(line);
         if (!parsed) return;
         if (parsed.type === 'destination') destination = parsed.path;
@@ -134,7 +135,9 @@ export class DesktopEngine implements DownloadEngine {
       return { status: 'cancelled' };
     }
     if (exit.code === 0 && !filePath) {
-      return { status: 'error', message: tooLarge ? msg().engine.tooLarge(request.maxFilesize ?? '') : msg().engine.noFile };
+      const m = msg().engine;
+      const message = skipped === 'size' ? m.tooLarge(request.maxFilesize ?? '') : skipped === 'date' ? m.tooOld : m.noFile;
+      return { status: 'error', message };
     }
     if (exit.code === 0) {
       const fileSize = await stat(filePath).then((s) => s.size, () => undefined);

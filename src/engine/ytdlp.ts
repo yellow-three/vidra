@@ -336,6 +336,8 @@ export function safeFolderName(name: string): string {
 export interface TemplateExtras {
   subfolder?: string;
   section?: TimeRange;
+  /** Listedeki sira, orn. `03`. */
+  playlistIndex?: string;
 }
 
 /**
@@ -343,7 +345,7 @@ export interface TemplateExtras {
  * eskisini dondururdu; cozunurluk ve bolum ekiyle her secim ayri dosyadir.
  */
 export function outputTemplate(option: DownloadOption, pattern?: string, extras: TemplateExtras = {}): string {
-  const base = toYtdlpTemplate(pattern ?? DEFAULT_PATTERN);
+  const base = toYtdlpTemplate(pattern ?? DEFAULT_PATTERN, extras.playlistIndex);
   const quality = option.kind === 'format'
     ? ' [%(format_id)s]'
     : option.kind === 'video' || option.kind === 'best-video' || option.kind === 'best' ? ' [%(height)sp]' : '';
@@ -375,6 +377,9 @@ export interface DownloadArgsInput extends NetworkOptions {
   sleepInterval?: number;
   maxFilesize?: string;
   mp3Quality?: string;
+  playlistIndex?: string;
+  /** YYYYMMDD; daha once yuklenen videolar indirilmez. */
+  dateAfter?: string;
 }
 
 /** Kopan baglantida indirme yarida kalmasin: istek ve parca basina 10 deneme, artan bekleme. */
@@ -386,10 +391,10 @@ const SPONSOR_REMOVE = 'sponsor,selfpromo,interaction';
 export function buildDownloadArgs({
   url, option, outDir, ffmpegPath, subtitles, embedMetadata, filenamePattern, rateLimit, denoPath,
   subtitleLangs, subfolder, section, sponsorBlock, subtitleFile, autoSubtitles, concurrentFragments,
-  sleepInterval, maxFilesize, mp3Quality, ...network
+  sleepInterval, maxFilesize, mp3Quality, playlistIndex, dateAfter, ...network
 }: DownloadArgsInput): string[] {
   const args = [
-    '-o', joinPath(outDir, outputTemplate(option, filenamePattern, { subfolder, section })),
+    '-o', joinPath(outDir, outputTemplate(option, filenamePattern, { subfolder, section, playlistIndex })),
     '--no-playlist',
     '--newline',
     '--progress',
@@ -466,6 +471,7 @@ export function buildDownloadArgs({
   if (concurrentFragments && concurrentFragments > 1) args.push('-N', String(concurrentFragments));
   if (sleepInterval) args.push('--sleep-interval', String(sleepInterval), '--sleep-requests', '1');
   if (maxFilesize) args.push('--max-filesize', maxFilesize);
+  if (dateAfter) args.push('--dateafter', dateAfter);
   if (ffmpegPath) args.push('--ffmpeg-location', ffmpegPath);
   args.push(...networkArgs(network), ...jsRuntimeArgs(denoPath), ...urlArgs(url));
   return args;

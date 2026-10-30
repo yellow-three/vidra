@@ -17,11 +17,11 @@ Zaten kullanılanlar: format seçimi ve sıralama (`-f`, `-S`), birleştirme, MP
 
 ## Grup 2: liste ve kanal
 
-- [ ] **6. İndirme arşivi ve abonelik** (`--download-archive`): İndirilenler atlanır; kanal/liste "yalnız yenileri indir".
-- [ ] **7. Tarihe göre süzme** (`--dateafter`, `--datebefore`).
-- [ ] **8. Kural ile süzme** (`--match-filters`): Shorts'ları ya da canlı yayınları atlama.
-- [ ] **9. Liste sırası** (`--playlist-items`, ters sıra).
-- [ ] **10. Liste numarası dosya adında** (`%(playlist_index)s`).
+- [x] **6. Abonelik** : Kanal/liste takip edilir, yeni videolar seçim penceresinde "Yeni" olarak gelir. `--download-archive` yerine uygulamanın geçmişi ve görülenler listesi kullanılır: arşiv, aynı videonun başka kalitesini indirmeyi engellerdi.
+- [x] **7. Tarihe göre süzme** (`--dateafter`): Liste penceresinde "şu tarihten sonra yüklenenler". Kanal listeleri tarih vermediği için süzgeç indirme sırasında uygulanır.
+- [x] **8. Kısa videoları atlama**: Liste penceresinde süresi 1 dakikayı geçmeyenleri çıkarma. (Canlı yayınlar Grup 4'te.)
+- [x] **9. Liste sırası**: İlk 10/25/50/100 videoyu seçme, ters sırada ekleme.
+- [x] **10. Liste numarası dosya adında**: "Sıra no" alanı ve "Sıra no - Başlık" kalıbı.
 
 ## Grup 3: sonradan işleme
 

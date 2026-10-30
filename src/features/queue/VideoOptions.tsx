@@ -87,7 +87,7 @@ export default function VideoOptions({ task }: { task: Task }) {
         onChange={(pattern) => setVideoOptions(task.id, { filenamePattern: pattern })}
         defaultLabel={m.videoOptions.defaultFilename}
         defaultPattern={defaultPattern}
-        sample={{ ...task.meta, title: task.title }}
+        sample={{ ...task.meta, title: task.title, index: task.playlistIndex }}
         suffix={audio ? '' : ' [1080p]'}
       />
     </div>

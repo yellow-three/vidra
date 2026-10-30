@@ -111,6 +111,10 @@ export interface DownloadRequest extends NetworkOptions {
   maxFilesize?: string;
   /** MP3 kalitesi: `0` en iyi VBR ya da `320K` gibi sabit bit hizi. */
   mp3Quality?: string;
+  /** Videonun listedeki sirasi, orn. `03` (dosya adindaki `{index}`). */
+  playlistIndex?: string;
+  /** YYYYMMDD: bu tarihten once yuklenen video indirilmez (`--dateafter`). */
+  dateAfter?: string;
 }
 
 /** `mark`: sponsor bolumleri dosyaya bolum olarak eklenir; `remove`: dosyadan kesilir. */

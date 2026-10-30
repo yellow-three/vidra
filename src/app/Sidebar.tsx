@@ -1,14 +1,15 @@
 import { NavLink } from 'react-router-dom';
-import { Download, History, Moon, Repeat, Settings, Sun, type LucideIcon } from 'lucide-react';
+import { Download, History, Moon, Repeat, Rss, Settings, Sun, type LucideIcon } from 'lucide-react';
 import BrandMark from './BrandMark';
 import { APP_THEMES, isDarkTheme, useTheme } from './ThemeContext';
 import { useQueueStore } from '../features/queue/store';
 import { useAppVersion } from '../features/settings/appUpdate';
 import { useT } from '../i18n';
 
-const LINKS: { to: string; label: 'queue' | 'history' | 'convert' | 'settings'; icon: LucideIcon }[] = [
+const LINKS: { to: string; label: 'queue' | 'history' | 'subscriptions' | 'convert' | 'settings'; icon: LucideIcon }[] = [
   { to: '/', label: 'queue', icon: Download },
   { to: '/downloads', label: 'history', icon: History },
+  { to: '/subscriptions', label: 'subscriptions', icon: Rss },
   { to: '/convert', label: 'convert', icon: Repeat },
   { to: '/settings', label: 'settings', icon: Settings },
 ];

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ClipboardCheck, FolderOpen, Sparkles } from 'lucide-react';
 import TaskList from './TaskList';
-import PlaylistPicker from './PlaylistPicker';
 import AddUrlForm from '../add/AddUrlForm';
 import PageHeader from '../../app/PageHeader';
 import { useAppStatus } from './appStatus';
@@ -79,8 +78,6 @@ export default function QueuePage() {
           onClearFinished={clearFinished}
         />
       </div>
-
-      <PlaylistPicker />
 
       {/* Liste uzasa da durum cubugu pencerenin altinda gorunur kalir. */}
       <footer className="sticky bottom-0 z-10 -mx-6 -mb-8 px-6 pt-2 pb-3 flex flex-col gap-1.5 border-t border-base-300 bg-base-200 text-xs text-base-content/60">

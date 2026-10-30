@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import Sidebar from './Sidebar';
 import BrandMark from './BrandMark';
+import PlaylistPicker from '../features/queue/PlaylistPicker';
 import { useT } from '../i18n';
 
 const DRAWER_ID = 'app-drawer';
@@ -25,6 +26,8 @@ export default function MainLayout() {
           </div>
         </main>
       </div>
+      {/* Liste ve abonelik secimleri her sayfada acilabilir. */}
+      <PlaylistPicker />
       <div className="drawer-side z-20">
         <label htmlFor={DRAWER_ID} aria-label={m.closeMenu} className="drawer-overlay" />
         <Sidebar drawerId={DRAWER_ID} />

@@ -77,6 +77,7 @@ export default function DownloadSettings() {
       <FilenamePicker
         value={resolvePattern(settings.filenameTemplate, settings.filenameCustom)}
         onChange={saveFilename}
+        sample={{ index: '01' }}
         suffix=" [1080p].mp4"
       />
       <p className="text-xs text-base-content/60 -mt-2">{m.filenameNote}</p>

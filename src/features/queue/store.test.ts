@@ -434,4 +434,38 @@ describe('queue store', () => {
     delete settings.filenameTemplate;
     delete settings.filenameCustom;
   });
+
+  it('listeden secilenleri sira numarasi, ters sira ve tarih suzgeciyle ekler', async () => {
+    mocks.getInfo.mockResolvedValueOnce({
+      title: 'Liste', url: 'L', formats: playlistOptions(),
+      entries: Array.from({ length: 12 }, (_, i) => ({ url: `https://v.test/${i + 1}`, title: `V${i + 1}` })),
+    } satisfies VideoInfo);
+    useQueueStore.getState().setUrl('https://www.youtube.com/playlist?list=PL');
+    await useQueueStore.getState().analyze();
+    const [pick] = useQueueStore.getState().playlistPicks;
+    useQueueStore.getState().confirmPlaylist(pick.taskId, ['https://v.test/2', 'https://v.test/11'], { reverse: true, dateAfter: '20260101' });
+    expect(useQueueStore.getState().tasks.map((t) => [t.title, t.playlistIndex, t.dateAfter])).toEqual([
+      ['V11', '11', '20260101'],
+      ['V2', '02', '20260101'],
+    ]);
+
+    const calls = controllableDownload();
+    const run = useQueueStore.getState().startDownload(useQueueStore.getState().tasks[1].id);
+    await flush();
+    expect(calls[0].req).toMatchObject({ playlistIndex: '02', dateAfter: '20260101' });
+    calls[0].finish({ status: 'cancelled' });
+    await run;
+  });
+
+  it('abonelik secimi yer tutucusuz acilir; kapaninca bildirir', () => {
+    const done = vi.fn();
+    useQueueStore.getState().offerPick({
+      info: { title: 'Kanal', url: 'K', formats: [], entries: [{ url: 'https://v.test/n', title: 'Yeni' }] },
+      formatId: undefined, downloaded: new Set(), fresh: new Set(['https://v.test/n']), onDone: done,
+    });
+    const [pick] = useQueueStore.getState().playlistPicks;
+    useQueueStore.getState().confirmPlaylist(pick.taskId, ['https://v.test/n']);
+    expect(useQueueStore.getState().tasks.map((t) => t.title)).toEqual(['Yeni']);
+    expect(done).toHaveBeenCalledWith(true);
+  });
 });

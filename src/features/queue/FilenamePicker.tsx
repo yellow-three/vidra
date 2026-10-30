@@ -5,7 +5,7 @@ import {
 import { useT } from '../../i18n';
 
 /** Secimde gosterilen hazir kaliplar (eski ayar anahtari `uploader-title` haric). */
-const PRESET_KEYS = ['title', 'channel-title', 'title-id', 'channel-title-id', 'date-title', 'channel-date-title'] as const;
+const PRESET_KEYS = ['title', 'channel-title', 'title-id', 'channel-title-id', 'date-title', 'channel-date-title', 'index-title'] as const;
 const FIELDS = Object.keys(FILENAME_FIELDS) as FilenameField[];
 
 interface FilenamePickerProps {

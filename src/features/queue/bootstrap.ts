@@ -9,6 +9,7 @@ import { hasActiveDownloads, useQueueStore } from './store';
 import type { ClipboardMode } from './duplicates';
 import { fetchSettings } from '../settings/queries';
 import { hideToTray } from '../../app/tray';
+import { checkDueSubscriptions } from '../subscriptions/subscriptions';
 import { checkForAppUpdateInBackground } from '../settings/appUpdate';
 import { autoUpdateYtdlp } from '../settings/ytdlpAutoUpdate';
 
@@ -54,6 +55,7 @@ export async function refreshDependencyStatus(): Promise<void> {
       ytdlpUpdateStarted = true;
       // Once yarida kalan indirmeler: yt-dlp guncellemesi calisan yt-dlp'yi beklemeden ayri kopyada yapilir.
       void useQueueStore.getState().resumeInterrupted();
+      void checkDueSubscriptions();
       void autoUpdateYtdlp();
     }
   } catch (error) {

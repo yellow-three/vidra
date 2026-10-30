@@ -32,6 +32,10 @@ export interface Task {
   meta?: VideoMeta;
   /** Bu video icin altyazi gomme; bos ise ayardaki varsayilan. */
   subtitles?: boolean;
+  /** Listedeki sira, orn. `03` (dosya adindaki Sira no). */
+  playlistIndex?: string;
+  /** YYYYMMDD: bu tarihten once yuklenmisse indirilmez. */
+  dateAfter?: string;
   /** Bu video icin altyazi dilleri (`tr,en`); bos ise ayardaki diller. */
   subtitleLangs?: string;
   /** Bu video icin dosya adi kalibi; bos ise ayardaki varsayilan (engine/filename.ts). */
@@ -93,8 +97,22 @@ export interface AppSettings {
   closeToTray?: boolean;
   /** Kopyalanan linklerin kutuya gelmesi (varsayilan `youtube`). */
   clipboardMode?: 'off' | 'youtube' | 'all';
+  subscriptions?: Subscription[];
+  /** Acilista abonelikleri kontrol et (varsayilan acik). */
+  checkSubscriptionsOnStart?: boolean;
   /** Arayuz dili; bos ise sistem dili. */
   language?: 'tr' | 'en';
+}
+
+/** Takip edilen kanal ya da oynatma listesi (features/subscriptions). */
+export interface Subscription {
+  id: string;
+  url: string;
+  title: string;
+  addedAt: number;
+  checkedAt?: number;
+  /** Daha once gosterilmis videolarin anahtarlari (videoKey); bunlar yeni sayilmaz. */
+  seen: string[];
 }
 
 export interface HistoryItem {

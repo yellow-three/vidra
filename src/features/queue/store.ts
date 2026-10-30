@@ -33,6 +33,13 @@ const networkOptions = (s: AppSettings | null): NetworkOptions => ({
   proxy: s?.proxy?.trim() || undefined,
 });
 
+export interface PlaylistAddOptions {
+  /** Listenin sonundan basa dogru kuyruga ekler. */
+  reverse?: boolean;
+  /** YYYYMMDD: bu tarihten once yuklenenler indirilmez. */
+  dateAfter?: string;
+}
+
 /** Secim bekleyen oynatma listesi: analiz edildi, kullanici hangi videolarin eklenecegini secer. */
 export interface PlaylistPick {
   taskId: string;
@@ -40,6 +47,12 @@ export interface PlaylistPick {
   formatId: string | undefined;
   /** Gecmiste olan videolarin anahtarlari (videoKey); pencerede isaretli gelmez. */
   downloaded: Set<string>;
+  /** Abonelik kontrolu: yalnizca bu linkler isaretli ve "Yeni" etiketli gelir. */
+  fresh?: Set<string>;
+  /** Liste zaten takip ediliyor; "takip et" secenegi gosterilmez. */
+  following?: boolean;
+  /** Pencere kapaninca (ekle ya da vazgec) cagrilir; abonelik gorulenleri kaydeder. */
+  onDone?: (added: boolean) => void;
 }
 
 interface QueueState {
@@ -47,9 +60,11 @@ interface QueueState {
   tasks: Task[];
   playlistPicks: PlaylistPick[];
   /** Secilen videolari listenin yer tutucusunun yerine kuyruga ekler. */
-  confirmPlaylist(taskId: string, urls: string[]): void;
+  confirmPlaylist(taskId: string, urls: string[], options?: PlaylistAddOptions): void;
   /** Liste eklenmez; yer tutucu kuyruktan kalkar. */
   dismissPlaylist(taskId: string): void;
+  /** Kuyruga yer tutucu eklemeden secim penceresi acar (abonelik kontrolu). */
+  offerPick(pick: Omit<PlaylistPick, 'taskId'>): void;
   setUrl(url: string): void;
   /**
    * URL kutusundaki linkleri (birden fazla olabilir) analiz eder; ilk gorevin kimligini dondurur.
@@ -116,15 +131,21 @@ export const useQueueStore = create<QueueState>()((set, get) => {
   }
 
   /** Liste analizinin yer tutucusunu, kullanicinin sectigi videolarla ayni yerde degistirir. */
-  function replaceWithEntries(id: string, pick: PlaylistPick, urls: Set<string>) {
+  function replaceWithEntries(id: string, pick: PlaylistPick, urls: Set<string>, options: PlaylistAddOptions) {
     const { info, formatId, downloaded } = pick;
-    const tasks: Task[] = (info.entries ?? []).filter((e) => urls.has(e.url)).map((e) => ({
+    const all = info.entries ?? [];
+    const width = String(all.length).length;
+    const chosen = all.map((e, i) => ({ e, index: String(i + 1).padStart(width, '0') })).filter(({ e }) => urls.has(e.url));
+    if (options.reverse) chosen.reverse();
+    const tasks: Task[] = chosen.map(({ e, index }) => ({
       id: newId(),
       url: e.url,
       title: e.title,
       thumbnail: e.thumbnail,
       meta: e.meta,
       playlist: info.title,
+      playlistIndex: index,
+      dateAfter: options.dateAfter,
       formats: info.formats,
       selectedFormatId: formatId,
       percent: 0,
@@ -134,7 +155,10 @@ export const useQueueStore = create<QueueState>()((set, get) => {
       message: downloaded.has(videoKey(e.url)) ? msg().queue.duplicateInHistory : undefined,
     }));
     set((s) => ({
-      tasks: s.tasks.flatMap((t) => (t.id === id && t.status !== 'cancelled' ? tasks : [t])),
+      // Abonelik kontrolunde yer tutucu yoktur; videolar kuyrugun basina eklenir.
+      tasks: s.tasks.some((t) => t.id === id)
+        ? s.tasks.flatMap((t) => (t.id === id && t.status !== 'cancelled' ? tasks : [t]))
+        : [...tasks, ...s.tasks],
       playlistPicks: s.playlistPicks.filter((p) => p.taskId !== id),
     }));
   }
@@ -207,20 +231,27 @@ export const useQueueStore = create<QueueState>()((set, get) => {
     tasks: loadTasks(),
     playlistPicks: [],
 
-    confirmPlaylist(taskId, urls) {
+    confirmPlaylist(taskId, urls, options = {}) {
       const pick = get().playlistPicks.find((p) => p.taskId === taskId);
       if (!pick) return;
       if (urls.length === 0) {
         get().dismissPlaylist(taskId);
         return;
       }
-      replaceWithEntries(taskId, pick, new Set(urls));
+      replaceWithEntries(taskId, pick, new Set(urls), options);
+      pick.onDone?.(true);
     },
 
-    dismissPlaylist: (taskId) => set((s) => ({
-      tasks: s.tasks.filter((t) => t.id !== taskId),
-      playlistPicks: s.playlistPicks.filter((p) => p.taskId !== taskId),
-    })),
+    dismissPlaylist(taskId) {
+      const pick = get().playlistPicks.find((p) => p.taskId === taskId);
+      set((s) => ({
+        tasks: s.tasks.filter((t) => t.id !== taskId),
+        playlistPicks: s.playlistPicks.filter((p) => p.taskId !== taskId),
+      }));
+      pick?.onDone?.(false);
+    },
+
+    offerPick: (pick) => set((s) => ({ playlistPicks: [...s.playlistPicks, { ...pick, taskId: newId() }] })),
 
     setUrl: (url) => set({ url }),
 
@@ -296,6 +327,8 @@ export const useQueueStore = create<QueueState>()((set, get) => {
               sleepInterval: settings.sleepInterval,
               maxFilesize: settings.maxFilesize || undefined,
               mp3Quality: settings.mp3Quality,
+              playlistIndex: task.playlistIndex,
+              dateAfter: task.dateAfter,
               subfolder: (settings.playlistSubfolder ?? true) ? task.playlist : undefined,
               section: task.section,
               sponsorBlock: settings.sponsorBlock,
