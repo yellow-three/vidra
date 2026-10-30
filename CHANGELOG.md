@@ -4,6 +4,17 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/); sürümler [
 
 ## [Yayınlanmamış]
 
+## [0.4.0] - 2026-10-30
+
+### Eklenenler
+- İndirme sayfasında arama; durum kutuları listeyi süzüyor.
+- Toplu işlemler: seçilenleri indir, duraklat, sürdür, yeniden dene, iptal et; tümünü duraklat ve sürdür.
+- Oynatma listesi linki verilince videolar bir pencerede listeleniyor, yalnızca seçilenler kuyruğa ekleniyor.
+- Format menüsünde "En iyi kombinasyonlar": en iyi kalite (en iyi video + en iyi ses) ve en iyi ses, dönüştürmeden; tüm formatlarda en iyiler ★ ile işaretli.
+
+### Değişenler
+- Durum çubuğu liste uzasa da pencerenin altında görünür kalıyor.
+
 ## [0.3.1] - 2026-10-30
 
 ### Düzeltilenler
@@ -50,7 +61,8 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/); sürümler [
 
 - İlk sürüm ("YouTube Downloader" adıyla).
 
-[Yayınlanmamış]: https://github.com/yellow-three/vidra/compare/v0.3.1...HEAD
+[Yayınlanmamış]: https://github.com/yellow-three/vidra/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/yellow-three/vidra/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/yellow-three/vidra/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/yellow-three/vidra/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/yellow-three/vidra/compare/v0.2.1...v0.2.2
