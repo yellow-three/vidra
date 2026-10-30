@@ -11,6 +11,7 @@ import type { AppSettings, Task } from '../../types';
 import { addHistory, fetchHistory } from '../history/queries';
 import { fetchSettings } from '../settings/queries';
 import { pickDefaultFormat } from './defaultFormat';
+import { resolvePattern } from '../../engine/filename';
 import { isHttpUrl, mergeClipboardLinks, splitUrls, videoKey, type ClipboardMode } from './duplicates';
 import { createLimiter } from './limiter';
 import { diskShortage } from './diskSpace';
@@ -64,6 +65,8 @@ interface QueueState {
   selectFormat(id: string, formatId: string): void;
   /** Yalnizca bir araligi indirmek icin; `undefined` tum videoyu secer. */
   setSection(id: string, section: TimeRange | undefined): void;
+  /** Bu video icin altyazi ve dosya adi; `undefined` ayardaki varsayilana doner. */
+  setVideoOptions(id: string, options: Pick<Task, 'subtitles' | 'filenamePattern'>): void;
   startDownload(id: string): Promise<void>;
   /** Format secimini bekleyen tum gorevleri listedeki sirayla kuyruga alir. */
   startAll(): Promise<void>;
@@ -120,6 +123,7 @@ export const useQueueStore = create<QueueState>()((set, get) => {
       url: e.url,
       title: e.title,
       thumbnail: e.thumbnail,
+      meta: e.meta,
       playlist: info.title,
       formats: info.formats,
       selectedFormatId: formatId,
@@ -161,6 +165,7 @@ export const useQueueStore = create<QueueState>()((set, get) => {
         status: 'ready-to-select',
         title: info.title,
         thumbnail: info.thumbnail,
+        meta: info.meta,
         formats: info.formats,
         selectedFormatId: pickDefaultFormat(info.formats, settings),
         message,
@@ -254,6 +259,8 @@ export const useQueueStore = create<QueueState>()((set, get) => {
 
     setSection: (id, section) => update(id, { section }),
 
+    setVideoOptions: (id, options) => update(id, options),
+
     async startDownload(id) {
       const task = find(id);
       const formatId = task?.selectedFormatId || task?.formats?.[0]?.formatId;
@@ -281,13 +288,13 @@ export const useQueueStore = create<QueueState>()((set, get) => {
               url: task.url,
               formatId,
               outDir,
-              subtitles: settings.downloadSubtitles ?? false,
+              subtitles: task.subtitles ?? settings.downloadSubtitles ?? false,
               subtitleLangs: settings.subtitleLangs,
               subfolder: (settings.playlistSubfolder ?? true) ? task.playlist : undefined,
               section: task.section,
               sponsorBlock: settings.sponsorBlock,
               embedMetadata: settings.embedMetadata ?? true,
-              filenameTemplate: settings.filenameTemplate,
+              filenamePattern: task.filenamePattern ?? resolvePattern(settings.filenameTemplate, settings.filenameCustom),
               rateLimit: settings.rateLimit || undefined,
               partialSince: task.partial?.since,
               ...networkOptions(settings),

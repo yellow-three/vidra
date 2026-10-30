@@ -107,6 +107,28 @@ test('diskte yer yoksa indirme baslamaz ve neden gosterilir', async ({ page }) =
   expect(await page.evaluate(() => (window as any).__mock.state.downloads.length)).toBe(0);
 });
 
+test('altyazi ve dosya adi her video icin ayri secilir', async ({ page }) => {
+  await mockTauri(page, { settings: accepted });
+  await page.goto('/');
+  await analyze(page);
+  const card = page.getByRole('article', { name: 'Me at the zoo' });
+  await card.getByRole('button', { name: 'Seçenekler' }).click();
+  await card.getByRole('checkbox', { name: /Altyazıları göm/ }).check();
+  await card.getByRole('combobox', { name: 'Dosya adı' }).selectOption('custom');
+  const custom = card.getByRole('textbox', { name: 'Özel dosya adı kalıbı' });
+  await custom.fill('video');
+  await expect(card.getByText('En az bir alan ekleyin')).toBeVisible();
+  await custom.fill('{channel} - ');
+  await card.getByRole('group', { name: 'Alan ekle' }).getByRole('button', { name: '+ Başlık' }).click();
+  await expect(card.getByText('Örnek: Kanal - Me at the zoo [1080p]')).toBeVisible();
+
+  await card.getByRole('button', { name: 'İndir', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).__mock.state.downloads.length)).toBe(1);
+  const args: string[] = await page.evaluate(() => (window as any).__mock.state.downloads[0].args);
+  expect(args).toContain('--embed-subs');
+  expect(args.join(' ')).toContain('%(channel,uploader,uploader_id)s - %(title)s [%(height)sp].%(ext)s');
+});
+
 test('indirme hatasi kartta gosterilir', async ({ page }) => {
   await mockTauri(page, { settings: accepted });
   await page.goto('/');

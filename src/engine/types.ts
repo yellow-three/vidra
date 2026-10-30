@@ -24,9 +24,18 @@ export interface FormatOption {
 }
 
 /** Oynatma listesindeki bir video; formatlari indirirken secilir, onceden analiz edilmez. */
+/** Dosya adi onizlemesi icin videonun bilinen alanlari (engine/filename.ts). */
+export interface VideoMeta {
+  id?: string;
+  channel?: string;
+  date?: string;
+  site?: string;
+}
+
 export interface PlaylistEntry {
   url: string;
   title: string;
+  meta?: VideoMeta;
   duration?: number;
   thumbnail?: string;
 }
@@ -37,6 +46,7 @@ export interface VideoInfo {
   duration?: number;
   thumbnail?: string;
   formats: FormatOption[];
+  meta?: VideoMeta;
   /** Link bir oynatma listesiyse girdileri. */
   entries?: PlaylistEntry[];
 }
@@ -67,8 +77,8 @@ export interface DownloadRequest extends NetworkOptions {
   subtitles: boolean;
   /** Kapak resmi, baslik, kanal, tarih ve bolumleri dosyaya gomer. */
   embedMetadata: boolean;
-  /** FILENAME_TEMPLATES anahtari. */
-  filenameTemplate?: string;
+  /** Dosya adi kalibi, orn. `{channel} - {title}` (engine/filename.ts). */
+  filenamePattern?: string;
   /** yt-dlp `--limit-rate` degeri, orn. `5M`. */
   rateLimit?: string;
   /** `--sub-langs` degeri, orn. `tr,en`; bos ise `tr,en`. */

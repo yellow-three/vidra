@@ -416,4 +416,22 @@ describe('queue store', () => {
     expect(task(id).status).toBe('error');
     expect(task(id).message).toContain('Diskte yeterli boş alan yok');
   });
+
+  it('video basina altyazi ve dosya adi ayardaki varsayilanin yerine gecer', async () => {
+    settings.filenameTemplate = 'custom';
+    settings.filenameCustom = '{date} {title}';
+    const calls = controllableDownload();
+    const a = await addReadyTask('https://v.test/a');
+    const b = await addReadyTask('https://v.test/b');
+    useQueueStore.getState().setVideoOptions(b, { subtitles: false, filenamePattern: '{channel} - {title} [{id}]' });
+
+    const runs = [a, b].map((id) => useQueueStore.getState().startDownload(id));
+    await flush();
+    expect(calls[0].req).toMatchObject({ subtitles: true, filenamePattern: '{date} {title}' });
+    expect(calls[1].req).toMatchObject({ subtitles: false, filenamePattern: '{channel} - {title} [{id}]' });
+    calls.forEach((c) => c.finish({ status: 'cancelled' }));
+    await Promise.all(runs);
+    delete settings.filenameTemplate;
+    delete settings.filenameCustom;
+  });
 });
