@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { patternError, previewFilename, resolvePattern, toYtdlpTemplate } from './filename';
 
-const labels = { title: 'başlık', channel: 'kanal', id: 'kimlik', date: 'tarih', site: 'site', index: 'sıra' };
+const labels = { title: 'başlık', channel: 'kanal', id: 'kimlik', date: 'tarih', site: 'site', index: 'sıra', year: 'yıl' };
 
 describe('dosya adi kaliplari', () => {
   it('kalibi yt-dlp sablonuna cevirir; duz metindeki % ve gecersiz karakterleri kacirir', () => {
