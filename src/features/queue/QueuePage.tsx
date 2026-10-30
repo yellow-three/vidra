@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ClipboardCheck, FolderOpen, Sparkles } from 'lucide-react';
 import TaskList from './TaskList';
+import PlaylistPicker from './PlaylistPicker';
 import AddUrlForm from '../add/AddUrlForm';
 import PageHeader from '../../app/PageHeader';
 import { useAppStatus } from './appStatus';
@@ -8,6 +10,7 @@ import { useQueueStore } from './store';
 import { useSettings } from '../settings/queries';
 import { useAppUpdate } from '../settings/appUpdate';
 import { useT } from '../../i18n';
+import { countByFilter, type QueueFilter } from './queueFilter';
 
 const shortenHome = (path: string) => path.replace(/^\/home\/[^/]+/, '~').replace(/^C:\\Users\\[^\\]+/i, '~');
 
@@ -21,13 +24,10 @@ export default function QueuePage() {
   const downloadDir = settings?.downloadDir;
   const clipboardMode = settings?.clipboardMode ?? 'youtube';
 
-  const count = (pred: (s: string) => boolean) => queue.filter((t) => pred(t.status)).length;
-  const stats = [
-    { label: m.queue.stats.pending, value: count((s) => s === 'ready-to-select' || s === 'analyzing' || s === 'queued' || s === 'paused') },
-    { label: m.queue.stats.downloading, value: count((s) => s === 'downloading') },
-    { label: m.queue.stats.complete, value: count((s) => s === 'complete') },
-    { label: m.queue.stats.error, value: count((s) => s === 'error') },
-  ];
+  const [filter, setFilter] = useState<QueueFilter>('all');
+  const stats = (['pending', 'downloading', 'complete', 'error'] as const).map((id) => ({
+    id, label: m.queue.stats[id], value: countByFilter(queue, id),
+  }));
 
   return (
     <div className="flex flex-col gap-6 flex-1">
@@ -46,12 +46,19 @@ export default function QueuePage() {
       <section className="card bg-base-100 border border-base-300">
         <div className="card-body gap-5">
           <AddUrlForm />
-          <div className="stats stats-horizontal bg-base-200 w-full">
+          {/* Kutucuklar ayni zamanda listenin filtresi: tiklanan duruma gore suzer, tekrar tiklamak kaldirir. */}
+          <div className="stats stats-horizontal bg-base-200 w-full" role="group" aria-label={m.list.filter}>
             {stats.map((s) => (
-              <div key={s.label} className="stat py-3 px-4">
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setFilter(filter === s.id ? 'all' : s.id)}
+                aria-pressed={filter === s.id}
+                className={`stat py-3 px-4 text-left cursor-pointer transition-colors hover:bg-base-300/60 ${filter === s.id ? 'bg-base-300' : ''}`}
+              >
                 <div className="stat-title text-xs">{s.label}</div>
                 <div className={`stat-value text-2xl ${s.value ? '' : 'text-base-content/30'}`}>{s.value}</div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -60,6 +67,8 @@ export default function QueuePage() {
       <div className="flex-1 flex flex-col">
         <TaskList
           tasks={queue}
+          filter={filter}
+          onFilterChange={setFilter}
           onFormatChange={selectFormat}
           onStartDownload={(task) => void startDownload(task.id)}
           onCancel={(id) => void cancel(id)}
@@ -71,7 +80,10 @@ export default function QueuePage() {
         />
       </div>
 
-      <footer className="flex flex-col gap-2 pt-2 border-t border-base-300 text-xs text-base-content/60">
+      <PlaylistPicker />
+
+      {/* Liste uzasa da durum cubugu pencerenin altinda gorunur kalir. */}
+      <footer className="sticky bottom-0 z-10 -mx-6 -mb-8 px-6 pt-2 pb-3 flex flex-col gap-1.5 border-t border-base-300 bg-base-200 text-xs text-base-content/60">
         <div className="flex items-center justify-between gap-4">
           <span className="flex-1 flex items-center gap-2 min-w-0">
             <span className={`status shrink-0 ${depsReady ? 'status-success' : 'status-warning'}`} aria-hidden />

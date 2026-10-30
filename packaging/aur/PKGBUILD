@@ -2,7 +2,7 @@
 # Release'deki .deb paketini Arch'a aktarir. Yeni surumde: pkgver'i artirin, `updpkgsums`, `makepkg --printsrcinfo > .SRCINFO`.
 
 pkgname=vidra-bin
-pkgver=0.3.0
+pkgver=0.3.1
 pkgrel=1
 pkgdesc='Video and audio downloader for YouTube and other yt-dlp sites (yt-dlp + FFmpeg, downloaded on first run)'
 arch=('x86_64')
@@ -18,7 +18,7 @@ options=('!strip' '!debug')
 source=("Vidra_${pkgver}_amd64.deb::${url}/releases/download/v${pkgver}/Vidra_${pkgver}_amd64.deb"
         "LICENSE-${pkgver}::https://raw.githubusercontent.com/yellow-three/vidra/v${pkgver}/LICENSE")
 noextract=("Vidra_${pkgver}_amd64.deb")
-sha256sums=('943399695a2cf2fd04c607278c3722f7cb1764fefc129ae8bb7fd842dfa73e9c'
+sha256sums=('89cf4f89105a1ed0bddc8aab21180c46cf64e53819865865ebf585f7b3271f61'
             '79a959c221b22dcf84a476cf70779a972886107540cb5c2f102b099defd957a8')
 
 package() {

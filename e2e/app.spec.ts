@@ -36,9 +36,10 @@ test('analiz, varsayilan format, canli ilerleme ve tamamlanma', async ({ page })
   const select = page.getByRole('combobox');
   await expect(select).toHaveValue('video-240');
   await expect(select.locator('option')).toHaveText([
+    /^★ En iyi kalite · en iyi video \(360p\) \+ en iyi ses/, /^★ En iyi ses · en iyi ses · dönüştürmesiz/,
     /360p/, /240p/, /MP3/, /M4A/,
     // yt-dlp'nin tum formatlari, en iyiden kotuye.
-    /^360p · mp4 · avc1 · en iyi sesle/, /^240p · mp4/, /^Ses · m4a · mp4a · yalnız ses/,
+    /^360p · mp4 · ★ en iyi · avc1 · en iyi sesle/, /^240p · mp4/, /^Ses · m4a · ★ en iyi · mp4a · yalnız ses/,
   ]);
   await page.getByRole('button', { name: 'İndir', exact: true }).click();
 
@@ -133,6 +134,16 @@ test('oynatma listesi videolarina acilir ve hepsi birden indirilir', async ({ pa
   await page.goto('/');
   await analyze(page, 'https://www.youtube.com/playlist?list=PL123');
 
+  // Liste dogrudan eklenmez: pencere videolari gosterir, secilenler eklenir.
+  const dialog = page.getByRole('dialog', { name: 'Örnek liste' });
+  await expect(dialog).toContainText('2 videoluk bir oynatma listesi');
+  await expect(page.getByRole('article', { name: 'Birinci video' })).toHaveCount(0);
+  await dialog.getByRole('button', { name: 'Seçimi kaldır' }).click();
+  await expect(dialog.getByRole('button', { name: 'Video seçin' })).toBeDisabled();
+  await dialog.getByRole('button', { name: 'Tümünü seç' }).click();
+  await dialog.getByRole('button', { name: '2 videoyu ekle' }).click();
+  await expect(dialog).toHaveCount(0);
+
   await expect(page.getByRole('article', { name: 'Birinci video' })).toContainText('Örnek liste');
   await expect(page.getByRole('article', { name: 'İkinci video' })).toBeVisible();
   await page.getByRole('button', { name: 'Hepsini indir (2)' }).click();
@@ -148,8 +159,54 @@ test('listedeki bir video tek basina eklenir, istenirse liste acilir', async ({ 
   await expect(page.getByRole('article', { name: 'Me at the zoo' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Listenin tamamını ekle' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Örnek liste' });
+  await dialog.getByRole('checkbox', { name: 'İkinci video' }).uncheck();
+  await dialog.getByRole('button', { name: '1 videoyu ekle' }).click();
   await expect(page.getByRole('article', { name: 'Birinci video' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'İkinci video' })).toHaveCount(0);
   await expect(page.getByRole('article', { name: 'Me at the zoo' })).toHaveCount(0);
+});
+
+test('liste secim penceresinde vazgecilirse hicbir sey eklenmez', async ({ page }) => {
+  await mockTauri(page, { settings: accepted });
+  await page.goto('/');
+  await analyze(page, 'https://www.youtube.com/playlist?list=PL123');
+  const dialog = page.getByRole('dialog', { name: 'Örnek liste' });
+  await dialog.getByRole('searchbox', { name: 'Listede ara' }).fill('ikinci');
+  await expect(dialog.getByRole('checkbox')).toHaveCount(1);
+  await dialog.getByRole('button', { name: 'Vazgeç' }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole('article')).toHaveCount(0);
+});
+
+test('kuyrukta arar, duruma gore suzer ve secilenleri toplu duraklatir', async ({ page }) => {
+  await mockTauri(page, { settings: accepted });
+  await page.goto('/');
+  await analyze(page, 'https://www.youtube.com/playlist?list=PL123');
+  await page.getByRole('dialog').getByRole('button', { name: '2 videoyu ekle' }).click();
+  await analyze(page);
+  await expect(page.getByRole('article')).toHaveCount(3);
+
+  await page.getByRole('searchbox', { name: 'Kuyrukta ara' }).fill('ikinci');
+  await expect(page.getByRole('article')).toHaveCount(1);
+  await page.getByRole('searchbox', { name: 'Kuyrukta ara' }).fill('');
+
+  await page.getByRole('button', { name: 'Hepsini indir (3)' }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).__mock.state.downloads.length)).toBe(2);
+  await page.getByRole('button', { name: 'Tümünü duraklat' }).click();
+  await expect(page.locator('article[data-status="paused"]')).toHaveCount(3);
+
+  // Istatistik kutusu filtre olarak calisir.
+  await page.getByRole('group', { name: 'Duruma göre süz' }).getByRole('button', { name: /İniyor/ }).click();
+  await expect(page.getByRole('article')).toHaveCount(0);
+  await expect(page.getByText('Aramaya ya da filtreye uyan indirme yok.')).toBeVisible();
+  await page.getByRole('button', { name: 'Filtreyi kaldır' }).click();
+
+  await page.getByRole('article', { name: 'Birinci video' }).getByRole('checkbox', { name: 'Seç' }).check();
+  await page.getByRole('toolbar', { name: 'Kuyruk işlemleri' }).getByRole('button', { name: 'Devam et' }).click();
+  await expect(page.locator('article[data-status="paused"]')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Tümünü sürdür (2)' }).click();
+  await expect(page.locator('article[data-status="paused"]')).toHaveCount(0);
 });
 
 test('cerez, proxy ve kapak ayarlari yt-dlp argumanlarina yansir', async ({ page }) => {

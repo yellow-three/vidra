@@ -26,12 +26,18 @@ export const PROGRESS_PREFIX = '[progress] ';
 export const DEST_PREFIX = 'DEST:';
 export const FILE_PREFIX = 'FILE:';
 
+/** En iyi kombinasyonlar; `video-` onekiyle baslamaz ki varsayilan kalite secimine karismasin. */
+export const BEST_ID = 'best-av';
+export const BEST_AUDIO_ID = 'audio-best';
+
 /** Ham format secenekleri: `fmt-v-137` (yalniz goruntu), `fmt-a-251` (yalniz ses), `fmt-av-18`. */
 const RAW_PREFIX = /^fmt-(av|v|a)-(.+)$/;
 
 export function parseOption(id: string): DownloadOption | null {
   const raw = RAW_PREFIX.exec(id);
   if (raw) return { kind: 'format', formatId: raw[2], video: raw[1] !== 'a', audio: raw[1] !== 'v' };
+  if (id === BEST_ID) return { kind: 'best' };
+  if (id === BEST_AUDIO_ID) return { kind: 'best-audio' };
   if (id === 'audio-mp3') return { kind: 'mp3' };
   if (id === 'audio-m4a') return { kind: 'm4a' };
   if (id === 'video-best') return { kind: 'best-video' };
@@ -43,6 +49,8 @@ export function optionLabel(option: DownloadOption): string {
   switch (option.kind) {
     case 'video': return `${option.height}p`;
     case 'best-video': return msg().formats.best;
+    case 'best': return msg().formats.bestQuality;
+    case 'best-audio': return msg().formats.bestAudio;
     case 'mp3': return 'MP3';
     case 'm4a': return 'M4A';
     case 'format': return `${msg().formats.formatCode} ${option.formatId}`;
@@ -93,11 +101,23 @@ export function buildOptions(formats: YtdlpFormat[]): FormatOption[] {
   if (options.length === 0 && !audioOnlySite) {
     options.push({ formatId: 'video-best', resolution: msg().formats.best, ext: 'mp4', note: msg().formats.videoAndAudio, filesize: formatFilesize(null) });
   }
+  const raw = rawOptions(formats, bestAudio);
+  // En iyi kombinasyonlar: ham listenin en ustundeki video ve ses (rawOptions kaliteye gore siralar).
+  const topVideo = raw.find((o) => !o.formatId.startsWith('fmt-a-'));
+  const topAudio = raw.find((o) => o.formatId.startsWith('fmt-a-'));
+  // Yalniz goruntu formatinin boyutu en iyi sesi zaten icerir (rawOptions).
+  const best: FormatOption[] = topVideo && formats.some(isVideo)
+    ? [{ formatId: BEST_ID, resolution: m.bestQuality, ext: m.original, note: m.bestCombo(topVideo.resolution), filesize: topVideo.filesize, bytes: topVideo.bytes }]
+    : [];
+  const bestAudioOption: FormatOption[] = topAudio
+    ? [{ formatId: BEST_AUDIO_ID, resolution: m.audio, ext: topAudio.ext, note: m.bestAudioNote, filesize: topAudio.filesize, bytes: topAudio.bytes }]
+    : [];
   options.push(
+    ...bestAudioOption,
     { formatId: 'audio-mp3', resolution: m.audio, ext: 'mp3', note: m.bestQuality, filesize: formatFilesize(bestAudio), bytes: bestAudio },
     { formatId: 'audio-m4a', resolution: m.audio, ext: 'm4a', note: m.noConversion, filesize: formatFilesize(bestAudio), bytes: bestAudio },
   );
-  return [...options, ...rawOptions(formats, bestAudio)];
+  return [...best, ...options, ...raw];
 }
 
 const codecName = (codec: string) => codec.split('.')[0];
@@ -140,6 +160,12 @@ export function rawOptions(formats: YtdlpFormat[], bestAudio?: number): FormatOp
       ].filter(Boolean).join(' + ');
       const note = [codecs, kind === 'v' ? m.plusBestAudio : kind === 'a' ? m.audioOnly : ''].filter(Boolean).join(' · ');
       return { formatId: `fmt-${kind}-${f.format_id}`, resolution, ext: f.ext ?? '', note, filesize: formatFilesize(bytes), bytes };
+    })
+    .map((o, i, all) => {
+      // Siralamada ilk gelen goruntulu ve ilk gelen yalniz ses format en iyileridir.
+      const audio = o.formatId.startsWith('fmt-a-');
+      const first = all.findIndex((x) => x.formatId.startsWith('fmt-a-') === audio) === i;
+      return first ? { ...o, note: [m.bestMark, o.note].filter(Boolean).join(' · ') } : o;
     });
 }
 
@@ -150,7 +176,9 @@ export function playlistOptions(): FormatOption[] {
   const m = msg().formats;
   const unknown = formatFilesize(null);
   return [
+    { formatId: BEST_ID, resolution: m.bestQuality, ext: m.original, note: m.bestComboShort, filesize: unknown },
     ...PLAYLIST_HEIGHTS.map((h) => ({ formatId: `video-${h}`, resolution: `${h}p`, ext: 'mp4', note: m.upTo, filesize: unknown })),
+    { formatId: BEST_AUDIO_ID, resolution: m.audio, ext: m.original, note: m.bestAudioNote, filesize: unknown },
     { formatId: 'audio-mp3', resolution: m.audio, ext: 'mp3', note: m.bestQuality, filesize: unknown },
     { formatId: 'audio-m4a', resolution: m.audio, ext: 'm4a', note: m.noConversion, filesize: unknown },
   ];
@@ -289,7 +317,7 @@ export function outputTemplate(option: DownloadOption, template?: string, extras
   const base = FILENAME_TEMPLATES[template ?? ''] ?? FILENAME_TEMPLATES.title;
   const quality = option.kind === 'format'
     ? ' [%(format_id)s]'
-    : option.kind === 'video' || option.kind === 'best-video' ? ' [%(height)sp]' : '';
+    : option.kind === 'video' || option.kind === 'best-video' || option.kind === 'best' ? ' [%(height)sp]' : '';
   const { section, subfolder } = extras;
   const clip = section
     ? ` [${formatClock(section.start, '.')}-${section.end != null ? formatClock(section.end, '.') : msg().formats.sectionEnd}]`
@@ -344,6 +372,13 @@ export function buildDownloadArgs({
     case 'best-video':
       args.push('-f', 'bv*+ba/b', '--merge-output-format', 'mp4');
       break;
+    case 'best':
+      // Kap secilmez: VP9/AV1 + Opus gibi kombinasyonlar icin yt-dlp MKV/WebM secer.
+      args.push('-f', 'bv*+ba/b');
+      break;
+    case 'best-audio':
+      args.push('-f', 'ba/b');
+      break;
     case 'mp3':
       args.push('-f', 'ba/b', '-x', '--audio-format', 'mp3', '--audio-quality', '0');
       break;
@@ -356,7 +391,8 @@ export function buildDownloadArgs({
       break;
   }
 
-  const audioOnly = option.kind === 'mp3' || option.kind === 'm4a' || (option.kind === 'format' && !option.video);
+  const audioOnly = option.kind === 'mp3' || option.kind === 'm4a' || option.kind === 'best-audio'
+    || (option.kind === 'format' && !option.video);
   if (subtitles && !audioOnly) {
     // `--write-subs` eklenirse gomulduktan sonra .vtt dosyasi da diskte kalir.
     args.push('--embed-subs', '--sub-langs', subtitleLangs?.trim() || 'tr,en');
@@ -371,7 +407,7 @@ export function buildDownloadArgs({
   if (embedMetadata) {
     // Ham ses formatlari webm olabilir; yt-dlp webm'e kapak gomemez ve indirmeyi hatayla bitirir.
     // Videolarda sorun yok: yt-dlp kapak icin webm yerine mkv secer.
-    if (!(option.kind === 'format' && !option.video)) args.push('--embed-thumbnail');
+    if (option.kind !== 'best-audio' && !(option.kind === 'format' && !option.video)) args.push('--embed-thumbnail');
     args.push('--embed-metadata');
   }
   if (rateLimit) args.push('--limit-rate', rateLimit);

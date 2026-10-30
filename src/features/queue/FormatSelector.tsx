@@ -1,5 +1,5 @@
 import { Download, FileAudio, FileVideo } from 'lucide-react';
-import { formatFilesize, isAudioOptionId } from '../../engine/ytdlp';
+import { BEST_AUDIO_ID, BEST_ID, formatFilesize, isAudioOptionId } from '../../engine/ytdlp';
 import type { Task, VideoFormat } from '../../types';
 import { useT } from '../../i18n';
 
@@ -18,8 +18,9 @@ export default function FormatSelector({ task, onFormatChange, onStartDownload }
 
   const selected = task.selectedFormatId || task.formats[0]?.formatId;
   const isAudio = isAudioOptionId(selected);
+  const best = task.formats.filter((f) => f.formatId === BEST_ID || f.formatId === BEST_AUDIO_ID);
   const videos = task.formats.filter((f) => f.formatId.startsWith('video-'));
-  const audios = task.formats.filter((f) => f.formatId.startsWith('audio-'));
+  const audios = task.formats.filter((f) => f.formatId.startsWith('audio-') && f.formatId !== BEST_AUDIO_ID);
   const raw = task.formats.filter((f) => f.formatId.startsWith('fmt-'));
 
   return (
@@ -27,6 +28,15 @@ export default function FormatSelector({ task, onFormatChange, onStartDownload }
       <label className="select select-sm join-item w-full">
         {isAudio ? <FileAudio size={14} className="opacity-60" /> : <FileVideo size={14} className="opacity-60" />}
         <select value={selected} onChange={(e) => onFormatChange(task.id, e.target.value)} aria-label={m.task.format}>
+          {best.length > 0 && (
+            <optgroup label={m.task.bestGroup}>
+              {best.map((f) => (
+                <option key={f.formatId} value={f.formatId}>
+                  {[`★ ${f.formatId === BEST_ID ? f.resolution : m.formats.bestAudio}`, f.note, f.filesize === formatFilesize(null) ? '' : f.filesize].filter(Boolean).join(' · ')}
+                </option>
+              ))}
+            </optgroup>
+          )}
           <optgroup label={m.task.videoGroup}>
             {videos.map((f) => (
               <option key={f.formatId} value={f.formatId}>{f.resolution} · {sizeOrNote(f)}</option>

@@ -32,9 +32,23 @@ const networkOptions = (s: AppSettings | null): NetworkOptions => ({
   proxy: s?.proxy?.trim() || undefined,
 });
 
+/** Secim bekleyen oynatma listesi: analiz edildi, kullanici hangi videolarin eklenecegini secer. */
+export interface PlaylistPick {
+  taskId: string;
+  info: VideoInfo;
+  formatId: string | undefined;
+  /** Gecmiste olan videolarin anahtarlari (videoKey); pencerede isaretli gelmez. */
+  downloaded: Set<string>;
+}
+
 interface QueueState {
   url: string;
   tasks: Task[];
+  playlistPicks: PlaylistPick[];
+  /** Secilen videolari listenin yer tutucusunun yerine kuyruga ekler. */
+  confirmPlaylist(taskId: string, urls: string[]): void;
+  /** Liste eklenmez; yer tutucu kuyruktan kalkar. */
+  dismissPlaylist(taskId: string): void;
   setUrl(url: string): void;
   /**
    * URL kutusundaki linkleri (birden fazla olabilir) analiz eder; ilk gorevin kimligini dondurur.
@@ -98,23 +112,17 @@ export const useQueueStore = create<QueueState>()((set, get) => {
     return history.some((h) => videoKey(h.url) === key) ? msg().queue.duplicateInHistory : undefined;
   }
 
-  /** Liste analizinin yer tutucusunu, listedeki videolarla ayni yerde degistirir. */
-  async function replaceWithEntries(id: string, info: VideoInfo, settings: AppSettings | null) {
-    const entries = info.entries ?? [];
-    if (entries.length === 0) {
-      update(id, { status: 'error', title: info.title, message: msg().queue.emptyPlaylist });
-      return;
-    }
-    const selectedFormatId = pickDefaultFormat(info.formats, settings);
-    const downloaded = new Set((await fetchHistory().catch(() => [])).map((h) => videoKey(h.url)));
-    const tasks: Task[] = entries.map((e) => ({
+  /** Liste analizinin yer tutucusunu, kullanicinin sectigi videolarla ayni yerde degistirir. */
+  function replaceWithEntries(id: string, pick: PlaylistPick, urls: Set<string>) {
+    const { info, formatId, downloaded } = pick;
+    const tasks: Task[] = (info.entries ?? []).filter((e) => urls.has(e.url)).map((e) => ({
       id: newId(),
       url: e.url,
       title: e.title,
       thumbnail: e.thumbnail,
       playlist: info.title,
       formats: info.formats,
-      selectedFormatId,
+      selectedFormatId: formatId,
       percent: 0,
       speed: '',
       eta: '',
@@ -123,7 +131,21 @@ export const useQueueStore = create<QueueState>()((set, get) => {
     }));
     set((s) => ({
       tasks: s.tasks.flatMap((t) => (t.id === id && t.status !== 'cancelled' ? tasks : [t])),
+      playlistPicks: s.playlistPicks.filter((p) => p.taskId !== id),
     }));
+  }
+
+  /** Liste dogrudan kuyruga eklenmez: secim penceresi icin bekletilir (PlaylistPicker). */
+  async function offerPlaylist(id: string, info: VideoInfo, settings: AppSettings | null) {
+    if (!info.entries?.length) {
+      update(id, { status: 'error', title: info.title, message: msg().queue.emptyPlaylist });
+      return;
+    }
+    const downloaded = new Set((await fetchHistory().catch(() => [])).map((h) => videoKey(h.url)));
+    update(id, { title: info.title });
+    if (find(id)?.status === 'cancelled') return;
+    const pick: PlaylistPick = { taskId: id, info, formatId: pickDefaultFormat(info.formats, settings), downloaded };
+    set((s) => ({ playlistPicks: [...s.playlistPicks, pick] }));
   }
 
   async function runAnalysis(id: string, url: string, options: Pick<InfoOptions, 'playlist'> = {}) {
@@ -131,7 +153,7 @@ export const useQueueStore = create<QueueState>()((set, get) => {
       const settings = await fetchSettings().catch(() => null);
       const info = await engine.getInfo(url, { ...networkOptions(settings), ...options });
       if (info.entries) {
-        await replaceWithEntries(id, info, settings);
+        await offerPlaylist(id, info, settings);
         return;
       }
       const message = await duplicateMessage(id, url);
@@ -178,6 +200,22 @@ export const useQueueStore = create<QueueState>()((set, get) => {
   return {
     url: '',
     tasks: loadTasks(),
+    playlistPicks: [],
+
+    confirmPlaylist(taskId, urls) {
+      const pick = get().playlistPicks.find((p) => p.taskId === taskId);
+      if (!pick) return;
+      if (urls.length === 0) {
+        get().dismissPlaylist(taskId);
+        return;
+      }
+      replaceWithEntries(taskId, pick, new Set(urls));
+    },
+
+    dismissPlaylist: (taskId) => set((s) => ({
+      tasks: s.tasks.filter((t) => t.id !== taskId),
+      playlistPicks: s.playlistPicks.filter((p) => p.taskId !== taskId),
+    })),
 
     setUrl: (url) => set({ url }),
 
@@ -296,6 +334,7 @@ export const useQueueStore = create<QueueState>()((set, get) => {
       }
       if (task && task.status !== 'downloading') {
         force(id, { status: 'cancelled', partial: undefined });
+        set((s) => ({ playlistPicks: s.playlistPicks.filter((p) => p.taskId !== id) }));
         if (task.partial) void engine.discardPartial(task.partial.destination, task.partial.since);
         return;
       }
