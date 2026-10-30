@@ -19,6 +19,7 @@ const RULES: [RegExp, ErrorKey][] = [
   [/not available in your country|geo.?restrict/i, 'geo'],
   [/video (?:is )?unavailable|has been removed|account .* terminated/i, 'unavailable'],
   [/premieres in|live event will begin|is upcoming/i, 'upcoming'],
+  [/video-password|password.protected|protected by a password|wrong password|incorrect password/i, 'password'],
   [/unsupported url|is not a valid url/i, 'unsupported'],
   [/requested format is not available/i, 'format'],
   [/HTTP Error 403/i, 'forbidden'],
@@ -28,6 +29,12 @@ const RULES: [RegExp, ErrorKey][] = [
   [/no space left on device|disk full/i, 'diskFull'],
   [/permission denied|access is denied/i, 'permission'],
 ];
+
+/** Ham hata metninin turu; kart buna gore ek dugme gosterir (sifre, yayini bekleme). */
+export function errorKind(raw: string | undefined): ErrorKey | null {
+  if (!raw) return null;
+  return RULES.find(([pattern]) => pattern.test(raw))?.[1] ?? null;
+}
 
 export function friendlyError(raw: string): FriendlyError {
   const text = raw.trim();

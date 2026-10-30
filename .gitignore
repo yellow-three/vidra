@@ -6,3 +6,6 @@ dist/
 src-tauri/binaries/
 test-results/
 playwright-report/
+
+# Tarayici eklentisi paketleri (scripts/build-extension.mjs)
+extension/dist/

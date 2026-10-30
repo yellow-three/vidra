@@ -2,6 +2,8 @@ import { Outlet } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import Sidebar from './Sidebar';
 import BrandMark from './BrandMark';
+import PlaylistPicker from '../features/queue/PlaylistPicker';
+import { useDeepLinks } from '../features/deeplink/useDeepLinks';
 import { useT } from '../i18n';
 
 const DRAWER_ID = 'app-drawer';
@@ -9,6 +11,7 @@ const DRAWER_ID = 'app-drawer';
 /** Genis pencerede kenar cubugu sabit, dar pencerede (min 900px) cekmece olarak acilir. */
 export default function MainLayout() {
   const m = useT().nav;
+  useDeepLinks();
   return (
     <div className="drawer lg:drawer-open h-screen">
       <input id={DRAWER_ID} type="checkbox" className="drawer-toggle" aria-label={m.openMenu} />
@@ -25,6 +28,8 @@ export default function MainLayout() {
           </div>
         </main>
       </div>
+      {/* Liste ve abonelik secimleri her sayfada acilabilir. */}
+      <PlaylistPicker />
       <div className="drawer-side z-20">
         <label htmlFor={DRAWER_ID} aria-label={m.closeMenu} className="drawer-overlay" />
         <Sidebar drawerId={DRAWER_ID} />

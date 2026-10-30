@@ -8,6 +8,9 @@ export const FILENAME_FIELDS = {
   id: '%(id)s',
   date: '%(upload_date>%Y-%m-%d)s',
   site: '%(extractor_key)s',
+  year: '%(upload_date>%Y)s',
+  // Listedeki sira: video tek basina (--no-playlist) indirildigi icin yt-dlp bilmez; uygulama yazar.
+  index: '',
 } as const;
 
 export type FilenameField = keyof typeof FILENAME_FIELDS;
@@ -20,6 +23,7 @@ export const FILENAME_PRESETS: Record<string, string> = {
   'channel-title-id': '{channel} - {title} [{id}]',
   'date-title': '{date} {title}',
   'channel-date-title': '{channel} - {date} - {title}',
+  'index-title': '{index} - {title}',
   // v0.3 ve oncesi ayar anahtari.
   'uploader-title': '{channel} - {title}',
 };
@@ -39,8 +43,8 @@ export function patternError(pattern: string): PatternError | null {
   if (!text) return 'empty';
   const fields = [...text.matchAll(TOKEN)].map((m) => m[1]);
   if (fields.some((f) => !(f in FILENAME_FIELDS))) return 'unknownField';
-  // Alansiz kalipta butun videolar ayni adi alirdi.
-  if (fields.length === 0) return 'noField';
+  // Alansiz kalipta butun videolar ayni adi alirdi; sira no liste disinda bostur.
+  if (fields.filter((f) => f !== 'index').length === 0) return 'noField';
   return null;
 }
 
@@ -50,22 +54,45 @@ export function resolvePattern(choice: string | undefined, custom?: string): str
   return (choice && FILENAME_PRESETS[choice]) ?? DEFAULT_PATTERN;
 }
 
-/** Kalibi yt-dlp `-o` sablonuna cevirir; duz metindeki `%` kacirilir, gecersiz karakterler `_` olur. */
-export function toYtdlpTemplate(pattern: string): string {
-  const safe = patternError(pattern) ? DEFAULT_PATTERN : pattern.trim();
+/** Liste disinda `{index}` ve hemen ardindaki ayirac (`01 - Baslik` -> `Baslik`) atilir. */
+const withoutIndex = (pattern: string) => pattern.replace(/\{index\}\s*[-_.]?\s*/g, '').trim();
+
+/**
+ * Kalibi yt-dlp `-o` sablonuna cevirir; duz metindeki `%` kacirilir, gecersiz karakterler `_` olur.
+ * `index`: videonun listedeki sirasi (orn. `03`); yoksa sira alani kaliptan cikar.
+ */
+export function toYtdlpTemplate(pattern: string, index?: string): string {
+  const valid = patternError(pattern) ? DEFAULT_PATTERN : pattern.trim();
+  const safe = index ? valid : withoutIndex(valid);
   return safe
     .split(TOKEN)
     .map((part, i) => (i % 2 === 1
-      ? FILENAME_FIELDS[part as FilenameField]
+      ? (part === 'index' ? (index ?? '').replace(UNSAFE, '_').replace(/%/g, '%%') : FILENAME_FIELDS[part as FilenameField])
       : part.replace(UNSAFE, '_').replace(/%/g, '%%')))
     .join('');
+}
+
+/** Hazir klasor duzenleri (Ayarlar > Dosyalar). */
+export const FOLDER_LAYOUTS: Record<string, string> = {
+  channel: '{channel}',
+  'channel-year': '{channel}/{year}',
+  'site-channel': '{site}/{channel}',
+  year: '{year}',
+};
+
+/** Klasor duzenini yt-dlp sablonuna cevirir; her klasor adi dosya adi gibi temizlenir. */
+export function folderTemplate(layout: string | undefined): string {
+  const pattern = layout && FOLDER_LAYOUTS[layout];
+  if (!pattern) return '';
+  return `${pattern.split('/').map((part) => toYtdlpTemplate(part)).join('/')}/`;
 }
 
 export type FilenameSample = Partial<Record<FilenameField, string>>;
 
 /** Arayuzde onizleme: alanlar bilinen degerlerle, bilinmeyenler alan adiyla doldurulur. */
 export function previewFilename(pattern: string, sample: FilenameSample, labels: Record<FilenameField, string>): string {
-  const safe = patternError(pattern) ? DEFAULT_PATTERN : pattern.trim();
+  const valid = patternError(pattern) ? DEFAULT_PATTERN : pattern.trim();
+  const safe = sample.index ? valid : withoutIndex(valid);
   return safe
     .split(TOKEN)
     .map((part, i) => (i % 2 === 1

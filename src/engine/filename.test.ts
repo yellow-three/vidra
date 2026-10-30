@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { patternError, previewFilename, resolvePattern, toYtdlpTemplate } from './filename';
 
-const labels = { title: 'başlık', channel: 'kanal', id: 'kimlik', date: 'tarih', site: 'site' };
+const labels = { title: 'başlık', channel: 'kanal', id: 'kimlik', date: 'tarih', site: 'site', index: 'sıra', year: 'yıl' };
 
 describe('dosya adi kaliplari', () => {
   it('kalibi yt-dlp sablonuna cevirir; duz metindeki % ve gecersiz karakterleri kacirir', () => {
@@ -29,5 +29,12 @@ describe('dosya adi kaliplari', () => {
 
   it('onizlemede bilinen degerleri, bilinmeyenler icin alan adini kullanir', () => {
     expect(previewFilename('{channel} - {title} [{id}]', { title: 'Klip: 1', channel: 'Kanal' }, labels)).toBe('Kanal - Klip_ 1 [kimlik]');
+  });
+
+  it('liste sirasini yazar; liste disinda sira alanini ve ardindaki ayiraci atar', () => {
+    expect(toYtdlpTemplate('{index} - {title}', '03')).toBe('03 - %(title)s');
+    expect(toYtdlpTemplate('{index} - {title}')).toBe('%(title)s');
+    expect(patternError('{index}')).toBe('noField');
+    expect(previewFilename('{index}. {title}', { title: 'A', index: '07' }, labels)).toBe('07. A');
   });
 });

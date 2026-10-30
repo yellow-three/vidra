@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  networkArgs,
+  postProcessingArgs,
   rawOptions,
   buildDownloadArgs,
   buildInfoArgs,
@@ -87,7 +89,7 @@ describe('buildOptions', () => {
     expect(options.map((o) => o.formatId)).toEqual([
       // En iyi video + en iyi ses (orijinal kap) en basta.
       'best-av',
-      'video-1080', 'video-720', 'audio-best', 'audio-mp3', 'audio-m4a',
+      'video-1080', 'video-720', 'audio-best', 'audio-mp3', 'audio-m4a', 'audio-opus', 'audio-flac', 'audio-wav',
       // Cozunurluge gore en iyiden kotuye, sonra ses; storyboard (mhtml) atlanir.
       'fmt-v-137', 'fmt-v-248', 'fmt-v-136', 'fmt-a-140',
     ]);
@@ -116,13 +118,13 @@ describe('buildOptions', () => {
 
   it('yalnizca ses sunan sitede video secenegi sunmaz', () => {
     const audio: YtdlpFormat[] = [{ format_id: 'hls_aac_160k', ext: 'm4a', vcodec: 'none', acodec: 'mp4a.40.2' }];
-    expect(buildOptions(audio).map((o) => o.formatId)).toEqual(['audio-best', 'audio-mp3', 'audio-m4a', 'fmt-a-hls_aac_160k']);
+    expect(buildOptions(audio).map((o) => o.formatId)).toEqual(['audio-best', 'audio-mp3', 'audio-m4a', 'audio-opus', 'audio-flac', 'audio-wav', 'fmt-a-hls_aac_160k']);
     // Kodek bilgisi vermeyen site (archive.org): video olabilir.
     expect(buildOptions([{ format_id: '0', ext: 'mp4' }]).map((o) => o.formatId)[0]).toBe('video-best');
   });
 
   it('cozunurluk bilgisi yoksa en iyi videoya duser', () => {
-    expect(buildOptions([]).map((o) => o.formatId)).toEqual(['video-best', 'audio-mp3', 'audio-m4a']);
+    expect(buildOptions([]).map((o) => o.formatId)).toEqual(['video-best', 'audio-mp3', 'audio-m4a', 'audio-opus', 'audio-flac', 'audio-wav']);
   });
 });
 
@@ -147,6 +149,118 @@ describe('partialFilesToRemove', () => {
   it('Windows yollarini da ayristirir', () => {
     const entries = [{ name: 'Video.mp4.part', mtimeMs: started }];
     expect(partialFilesToRemove('C:\\Users\\a\\Video.mp4', entries, started)).toEqual(['Video.mp4.part']);
+  });
+});
+
+describe('grup 1: hiz, altyazi, ses', () => {
+  const base = { url: 'U', outDir: '/o' };
+
+  it('her indirmede yeniden dener; parca, bekleme ve boyut sinirini ayardan alir', () => {
+    const plain = buildDownloadArgs({ ...base, option: { kind: 'video', height: 720 }, subtitles: false });
+    expect(plain.join(' ')).toContain('--retries 10 --fragment-retries 10 --retry-sleep fragment:exp=1:20');
+    expect(plain).not.toContain('-N');
+    expect(plain).not.toContain('--max-filesize');
+    const tuned = buildDownloadArgs({
+      ...base, option: { kind: 'video', height: 720 }, subtitles: false, concurrentFragments: 4, sleepInterval: 3, maxFilesize: '1G',
+    });
+    expect(tuned.join(' ')).toContain('-N 4');
+    expect(tuned.join(' ')).toContain('--sleep-interval 3 --sleep-requests 1');
+    expect(tuned.join(' ')).toContain('--max-filesize 1G');
+  });
+
+  it('altyaziyi gomer; istenirse .srt olarak da yazar ve otomatik altyazilari kullanir', () => {
+    const embed = buildDownloadArgs({ ...base, option: { kind: 'video', height: 720 }, subtitles: true, subtitleLangs: 'de' });
+    expect(embed.join(' ')).toContain('--embed-subs --sub-langs de');
+    expect(embed).not.toContain('--write-subs');
+    const all = buildDownloadArgs({
+      ...base, option: { kind: 'video', height: 720 }, subtitles: true, subtitleFile: true, autoSubtitles: true,
+    });
+    expect(all.join(' ')).toContain('--embed-subs --write-subs --convert-subs srt --write-auto-subs --sub-langs tr,en --ignore-errors');
+    // Altyazi kapaliysa .srt ayari tek basina bir sey yapmaz.
+    const off = buildDownloadArgs({ ...base, option: { kind: 'video', height: 720 }, subtitles: false, subtitleFile: true });
+    expect(off).not.toContain('--write-subs');
+  });
+
+  it('Opus/FLAC/WAV\'a donusturur; WAV\'a kapak gomulmez; MP3 kalitesi secilir', () => {
+    expect(parseOption('audio-flac')).toEqual({ kind: 'audio', codec: 'flac' });
+    const flac = buildDownloadArgs({ ...base, option: parseOption('audio-flac')!, subtitles: true, embedMetadata: true });
+    expect(flac.join(' ')).toContain('-x --audio-format flac');
+    expect(flac).toContain('--embed-thumbnail');
+    expect(flac).not.toContain('--embed-subs');
+    const wav = buildDownloadArgs({ ...base, option: parseOption('audio-wav')!, subtitles: false, embedMetadata: true });
+    expect(wav).not.toContain('--embed-thumbnail');
+    const mp3 = buildDownloadArgs({ ...base, option: { kind: 'mp3' }, subtitles: false, mp3Quality: '192K' });
+    expect(mp3.join(' ')).toContain('--audio-quality 192K');
+  });
+
+  it('videodaki elle eklenmis altyazilari ve otomatik altyazinin ozgun dilini okur', () => {
+    const info = parseInfo(JSON.stringify({
+      title: 'K', formats: [],
+      subtitles: { tr: [], en: [], live_chat: [] },
+      automatic_captions: { 'en-orig': [], en: [], de: [] },
+    }), 'U');
+    expect(info.meta).toMatchObject({ subtitles: ['tr', 'en'], autoSubtitles: ['en'] });
+  });
+});
+
+describe('grup 3: sonradan isleme', () => {
+  it('bolumleri klasore ayirir, bolum keser, kabi degistirir, etiketleri ve ek dosyalari yazar', () => {
+    const args = postProcessingArgs({ kind: 'best' }, '/out', 'Liste', {
+      splitChapters: true, removeChapters: ' (?i)intro ', remux: 'mp4', parseArtist: true,
+      writeThumbnail: true, writeDescription: true, writeComments: true, serverMtime: true,
+    });
+    expect(args).toEqual([
+      '--split-chapters', '-o', 'chapter:/out/Liste/%(title)s/%(section_number)02d - %(section_title)s.%(ext)s',
+      '--remove-chapters', '(?i)intro',
+      '--remux-video', 'mp4',
+      '--parse-metadata', 'post_process:title:%(artist)s - %(title)s',
+      '--write-thumbnail', '--convert-thumbnails', 'jpg',
+      '--write-description',
+      // Yorumlar bilgi dosyasina yazildigi icin o da acilir.
+      '--write-info-json', '--write-comments',
+      '--mtime',
+    ]);
+    expect(postProcessingArgs({ kind: 'mp3' }, '/out', undefined, { remux: 'mkv' })).toEqual([]);
+    expect(postProcessingArgs({ kind: 'best' }, '/out', undefined, {})).toEqual([]);
+  });
+});
+
+describe('grup 4: canli yayin, sifre, giris, yas siniri', () => {
+  it('ag seceneklerine sifre, .netrc ve yas sinirini ekler', () => {
+    expect(networkArgs({ videoPassword: 'gizli', netrc: true, ageLimit: 13 }))
+      .toEqual(['--video-password', 'gizli', '--netrc', '--age-limit', '13']);
+    expect(networkArgs({ netrc: '/home/u/.netrc' })).toEqual(['--netrc', '--netrc-location', '/home/u/.netrc']);
+  });
+
+  it('canli yayini bastan kaydeder ya da baslamasini bekler', () => {
+    const args = buildDownloadArgs({ url: 'U', outDir: '/o', option: { kind: 'best' }, subtitles: false, liveFromStart: true, waitForVideo: true });
+    expect(args.join(' ')).toContain('--live-from-start --wait-for-video 30-600');
+  });
+
+  it('toplami bilinmeyen (canli) indirmede inen miktari verir; yayin durumunu okur', () => {
+    const line = '[progress] ' + JSON.stringify({ status: 'downloading', downloaded_bytes: 5 * 1024 ** 2, speed: 1024 });
+    expect(parseOutputLine(line)).toMatchObject({ percent: 0, downloaded: '5.0 MB' });
+    expect(parseInfo(JSON.stringify({ title: 'Y', formats: [], live_status: 'is_live' }), 'U').meta?.live).toBe('is_live');
+    expect(parseInfo(JSON.stringify({ title: 'Y', formats: [], live_status: 'was_live' }), 'U').meta?.live).toBeUndefined();
+  });
+});
+
+describe('grup 5: ag ve dosya sistemi', () => {
+  it('tarayici taklidi, bolge ve IP surumunu ag seceneklerine ekler', () => {
+    expect(networkArgs({ impersonate: 'chrome', xff: 'US', ipVersion: 4 }))
+      .toEqual(['--impersonate', 'chrome', '--xff', 'US', '--force-ipv4']);
+  });
+
+  it('klasor duzeni, dosya adi kurallari, uzerine yazma ve aria2', () => {
+    const args = buildDownloadArgs({
+      url: 'U', outDir: '/out', option: { kind: 'mp3' }, subtitles: false,
+      folderLayout: 'channel-year', filenameChars: 'ascii', trimFilenames: 120, overwrite: true, aria2: true,
+    });
+    expect(args[args.indexOf('-o') + 1]).toBe('/out/%(channel,uploader,uploader_id)s/%(upload_date>%Y)s/%(title)s.%(ext)s');
+    // Sinir indirme klasorunun ("/out" + "/") uzerine eklenir.
+    expect(args.join(' ')).toContain('--restrict-filenames --trim-filenames 125 --force-overwrites --downloader http:aria2c');
+    const plain = buildDownloadArgs({ url: 'U', outDir: '/out', option: { kind: 'mp3' }, subtitles: false, folderLayout: 'bilinmeyen' });
+    expect(plain[plain.indexOf('-o') + 1]).toBe('/out/%(title)s.%(ext)s');
   });
 });
 

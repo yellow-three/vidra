@@ -31,6 +31,11 @@
     <control>keyboard</control>
   </supports>
   <releases>
+    <release version="0.5.0" date="2026-10-30">
+      <description>
+        <p>A "Send to Vidra" browser extension; per-video subtitles, file names and chapter splitting; subscriptions to channels and playlists; more subtitle, audio and post-processing options; live streams and password-protected videos; network and file options.</p>
+      </description>
+    </release>
     <release version="0.4.0" date="2026-10-30">
       <description>
         <p>Search, status filters and bulk actions in the download queue, a dialog to choose which playlist videos to add, best-combination format choices, and a status bar that stays visible.</p>

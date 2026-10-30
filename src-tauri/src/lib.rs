@@ -268,6 +268,12 @@ fn process_kill(id: u32, state: State<'_, AppState>) -> bool {
     state.processes.kill(id)
 }
 
+/// Sistemde aria2c var mi; varsa Ayarlar'da harici indirici olarak secilebilir.
+#[tauri::command]
+fn aria2_available() -> bool {
+    system_tools::find_in_path("aria2c").is_some()
+}
+
 /// Linux'ta tepsi simgesi AppIndicator kutuphanesiyle cizilir; yoksa tray-icon kutuphanesi
 /// simgeyi olustururken panikler ve uygulama (suren indirmelerle birlikte) kapanir.
 /// Arayuz bu durumda pencereyi tepsiye gizlemek yerine kucultur.
@@ -355,6 +361,7 @@ pub fn run() {
     );
     builder
         .plugin(log_plugin())
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -366,6 +373,15 @@ pub fn run() {
                 .build(),
         )
         .setup(|app| {
+            // `vidra://` semasi: paketler (deb/rpm/NSIS/MSI) kurulurken kaydeder; AppImage ve
+            // gelistirme surumu icin kullanici duzeyinde kaydedilir. Flatpak'te .desktop dosyasi kaydeder.
+            #[cfg(any(target_os = "linux", windows))]
+            if std::env::var_os("FLATPAK_ID").is_none() {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                if let Err(error) = app.deep_link().register_all() {
+                    tauri_plugin_log::log::warn!("vidra:// kaydedilemedi: {error}");
+                }
+            }
             allow_download_dir(app.handle());
             let handle = app.handle().clone();
             std::thread::spawn(move || dependencies::prune_stale_ytdlp(&handle));
@@ -394,6 +410,7 @@ pub fn run() {
             free_space,
             open_log_folder,
             tray_available,
+            aria2_available,
             start_clipboard_monitor,
             stop_clipboard_monitor,
             process_spawn,

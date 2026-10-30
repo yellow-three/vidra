@@ -1,0 +1,32 @@
+{
+  "extName": {
+    "message": "Send to Vidra"
+  },
+  "extDescription": {
+    "message": "Sends the video of the open page or a link to the Vidra desktop app for download (sites supported by yt-dlp)."
+  },
+  "menuVideo": {
+    "message": "Download with Vidra (video)"
+  },
+  "menuMp3": {
+    "message": "Download with Vidra (MP3)"
+  },
+  "buttonVideo": {
+    "message": "Video"
+  },
+  "buttonMp3": {
+    "message": "MP3"
+  },
+  "sent": {
+    "message": "Sent to Vidra. Pick the format in the app and download."
+  },
+  "notSendable": {
+    "message": "This page cannot be sent (http/https links only)."
+  },
+  "hint": {
+    "message": "The browser may ask for permission to open Vidra."
+  },
+  "notInstalled": {
+    "message": "Vidra not installed? Get it"
+  }
+}

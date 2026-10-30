@@ -41,7 +41,9 @@ export function saveTasks(tasks: Task[]): void {
   clearTimeout(timer);
   timer = setTimeout(() => {
     try {
-      localStorage.setItem(KEY, JSON.stringify(tasks.filter((t) => t.status !== 'complete')));
+      // Video sifreleri diske yazilmaz.
+      const kept = tasks.filter((t) => t.status !== 'complete').map(({ videoPassword: _password, ...t }) => t);
+      localStorage.setItem(KEY, JSON.stringify(kept));
     } catch {
       // localStorage yoksa (testler) ya da doluysa kuyruk yalnizca bu oturumda yasar.
     }

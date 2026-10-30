@@ -49,6 +49,21 @@ AppImage `libfuse2` istemez, yalnızca sistemde `fusermount` olmalıdır; masaü
 
 Paketi küçük tutmak için yt-dlp, FFmpeg ve deno pakete eklenmez. İlk açılışta bir kurulum ekranı bunları resmi kaynaklarından indirir ve doğrular (yaklaşık 220 MB; internet bağlantısı gerekir, kurumsal ağlar için ekranda proxy alanı vardır). Bileşenler kullanıcının veri klasörüne kurulur; Ayarlar > Sistem > Bileşenler'den yeniden indirilebilir. Bilgisayarda uygun bir FFmpeg (5 ve üstü) ya da deno (2 ve üstü) zaten kuruluysa onlar kullanılır ve indirilmez (Linux'ta FFmpeg çoğu zaman kuruludur; o durumda indirme ~85 MB'tır).
 
+## Tarayıcı eklentisi
+
+"Vidra'ya gönder" eklentisi, tarayıcıda açık sayfanın ya da sağ tıkladığınız bir linkin videosunu Vidra'ya gönderir. Eklenti indirme yapmaz: Vidra videoyu analiz eder, formatı seçip indirmeyi siz başlatırsınız. Site izni istemez, veri toplamaz.
+
+- Araç çubuğundaki düğme: açık sayfayı **Video** ya da **MP3** olarak gönderir.
+- Sağ tık menüsü: link, video ya da sayfa için "Vidra ile indir".
+- Tarayıcı ilk seferde Vidra'yı açmak için izin ister.
+
+Mağazalarda yayımlanana kadar [son sürümden](https://github.com/yellow-three/vidra/releases/latest) elle yüklenir:
+
+- **Firefox:** `vidra-extension-firefox-*.zip` dosyasını indirin, `about:debugging#/runtime/this-firefox` > "Geçici eklenti yükle" ile zip'i seçin (Firefox kapanınca kalkar; kalıcı kurulum AMO'da yayımlandıktan sonra).
+- **Chrome / Edge / Brave:** `vidra-extension-chrome-*.zip` dosyasını bir klasöre açın, `chrome://extensions` > "Geliştirici modu" > "Paketlenmemiş öğe yükle" ile klasörü seçin.
+
+Eklenti `vidra://download?url=…&mode=video|mp3` linkini açar; Vidra bu şemayı kurulumda (Windows, .deb, .rpm, Flatpak) ya da ilk açılışta (AppImage) kaydeder.
+
 ## Güncelleme
 
 Uygulama yeni sürümü açılışta kendisi bulur; Ayarlar > Uygulama'dan da kontrol edilebilir. Otomatik güncelleme çalışmazsa yeni sürümü yukarıdaki gibi kurmanız yeterlidir: ayarlar ve indirme geçmişi korunur.

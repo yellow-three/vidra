@@ -2,9 +2,9 @@
 // Platformdan bagimsizdir; masaustu ve Android motorlari ayni kodu kullanir.
 
 import { msg } from '../i18n';
-import { DEFAULT_PATTERN, toYtdlpTemplate } from './filename';
+import { DEFAULT_PATTERN, folderTemplate, toYtdlpTemplate } from './filename';
 import { joinPath, splitPath, stem } from './paths';
-import type { DownloadOption, FormatOption, NetworkOptions, PlaylistEntry, SponsorBlockMode, TimeRange, VideoInfo } from './types';
+import type { AudioCodec, DownloadOption, FileOptions, FormatOption, PostProcessing, NetworkOptions, PlaylistEntry, SponsorBlockMode, TimeRange, VideoInfo } from './types';
 
 /** `yt-dlp -J` ciktisindaki format nesnesinin kullandigimiz alanlari. */
 export interface YtdlpFormat {
@@ -39,6 +39,8 @@ export function parseOption(id: string): DownloadOption | null {
   if (raw) return { kind: 'format', formatId: raw[2], video: raw[1] !== 'a', audio: raw[1] !== 'v' };
   if (id === BEST_ID) return { kind: 'best' };
   if (id === BEST_AUDIO_ID) return { kind: 'best-audio' };
+  const codec = /^audio-(opus|flac|wav)$/.exec(id);
+  if (codec) return { kind: 'audio', codec: codec[1] as AudioCodec };
   if (id === 'audio-mp3') return { kind: 'mp3' };
   if (id === 'audio-m4a') return { kind: 'm4a' };
   if (id === 'video-best') return { kind: 'best-video' };
@@ -54,6 +56,7 @@ export function optionLabel(option: DownloadOption): string {
     case 'best-audio': return msg().formats.bestAudio;
     case 'mp3': return 'MP3';
     case 'm4a': return 'M4A';
+    case 'audio': return option.codec.toUpperCase();
     case 'format': return `${msg().formats.formatCode} ${option.formatId}`;
   }
 }
@@ -117,8 +120,19 @@ export function buildOptions(formats: YtdlpFormat[]): FormatOption[] {
     ...bestAudioOption,
     { formatId: 'audio-mp3', resolution: m.audio, ext: 'mp3', note: m.bestQuality, filesize: formatFilesize(bestAudio), bytes: bestAudio },
     { formatId: 'audio-m4a', resolution: m.audio, ext: 'm4a', note: m.noConversion, filesize: formatFilesize(bestAudio), bytes: bestAudio },
+    ...convertedAudio(formatFilesize(bestAudio), bestAudio),
   );
   return [...best, ...options, ...raw];
+}
+
+/** MP3/M4A disindaki ses bicimleri; kayipsiz bicimlerin boyutu kaynaktan buyuk olur. */
+function convertedAudio(filesize: string, bytes: number | undefined): FormatOption[] {
+  const m = msg().formats;
+  return [
+    { formatId: 'audio-opus', resolution: m.audio, ext: 'opus', note: m.opusNote, filesize, bytes },
+    { formatId: 'audio-flac', resolution: m.audio, ext: 'flac', note: m.losslessNote, filesize: formatFilesize(null), bytes: bytes && bytes * 6 },
+    { formatId: 'audio-wav', resolution: m.audio, ext: 'wav', note: m.losslessNote, filesize: formatFilesize(null), bytes: bytes && bytes * 10 },
+  ];
 }
 
 const codecName = (codec: string) => codec.split('.')[0];
@@ -182,12 +196,17 @@ export function playlistOptions(): FormatOption[] {
     { formatId: BEST_AUDIO_ID, resolution: m.audio, ext: m.original, note: m.bestAudioNote, filesize: unknown },
     { formatId: 'audio-mp3', resolution: m.audio, ext: 'mp3', note: m.bestQuality, filesize: unknown },
     { formatId: 'audio-m4a', resolution: m.audio, ext: 'm4a', note: m.noConversion, filesize: unknown },
+    ...convertedAudio(unknown, undefined),
   ];
 }
 
 /** `yt-dlp -J --flat-playlist` ciktisinin kullandigimiz alanlari. */
 interface InfoJson {
   _type?: string;
+  live_status?: string | null;
+  chapters?: unknown[] | null;
+  subtitles?: Record<string, unknown>;
+  automatic_captions?: Record<string, unknown>;
   id?: string;
   title?: string;
   channel?: string;
@@ -237,6 +256,11 @@ export function parseInfo(json: string, url: string): VideoInfo {
       // YYYYMMDD -> YYYY-MM-DD (yt-dlp sablonundaki bicim).
       date: data.upload_date?.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3'),
       site: data.extractor_key,
+      subtitles: Object.keys(data.subtitles ?? {}).filter((l) => l !== 'live_chat'),
+      // YouTube her dile ceviri sunar; yalnizca konusmanin ozgun dili (`xx-orig`) gosterilir.
+      chapters: data.chapters?.length,
+      live: data.live_status === 'is_live' || data.live_status === 'is_upcoming' ? data.live_status : undefined,
+      autoSubtitles: Object.keys(data.automatic_captions ?? {}).filter((l) => l.endsWith('-orig')).map((l) => l.slice(0, -5)),
     },
   };
 }
@@ -254,10 +278,18 @@ export function jsRuntimeArgs(denoPath?: string | null): string[] {
   return denoPath ? ['--js-runtimes', `deno:${denoPath}`] : [];
 }
 
-export function networkArgs({ cookiesFromBrowser, proxy }: NetworkOptions): string[] {
+export function networkArgs({
+  cookiesFromBrowser, proxy, videoPassword, netrc, ageLimit, impersonate, xff, ipVersion,
+}: NetworkOptions): string[] {
   return [
+    ...(impersonate ? ['--impersonate', impersonate] : []),
+    ...(xff ? ['--xff', xff] : []),
+    ...(ipVersion ? [`--force-ipv${ipVersion}`] : []),
     ...(cookiesFromBrowser ? ['--cookies-from-browser', cookiesFromBrowser] : []),
     ...(proxy ? ['--proxy', proxy] : []),
+    ...(videoPassword ? ['--video-password', videoPassword] : []),
+    ...(netrc ? ['--netrc', ...(typeof netrc === 'string' ? ['--netrc-location', netrc] : [])] : []),
+    ...(ageLimit ? ['--age-limit', String(ageLimit)] : []),
   ];
 }
 
@@ -316,6 +348,8 @@ export function safeFolderName(name: string): string {
 export interface TemplateExtras {
   subfolder?: string;
   section?: TimeRange;
+  /** Listedeki sira, orn. `03`. */
+  playlistIndex?: string;
 }
 
 /**
@@ -323,7 +357,7 @@ export interface TemplateExtras {
  * eskisini dondururdu; cozunurluk ve bolum ekiyle her secim ayri dosyadir.
  */
 export function outputTemplate(option: DownloadOption, pattern?: string, extras: TemplateExtras = {}): string {
-  const base = toYtdlpTemplate(pattern ?? DEFAULT_PATTERN);
+  const base = toYtdlpTemplate(pattern ?? DEFAULT_PATTERN, extras.playlistIndex);
   const quality = option.kind === 'format'
     ? ' [%(format_id)s]'
     : option.kind === 'video' || option.kind === 'best-video' || option.kind === 'best' ? ' [%(height)sp]' : '';
@@ -335,7 +369,7 @@ export function outputTemplate(option: DownloadOption, pattern?: string, extras:
   return subfolder ? `${safeFolderName(subfolder)}/${file}` : file;
 }
 
-export interface DownloadArgsInput extends NetworkOptions {
+export interface DownloadArgsInput extends NetworkOptions, PostProcessing, FileOptions {
   url: string;
   option: DownloadOption;
   outDir: string;
@@ -349,17 +383,34 @@ export interface DownloadArgsInput extends NetworkOptions {
   subfolder?: string;
   section?: TimeRange;
   sponsorBlock?: SponsorBlockMode;
+  subtitleFile?: boolean;
+  autoSubtitles?: boolean;
+  concurrentFragments?: number;
+  sleepInterval?: number;
+  maxFilesize?: string;
+  mp3Quality?: string;
+  playlistIndex?: string;
+  /** YYYYMMDD; daha once yuklenen videolar indirilmez. */
+  dateAfter?: string;
+  liveFromStart?: boolean;
+  waitForVideo?: boolean;
 }
+
+/** Kopan baglantida indirme yarida kalmasin: istek ve parca basina 10 deneme, artan bekleme. */
+const RETRY_ARGS = ['--retries', '10', '--fragment-retries', '10', '--retry-sleep', 'fragment:exp=1:20'];
 
 /** Kesilince videonun konusu bozulmayan SponsorBlock kategorileri; isaretlemede hepsi bolum olur. */
 const SPONSOR_REMOVE = 'sponsor,selfpromo,interaction';
 
 export function buildDownloadArgs({
   url, option, outDir, ffmpegPath, subtitles, embedMetadata, filenamePattern, rateLimit, denoPath,
-  subtitleLangs, subfolder, section, sponsorBlock, ...network
+  subtitleLangs, subfolder, section, sponsorBlock, subtitleFile, autoSubtitles, concurrentFragments,
+  sleepInterval, maxFilesize, mp3Quality, playlistIndex, dateAfter, liveFromStart, waitForVideo,
+  splitChapters, removeChapters, remux, parseArtist, writeThumbnail, writeDescription, writeInfoJson, writeComments,
+  serverMtime, filenameChars, trimFilenames, overwrite, folderLayout, aria2, ...network
 }: DownloadArgsInput): string[] {
   const args = [
-    '-o', joinPath(outDir, outputTemplate(option, filenamePattern, { subfolder, section })),
+    '-o', joinPath(outDir, folderTemplate(folderLayout) + outputTemplate(option, filenamePattern, { subfolder, section, playlistIndex })),
     '--no-playlist',
     '--newline',
     '--progress',
@@ -389,7 +440,10 @@ export function buildDownloadArgs({
       args.push('-f', 'ba/b');
       break;
     case 'mp3':
-      args.push('-f', 'ba/b', '-x', '--audio-format', 'mp3', '--audio-quality', '0');
+      args.push('-f', 'ba/b', '-x', '--audio-format', 'mp3', '--audio-quality', mp3Quality || '0');
+      break;
+    case 'audio':
+      args.push('-f', 'ba/b', '-x', '--audio-format', option.codec);
       break;
     case 'm4a':
       args.push('-f', 'ba[ext=m4a]/ba/b', '-x', '--audio-format', 'm4a');
@@ -400,11 +454,16 @@ export function buildDownloadArgs({
       break;
   }
 
-  const audioOnly = option.kind === 'mp3' || option.kind === 'm4a' || option.kind === 'best-audio'
-    || (option.kind === 'format' && !option.video);
+  const audioOnly = isAudioOnlyOption(option);
   if (subtitles && !audioOnly) {
-    // `--write-subs` eklenirse gomulduktan sonra .vtt dosyasi da diskte kalir.
-    args.push('--embed-subs', '--sub-langs', subtitleLangs?.trim() || 'tr,en');
+    args.push('--embed-subs');
+    // `--write-subs` ile altyazi dosyasi gomulduktan sonra da diskte kalir.
+    if (subtitleFile) args.push('--write-subs', '--convert-subs', 'srt');
+    if (autoSubtitles) args.push('--write-auto-subs');
+    args.push('--sub-langs', subtitleLangs?.trim() || 'tr,en');
+    // Bir altyazi dili alinamazsa (YouTube cevirilerde sik sik 429 verir) video yine iner;
+    // `-i` ile bu yalnizca uyari olur, asil indirme hatalari cikis kodu 1 ile doner.
+    args.push('--ignore-errors');
   }
   if (section) {
     args.push('--download-sections', `*${section.start}-${section.end ?? 'inf'}`);
@@ -416,17 +475,62 @@ export function buildDownloadArgs({
   if (embedMetadata) {
     // Ham ses formatlari webm olabilir; yt-dlp webm'e kapak gomemez ve indirmeyi hatayla bitirir.
     // Videolarda sorun yok: yt-dlp kapak icin webm yerine mkv secer.
-    if (option.kind !== 'best-audio' && !(option.kind === 'format' && !option.video)) args.push('--embed-thumbnail');
+    // WAV kapak tasiyamaz.
+    const noCover = option.kind === 'best-audio' || (option.kind === 'audio' && option.codec === 'wav')
+      || (option.kind === 'format' && !option.video);
+    if (!noCover) args.push('--embed-thumbnail');
     args.push('--embed-metadata');
   }
   if (rateLimit) args.push('--limit-rate', rateLimit);
+  args.push(...RETRY_ARGS);
+  if (concurrentFragments && concurrentFragments > 1) args.push('-N', String(concurrentFragments));
+  if (sleepInterval) args.push('--sleep-interval', String(sleepInterval), '--sleep-requests', '1');
+  if (maxFilesize) args.push('--max-filesize', maxFilesize);
+  if (dateAfter) args.push('--dateafter', dateAfter);
+  if (filenameChars === 'windows') args.push('--windows-filenames');
+  if (filenameChars === 'ascii') args.push('--restrict-filenames');
+  // yt-dlp siniri `-o`daki tam yola uygular; indirme klasoru sayilmasin diye ona eklenir.
+  if (trimFilenames) args.push('--trim-filenames', String(trimFilenames + outDir.length + 1));
+  if (overwrite) args.push('--force-overwrites');
+  // aria2 bir dosyayi 8 baglantiyla indirir; parcali (HLS/DASH) videolarda yt-dlp kendi indiricisini kullanir.
+  if (aria2) args.push('--downloader', 'http:aria2c', '--downloader-args', 'aria2c:-x8 -s8 -k1M');
+  if (liveFromStart) args.push('--live-from-start');
+  // Yayin baslayana kadar 30 sn ile 10 dk arasi araliklarla tekrar bakilir.
+  if (waitForVideo) args.push('--wait-for-video', '30-600');
+  args.push(...postProcessingArgs(option, outDir, subfolder, {
+    splitChapters, removeChapters, remux, parseArtist, writeThumbnail, writeDescription, writeInfoJson, writeComments, serverMtime,
+  }));
   if (ffmpegPath) args.push('--ffmpeg-location', ffmpegPath);
   args.push(...networkArgs(network), ...jsRuntimeArgs(denoPath), ...urlArgs(url));
   return args;
 }
 
+/** Sonuc yalnizca ses dosyasi mi (altyazi, kap degistirme uygulanmaz). */
+const isAudioOnlyOption = (option: DownloadOption) => option.kind === 'mp3' || option.kind === 'm4a' || option.kind === 'audio'
+  || option.kind === 'best-audio' || (option.kind === 'format' && !option.video);
+
+/** Indirme sonrasi islemler: bolumler, kap, etiketler, ek dosyalar, dosya tarihi. */
+export function postProcessingArgs(option: DownloadOption, outDir: string, subfolder: string | undefined, p: PostProcessing): string[] {
+  const args: string[] = [];
+  if (p.splitChapters) {
+    // Bolumler videonun adiyla bir klasore: "Baslik/01 - Bolum adi.mp4". Ana dosya da kalir.
+    const dir = subfolder ? joinPath(outDir, safeFolderName(subfolder)) : outDir;
+    args.push('--split-chapters', '-o', `chapter:${joinPath(dir, '%(title)s/%(section_number)02d - %(section_title)s.%(ext)s')}`);
+  }
+  if (p.removeChapters?.trim()) args.push('--remove-chapters', p.removeChapters.trim());
+  if (p.remux && !isAudioOnlyOption(option)) args.push('--remux-video', p.remux);
+  // Indirmeden sonra: dosya adi ozgun basligi korur, yalnizca gomulen etiketler ayrilir.
+  if (p.parseArtist) args.push('--parse-metadata', 'post_process:title:%(artist)s - %(title)s');
+  if (p.writeThumbnail) args.push('--write-thumbnail', '--convert-thumbnails', 'jpg');
+  if (p.writeDescription) args.push('--write-description');
+  if (p.writeInfoJson || p.writeComments) args.push('--write-info-json');
+  if (p.writeComments) args.push('--write-comments');
+  if (p.serverMtime) args.push('--mtime');
+  return args;
+}
+
 export type OutputLine =
-  | { type: 'progress'; percent: number; speed: string; eta: string }
+  | { type: 'progress'; percent: number; speed: string; eta: string; downloaded?: string }
   | { type: 'destination'; path: string }
   | { type: 'file'; path: string };
 
@@ -466,6 +570,7 @@ export function parseOutputLine(line: string): OutputLine | null {
     percent,
     speed: p.speed != null ? `${formatFilesize(p.speed)}/s` : '',
     eta: p.eta != null ? formatEta(p.eta) : '',
+    ...(!total && p.downloaded_bytes && p.status !== 'finished' ? { downloaded: formatFilesize(p.downloaded_bytes) } : {}),
   };
 }
 

@@ -37,7 +37,7 @@ test('analiz, varsayilan format, canli ilerleme ve tamamlanma', async ({ page })
   await expect(select).toHaveValue('video-240');
   await expect(select.locator('option')).toHaveText([
     /^★ En iyi kalite · en iyi video \(360p\) \+ en iyi ses/, /^★ En iyi ses · en iyi ses · dönüştürmesiz/,
-    /360p/, /240p/, /MP3/, /M4A/,
+    /360p/, /240p/, /MP3/, /M4A/, /^OPUS/, /^FLAC/, /^WAV/,
     // yt-dlp'nin tum formatlari, en iyiden kotuye.
     /^360p · mp4 · ★ en iyi · avc1 · en iyi sesle/, /^240p · mp4/, /^Ses · m4a · ★ en iyi · mp4a · yalnız ses/,
   ]);
@@ -129,6 +129,15 @@ test('altyazi ve dosya adi her video icin ayri secilir', async ({ page }) => {
   expect(args.join(' ')).toContain('%(channel,uploader,uploader_id)s - %(title)s [%(height)sp].%(ext)s');
 });
 
+test('tarayici eklentisinin vidra:// linki analiz edilir, MP3 secilir ama indirme baslamaz', async ({ page }) => {
+  await mockTauri(page, { settings: accepted, deepLink: `vidra://download?url=${encodeURIComponent(URL)}&mode=mp3` });
+  await page.goto('/settings');
+  // Link gelince indirme sayfasina gecilir.
+  await expect(page.getByRole('article', { name: 'Me at the zoo' })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Format' })).toHaveValue('audio-mp3');
+  expect(await page.evaluate(() => (window as any).__mock.state.downloads.length)).toBe(0);
+});
+
 test('indirme hatasi kartta gosterilir', async ({ page }) => {
   await mockTauri(page, { settings: accepted });
   await page.goto('/');
@@ -189,13 +198,31 @@ test('listedeki bir video tek basina eklenir, istenirse liste acilir', async ({ 
   await expect(page.getByRole('article', { name: 'Me at the zoo' })).toHaveCount(0);
 });
 
+test('liste penceresinde secim araclari; liste takip edilir ve abonelikte yeni video yok', async ({ page }) => {
+  await mockTauri(page, { settings: accepted });
+  await page.goto('/');
+  await analyze(page, 'https://www.youtube.com/playlist?list=PL123');
+  const dialog = page.getByRole('dialog', { name: 'Örnek liste' });
+  await dialog.getByRole('checkbox', { name: 'Ters sırada ekle' }).check();
+  await dialog.getByRole('checkbox', { name: 'Bu listeyi takip et' }).check();
+  await dialog.getByRole('button', { name: '2 videoyu ekle' }).click();
+  // Ters sirada: ikinci video ustte.
+  await expect(page.getByRole('article').first()).toHaveAttribute('aria-label', 'İkinci video');
+
+  await page.getByRole('link', { name: 'Abonelikler' }).click();
+  await expect(page.getByRole('list', { name: 'Abonelikler' })).toContainText('Örnek liste');
+  await page.getByRole('button', { name: 'Kontrol et', exact: true }).click();
+  await expect(page.getByText('Yeni video yok.')).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
 test('liste secim penceresinde vazgecilirse hicbir sey eklenmez', async ({ page }) => {
   await mockTauri(page, { settings: accepted });
   await page.goto('/');
   await analyze(page, 'https://www.youtube.com/playlist?list=PL123');
   const dialog = page.getByRole('dialog', { name: 'Örnek liste' });
   await dialog.getByRole('searchbox', { name: 'Listede ara' }).fill('ikinci');
-  await expect(dialog.getByRole('checkbox')).toHaveCount(1);
+  await expect(dialog.getByRole('list').getByRole('checkbox')).toHaveCount(1);
   await dialog.getByRole('button', { name: 'Vazgeç' }).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.getByRole('article')).toHaveCount(0);
@@ -234,6 +261,7 @@ test('kuyrukta arar, duruma gore suzer ve secilenleri toplu duraklatir', async (
 test('cerez, proxy ve kapak ayarlari yt-dlp argumanlarina yansir', async ({ page }) => {
   await mockTauri(page, { settings: accepted });
   await page.goto('/settings');
+  await page.getByRole('tab', { name: 'Ağ ve hesap' }).click();
   await page.getByRole('combobox').filter({ has: page.getByRole('option', { name: 'Firefox' }) }).selectOption('firefox');
   const proxy = page.getByLabel('Proxy');
   await proxy.fill('ftp://yanlis');
@@ -375,6 +403,7 @@ test('gecmiste arar, silinmis dosyayi isaretler, yeniden indirir', async ({ page
 test('ayarlar: yt-dlp surumu ve guncelleme', async ({ page }) => {
   await mockTauri(page, { settings: accepted });
   await page.goto('/settings');
+  await page.getByRole('tab', { name: 'Sistem' }).click();
   await expect(page.getByText('2026.10.21')).toBeVisible();
   await page.getByRole('button', { name: 'Güncelle', exact: true }).click();
   await expect(page.getByText('2026.10.22')).toBeVisible();
@@ -396,6 +425,7 @@ test('uygulama guncellemesi: durum cubugunda haber verir, ayarlardan kurulup yen
 test('uygulama guncel ise surum ve durum gosterilir', async ({ page }) => {
   await mockTauri(page, { settings: accepted });
   await page.goto('/settings');
+  await page.getByRole('tab', { name: 'Sistem' }).click();
   await expect(page.getByText('0.1.0', { exact: true })).toBeVisible();
   await expect(page.getByRole('status')).toHaveText('Güncel');
   await expect(page.getByRole('link', { name: /Yeni sürüm/ })).toHaveCount(0);
@@ -406,12 +436,28 @@ test('tema: ayarlardan secilen daisyUI temasi uygulanir ve kaydedilir', async ({
   await page.goto('/settings');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'vidra-dark');
 
+  await page.getByRole('button', { name: 'Temayı değiştir' }).click();
   await page.getByRole('radio', { name: /Vidra Açık/ }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'vidra-light');
   await page.getByRole('radio', { name: /Dracula/ }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dracula');
   await expect(page.getByRole('radio', { name: /Dracula/ })).toHaveAttribute('aria-checked', 'true');
   expect(await calls(page, 'save_settings')).toContainEqual({ settings: { theme: 'dracula' } });
+});
+
+test('sistem temasinda acik ve koyu mod icin secilen temalar kullanilir; yenilikler penceresi acilir', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await mockTauri(page, { settings: { ...accepted, theme: 'system', themeDark: 'dracula' } });
+  await page.goto('/settings');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dracula');
+  await page.getByRole('combobox').filter({ has: page.getByRole('option', { name: 'Night' }) }).selectOption('night');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'night');
+  await page.emulateMedia({ colorScheme: 'light' });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'vidra-light');
+
+  await page.getByRole('tab', { name: 'Sistem' }).click();
+  await page.getByRole('button', { name: 'Bu sürümde neler var' }).click();
+  await expect(page.getByRole('dialog', { name: /yenilikler/ })).toContainText('Tarayıcı eklentisi');
 });
 
 test('tema: sistem secimi isletim sistemine gore YouTube temasini kullanir', async ({ page }) => {
@@ -451,6 +497,7 @@ test('dil: sistem dili Ingilizceyse arayuz Ingilizce, ayardan Turkceye gecer', a
 test('SponsorBlock: ffprobe indirilince secilir ve indirmeye eklenir', async ({ page }) => {
   await mockTauri(page, { settings: accepted });
   await page.goto('/settings');
+  await page.getByRole('tab', { name: 'İndirme' }).click();
   await expect(page.getByText('SponsorBlock için ffprobe gerekir')).toBeVisible();
   await page.getByRole('button', { name: 'ffprobe\'u indir ve kur' }).click();
   await expect(page.getByText('ffprobe kurulu.')).toBeVisible();
@@ -514,6 +561,7 @@ test('yalnizca surumu eskiyen bilesen varsa kurulum atlanabilir', async ({ page 
   expect(await calls(page, 'install_tool')).toEqual([]);
 
   await page.getByRole('link', { name: 'Ayarlar' }).click();
+  await page.getByRole('tab', { name: 'Sistem' }).click();
   const row = page.getByRole('listitem').filter({ hasText: 'deno' });
   await expect(row).toContainText('Yeni sürümü indirilmeli');
   await row.getByRole('button', { name: 'İndir' }).click();
@@ -533,10 +581,14 @@ test('sistemde bulunan FFmpeg indirilmez, istenirse yine de indirilir', async ({
   expect((await calls(page, 'install_tool')).map((a: any) => a.tool)).toEqual(['yt-dlp', 'deno']);
 
   await page.getByRole('link', { name: 'Ayarlar' }).click();
+  await page.getByRole('tab', { name: 'Sistem' }).click();
   const row = page.getByRole('listitem').filter({ hasText: 'FFmpeg' });
   await expect(row).toContainText('Sistemde bulundu');
+  // SponsorBlock bolumu Indirme sekmesinde; sistemdeki ffprobe kaldirilamaz.
+  await page.getByRole('tab', { name: 'İndirme' }).click();
   await expect(page.getByText('ffprobe kurulu.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Kaldır' })).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Sistem' }).click();
   await row.getByRole('button', { name: 'Yine de indir' }).click();
   await expect(row).toContainText('İndirildi');
   expect((await calls(page, 'install_tool')).at(-1)).toMatchObject({ tool: 'ffmpeg', withFfprobe: true });

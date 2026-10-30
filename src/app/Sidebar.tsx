@@ -1,14 +1,16 @@
 import { NavLink } from 'react-router-dom';
-import { Download, History, Moon, Repeat, Settings, Sun, type LucideIcon } from 'lucide-react';
+import { Download, History, Moon, Repeat, Rss, Settings, Sun, type LucideIcon } from 'lucide-react';
 import BrandMark from './BrandMark';
 import { APP_THEMES, isDarkTheme, useTheme } from './ThemeContext';
 import { useQueueStore } from '../features/queue/store';
 import { useAppVersion } from '../features/settings/appUpdate';
 import { useT } from '../i18n';
+import { openWhatsNew } from '../features/whatsNew/WhatsNew';
 
-const LINKS: { to: string; label: 'queue' | 'history' | 'convert' | 'settings'; icon: LucideIcon }[] = [
+const LINKS: { to: string; label: 'queue' | 'history' | 'subscriptions' | 'convert' | 'settings'; icon: LucideIcon }[] = [
   { to: '/', label: 'queue', icon: Download },
   { to: '/downloads', label: 'history', icon: History },
+  { to: '/subscriptions', label: 'subscriptions', icon: Rss },
   { to: '/convert', label: 'convert', icon: Repeat },
   { to: '/settings', label: 'settings', icon: Settings },
 ];
@@ -49,7 +51,9 @@ export default function Sidebar({ drawerId }: { drawerId: string }) {
       </nav>
 
       <div className="p-3 border-t border-base-300 flex items-center justify-between">
-        <span className="text-xs text-base-content/50">{version ? `v${version}` : ''}</span>
+        <button onClick={openWhatsNew} className="text-xs text-base-content/50 hover:text-base-content link link-hover" title={m.whatsNew}>
+          {version ? `v${version}` : ''}
+        </button>
         <label className="swap swap-rotate btn btn-ghost btn-sm btn-circle" aria-label={dark ? m.toLight : m.toDark}>
           <input
             type="checkbox"

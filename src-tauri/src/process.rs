@@ -392,7 +392,8 @@ mod windows_tests {
             &["-NoProfile", "-NonInteractive", "-Command", script],
         );
         let grandchild: u32 = loop {
-            match rx.recv_timeout(Duration::from_secs(30)).unwrap() {
+            // Windows CI'da PowerShell'in ilk acilisi 30 sn'yi asabiliyor.
+            match rx.recv_timeout(Duration::from_secs(120)).unwrap() {
                 ProcessEvent::Stdout { line } if !line.trim().is_empty() => break line.trim().parse().unwrap(),
                 _ => continue,
             }

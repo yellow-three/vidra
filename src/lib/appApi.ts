@@ -36,6 +36,7 @@ export const appApi: AppApi = {
   filesExist: (paths) => invoke<boolean[]>('files_exist', { paths }),
   freeSpace: (path) => invoke<number | null>('free_space', { path }),
   openLogFolder: () => invokeResult('open_log_folder'),
+  aria2Available: () => invoke<boolean>('aria2_available'),
 
   checkDependencies: () => invoke('check_dependencies'),
   toolsStatus: () => invoke('tools_status'),

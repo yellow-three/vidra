@@ -27,6 +27,9 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
         if: runner.os == 'Linux'
+      - name: Tarayici eklentisi paketi
+        if: runner.os == 'Linux'
+        run: node scripts/build-extension.mjs
       - run: npm test
       - run: npx playwright install --with-deps chromium
       - run: npm run test:ui

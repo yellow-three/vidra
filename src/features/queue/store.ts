@@ -5,7 +5,7 @@ import { create } from 'zustand';
 import { engine } from '../../engine';
 import { EngineError } from '../../engine/errors';
 import type { DownloadResult, InfoOptions, NetworkOptions, TimeRange, VideoInfo } from '../../engine/types';
-import { formatFilesize, optionLabel, parseOption } from '../../engine/ytdlp';
+import { BEST_ID, formatFilesize, optionLabel, parseOption, playlistOptions } from '../../engine/ytdlp';
 import { appApi } from '../../lib/appApi';
 import type { AppSettings, Task } from '../../types';
 import { addHistory, fetchHistory } from '../history/queries';
@@ -28,10 +28,23 @@ const errorFields = (error: unknown): Pick<Task, 'message' | 'detail'> => ({
   detail: error instanceof EngineError ? error.detail : undefined,
 });
 
-const networkOptions = (s: AppSettings | null): NetworkOptions => ({
+const networkOptions = (s: AppSettings | null, task?: Pick<Task, 'videoPassword'>): NetworkOptions => ({
   cookiesFromBrowser: s?.cookiesFromBrowser || undefined,
   proxy: s?.proxy?.trim() || undefined,
+  netrc: s?.useNetrc ? (s.netrcPath?.trim() || true) : undefined,
+  ageLimit: s?.ageLimit || undefined,
+  impersonate: s?.impersonate || undefined,
+  xff: s?.xff || undefined,
+  ipVersion: s?.ipVersion || undefined,
+  videoPassword: task?.videoPassword || undefined,
 });
+
+export interface PlaylistAddOptions {
+  /** Listenin sonundan basa dogru kuyruga ekler. */
+  reverse?: boolean;
+  /** YYYYMMDD: bu tarihten once yuklenenler indirilmez. */
+  dateAfter?: string;
+}
 
 /** Secim bekleyen oynatma listesi: analiz edildi, kullanici hangi videolarin eklenecegini secer. */
 export interface PlaylistPick {
@@ -40,6 +53,12 @@ export interface PlaylistPick {
   formatId: string | undefined;
   /** Gecmiste olan videolarin anahtarlari (videoKey); pencerede isaretli gelmez. */
   downloaded: Set<string>;
+  /** Abonelik kontrolu: yalnizca bu linkler isaretli ve "Yeni" etiketli gelir. */
+  fresh?: Set<string>;
+  /** Liste zaten takip ediliyor; "takip et" secenegi gosterilmez. */
+  following?: boolean;
+  /** Pencere kapaninca (ekle ya da vazgec) cagrilir; abonelik gorulenleri kaydeder. */
+  onDone?: (added: boolean) => void;
 }
 
 interface QueueState {
@@ -47,9 +66,11 @@ interface QueueState {
   tasks: Task[];
   playlistPicks: PlaylistPick[];
   /** Secilen videolari listenin yer tutucusunun yerine kuyruga ekler. */
-  confirmPlaylist(taskId: string, urls: string[]): void;
+  confirmPlaylist(taskId: string, urls: string[], options?: PlaylistAddOptions): void;
   /** Liste eklenmez; yer tutucu kuyruktan kalkar. */
   dismissPlaylist(taskId: string): void;
+  /** Kuyruga yer tutucu eklemeden secim penceresi acar (abonelik kontrolu). */
+  offerPick(pick: Omit<PlaylistPick, 'taskId'>): void;
   setUrl(url: string): void;
   /**
    * URL kutusundaki linkleri (birden fazla olabilir) analiz eder; ilk gorevin kimligini dondurur.
@@ -66,7 +87,7 @@ interface QueueState {
   /** Yalnizca bir araligi indirmek icin; `undefined` tum videoyu secer. */
   setSection(id: string, section: TimeRange | undefined): void;
   /** Bu video icin altyazi ve dosya adi; `undefined` ayardaki varsayilana doner. */
-  setVideoOptions(id: string, options: Pick<Task, 'subtitles' | 'filenamePattern'>): void;
+  setVideoOptions(id: string, options: Partial<Pick<Task, 'subtitles' | 'subtitleLangs' | 'filenamePattern' | 'splitChapters' | 'liveFromStart'>>): void;
   startDownload(id: string): Promise<void>;
   /** Format secimini bekleyen tum gorevleri listedeki sirayla kuyruga alir. */
   startAll(): Promise<void>;
@@ -76,6 +97,10 @@ interface QueueState {
   /** Duraklatilan indirmeyi kaldigi yerden surdurur. */
   resume(id: string): Promise<void>;
   retry(id: string): Promise<void>;
+  /** Sifreli videoyu verilen sifreyle yeniden analiz eder. */
+  retryWithPassword(id: string, password: string): Promise<void>;
+  /** Henuz baslamamis yayini bekleyip baslayinca varsayilan formatla indirir. */
+  waitForLive(id: string): Promise<void>;
   move(id: string, direction: 'up' | 'down'): void;
   /** Tamamlanan ve iptal edilen gorevleri listeden kaldirir. */
   clearFinished(): void;
@@ -116,15 +141,21 @@ export const useQueueStore = create<QueueState>()((set, get) => {
   }
 
   /** Liste analizinin yer tutucusunu, kullanicinin sectigi videolarla ayni yerde degistirir. */
-  function replaceWithEntries(id: string, pick: PlaylistPick, urls: Set<string>) {
+  function replaceWithEntries(id: string, pick: PlaylistPick, urls: Set<string>, options: PlaylistAddOptions) {
     const { info, formatId, downloaded } = pick;
-    const tasks: Task[] = (info.entries ?? []).filter((e) => urls.has(e.url)).map((e) => ({
+    const all = info.entries ?? [];
+    const width = String(all.length).length;
+    const chosen = all.map((e, i) => ({ e, index: String(i + 1).padStart(width, '0') })).filter(({ e }) => urls.has(e.url));
+    if (options.reverse) chosen.reverse();
+    const tasks: Task[] = chosen.map(({ e, index }) => ({
       id: newId(),
       url: e.url,
       title: e.title,
       thumbnail: e.thumbnail,
       meta: e.meta,
       playlist: info.title,
+      playlistIndex: index,
+      dateAfter: options.dateAfter,
       formats: info.formats,
       selectedFormatId: formatId,
       percent: 0,
@@ -134,7 +165,10 @@ export const useQueueStore = create<QueueState>()((set, get) => {
       message: downloaded.has(videoKey(e.url)) ? msg().queue.duplicateInHistory : undefined,
     }));
     set((s) => ({
-      tasks: s.tasks.flatMap((t) => (t.id === id && t.status !== 'cancelled' ? tasks : [t])),
+      // Abonelik kontrolunde yer tutucu yoktur; videolar kuyrugun basina eklenir.
+      tasks: s.tasks.some((t) => t.id === id)
+        ? s.tasks.flatMap((t) => (t.id === id && t.status !== 'cancelled' ? tasks : [t]))
+        : [...tasks, ...s.tasks],
       playlistPicks: s.playlistPicks.filter((p) => p.taskId !== id),
     }));
   }
@@ -155,7 +189,7 @@ export const useQueueStore = create<QueueState>()((set, get) => {
   async function runAnalysis(id: string, url: string, options: Pick<InfoOptions, 'playlist'> = {}) {
     try {
       const settings = await fetchSettings().catch(() => null);
-      const info = await engine.getInfo(url, { ...networkOptions(settings), ...options });
+      const info = await engine.getInfo(url, { ...networkOptions(settings, find(id)), ...options });
       if (info.entries) {
         await offerPlaylist(id, info, settings);
         return;
@@ -207,20 +241,27 @@ export const useQueueStore = create<QueueState>()((set, get) => {
     tasks: loadTasks(),
     playlistPicks: [],
 
-    confirmPlaylist(taskId, urls) {
+    confirmPlaylist(taskId, urls, options = {}) {
       const pick = get().playlistPicks.find((p) => p.taskId === taskId);
       if (!pick) return;
       if (urls.length === 0) {
         get().dismissPlaylist(taskId);
         return;
       }
-      replaceWithEntries(taskId, pick, new Set(urls));
+      replaceWithEntries(taskId, pick, new Set(urls), options);
+      pick.onDone?.(true);
     },
 
-    dismissPlaylist: (taskId) => set((s) => ({
-      tasks: s.tasks.filter((t) => t.id !== taskId),
-      playlistPicks: s.playlistPicks.filter((p) => p.taskId !== taskId),
-    })),
+    dismissPlaylist(taskId) {
+      const pick = get().playlistPicks.find((p) => p.taskId === taskId);
+      set((s) => ({
+        tasks: s.tasks.filter((t) => t.id !== taskId),
+        playlistPicks: s.playlistPicks.filter((p) => p.taskId !== taskId),
+      }));
+      pick?.onDone?.(false);
+    },
+
+    offerPick: (pick) => set((s) => ({ playlistPicks: [...s.playlistPicks, { ...pick, taskId: newId() }] })),
 
     setUrl: (url) => set({ url }),
 
@@ -289,17 +330,41 @@ export const useQueueStore = create<QueueState>()((set, get) => {
               formatId,
               outDir,
               subtitles: task.subtitles ?? settings.downloadSubtitles ?? false,
-              subtitleLangs: settings.subtitleLangs,
+              subtitleLangs: task.subtitleLangs ?? settings.subtitleLangs,
+              subtitleFile: settings.subtitleFile,
+              autoSubtitles: settings.autoSubtitles,
+              concurrentFragments: settings.concurrentFragments,
+              sleepInterval: settings.sleepInterval,
+              maxFilesize: settings.maxFilesize || undefined,
+              mp3Quality: settings.mp3Quality,
+              playlistIndex: task.playlistIndex,
+              splitChapters: task.splitChapters ?? settings.splitChapters,
+              removeChapters: settings.removeChapters,
+              remux: settings.remux,
+              parseArtist: settings.parseArtist,
+              writeThumbnail: settings.writeThumbnail,
+              writeDescription: settings.writeDescription,
+              writeInfoJson: settings.writeInfoJson,
+              writeComments: settings.writeComments,
+              serverMtime: settings.serverMtime,
+              filenameChars: settings.filenameChars,
+              trimFilenames: settings.trimFilenames || undefined,
+              overwrite: settings.overwrite,
+              folderLayout: settings.folderLayout,
+              aria2: settings.aria2,
+              dateAfter: task.dateAfter,
               subfolder: (settings.playlistSubfolder ?? true) ? task.playlist : undefined,
               section: task.section,
               sponsorBlock: settings.sponsorBlock,
               embedMetadata: settings.embedMetadata ?? true,
               filenamePattern: task.filenamePattern ?? resolvePattern(settings.filenameTemplate, settings.filenameCustom),
               rateLimit: settings.rateLimit || undefined,
+              liveFromStart: task.liveFromStart,
+              waitForVideo: task.waitForVideo,
               partialSince: task.partial?.since,
-              ...networkOptions(settings),
+              ...networkOptions(settings, find(id) ?? task),
             },
-            (p) => update(id, { percent: p.percent, speed: p.speed, eta: p.eta }),
+            (p) => update(id, { percent: p.percent, speed: p.speed, eta: p.eta, downloaded: p.downloaded }),
           );
         });
 
@@ -362,6 +427,19 @@ export const useQueueStore = create<QueueState>()((set, get) => {
     },
 
     resume: (id) => get().startDownload(id),
+
+    async retryWithPassword(id, password) {
+      force(id, { videoPassword: password });
+      await get().retry(id);
+    },
+
+    async waitForLive(id) {
+      const settings = await fetchSettings().catch(() => null);
+      // Bicimler yayin baslamadan bilinmez; ayardaki varsayilan tur (ses ya da en iyi video) secilir.
+      const formatId = settings?.defaultFormat === 'mp3' ? 'audio-mp3' : BEST_ID;
+      force(id, { formats: playlistOptions(), selectedFormatId: formatId, waitForVideo: true, message: undefined, detail: undefined });
+      await get().startDownload(id);
+    },
 
     async retry(id) {
       const task = find(id);

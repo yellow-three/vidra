@@ -1,0 +1,73 @@
+:root {
+  color-scheme: light dark;
+  --accent: #e8263d;
+  --muted: color-mix(in srgb, currentColor 60%, transparent);
+}
+
+body {
+  width: 300px;
+  margin: 0;
+  padding: 12px 14px;
+  font: 13px/1.4 system-ui, sans-serif;
+  background: Canvas;
+  color: CanvasText;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.url {
+  margin: 8px 0;
+  color: var(--muted);
+  font-size: 11px;
+  word-break: break-all;
+  max-height: 3.2em;
+  overflow: hidden;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+button {
+  padding: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button + button {
+  background: color-mix(in srgb, var(--accent) 15%, Canvas);
+  color: CanvasText;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.status {
+  min-height: 1.4em;
+  margin: 8px 0 0;
+}
+
+.hint {
+  margin: 4px 0 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+a {
+  color: var(--accent);
+  font-size: 12px;
+}

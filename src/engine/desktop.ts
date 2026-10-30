@@ -101,6 +101,7 @@ export class DesktopEngine implements DownloadEngine {
 
     let destination = '';
     let filePath = '';
+    let skipped: 'size' | 'date' | null = null;
     let lastPercent = -1;
     const stderr: string[] = [];
     // Surdurulen indirmede ilk denemenin dosyalari da bu indirmenindir.
@@ -109,11 +110,17 @@ export class DesktopEngine implements DownloadEngine {
     const proc = await spawnProcess('yt-dlp', args, {
       onStderr: (line) => stderr.push(line),
       onStdout: (line) => {
+        // `--max-filesize` asilinca yt-dlp dosya yazmadan basariyla cikar; neden bu satirdadir.
+        if (line.includes('larger than max-filesize')) skipped = 'size';
+        else if (line.includes('upload date is not in range')) skipped = 'date';
         const parsed = parseOutputLine(line);
         if (!parsed) return;
         if (parsed.type === 'destination') destination = parsed.path;
         else if (parsed.type === 'file') filePath = parsed.path;
-        else if (Math.floor(parsed.percent) !== lastPercent) {
+        else if (parsed.downloaded) {
+          // Canli yayin: toplam bilinmez, inen miktar gosterilir.
+          onProgress({ percent: 0, speed: parsed.speed, eta: '', downloaded: parsed.downloaded });
+        } else if (Math.floor(parsed.percent) !== lastPercent) {
           lastPercent = Math.floor(parsed.percent);
           onProgress({ percent: lastPercent, speed: parsed.speed, eta: parsed.eta });
         }
@@ -129,6 +136,11 @@ export class DesktopEngine implements DownloadEngine {
       if (this.pausing.has(request.id)) return { status: 'paused', destination, startedMs };
       if (destination) await removePartialFiles(destination, startedMs);
       return { status: 'cancelled' };
+    }
+    if (exit.code === 0 && !filePath) {
+      const m = msg().engine;
+      const message = skipped === 'size' ? m.tooLarge(request.maxFilesize ?? '') : skipped === 'date' ? m.tooOld : m.noFile;
+      return { status: 'error', message };
     }
     if (exit.code === 0) {
       const fileSize = await stat(filePath).then((s) => s.size, () => undefined);

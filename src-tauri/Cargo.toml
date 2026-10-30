@@ -1,6 +1,6 @@
 [package]
 name = "vidra"
-version = "0.4.0"
+version = "0.5.0"
 description = "Video and audio downloader for YouTube and other sites"
 license = "MIT"
 authors = ["yellow-three"]
@@ -52,4 +52,6 @@ windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Securit
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-process = "2"
 tauri-plugin-updater = "2"
-tauri-plugin-single-instance = "2"
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+# Tarayici eklentisi linkleri `vidra://` ile uygulamaya gonderir.
+tauri-plugin-deep-link = "2"

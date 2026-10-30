@@ -23,7 +23,7 @@ pub struct SystemFfmpeg {
     pub h264_encoder: &'static str,
 }
 
-fn find_in_path(name: &str) -> Option<PathBuf> {
+pub fn find_in_path(name: &str) -> Option<PathBuf> {
     let file = format!("{name}{EXE_SUFFIX}");
     std::env::split_paths(&std::env::var_os("PATH")?)
         .map(|dir| dir.join(&file))

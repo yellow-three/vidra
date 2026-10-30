@@ -1,0 +1,9 @@
+{
+  "name": "vidra-extension",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Send to Vidra browser extension (Chrome, Edge, Firefox)",
+  "scripts": {
+    "build": "node ../scripts/build-extension.mjs"
+  }
+}

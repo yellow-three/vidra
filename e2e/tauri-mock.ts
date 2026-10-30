@@ -15,6 +15,8 @@ export interface MockOptions {
   history?: Record<string, unknown>[];
   /** Indirme klasorunun diskindeki bos alan (bayt); yoksa olculemedi. */
   freeSpace?: number;
+  /** Uygulama bu `vidra://` linkiyle acilmis gibi. */
+  deepLink?: string;
   /** Sunulacak uygulama guncellemesi; yoksa "guncel". */
   update?: { version: string; body: string } | null;
 }
@@ -135,6 +137,8 @@ function install(options: MockOptions) {
     },
     files_exist: (args: { paths: string[] }) => args.paths.map((p) => !p.includes('silinmis')),
     free_space: () => options.freeSpace ?? null,
+    aria2_available: () => false,
+    tray_available: () => true,
     process_spawn: spawn,
     process_kill: ({ id }) => {
       const d = state.downloads.find((x) => x.pid === id);
@@ -174,6 +178,7 @@ function install(options: MockOptions) {
     },
     'plugin:process|restart': () => null,
     'plugin:log|log': () => null,
+    'plugin:deep-link|get_current': () => options.deepLink ? [options.deepLink] : null,
     'plugin:opener|open_url': () => null,
     'plugin:resources|close': () => null,
   };

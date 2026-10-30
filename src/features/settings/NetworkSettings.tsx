@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Globe } from 'lucide-react';
 import { useSaveSettings, useSettings } from './queries';
-import { Section, SelectField } from './SettingsParts';
+import { Section, SelectField, ToggleRow } from './SettingsParts';
 import { useT } from '../../i18n';
 
 // src-tauri/src/cookies.rs BROWSERS ile ayni.
@@ -61,6 +61,57 @@ export default function NetworkSettings() {
           {proxyValid ? m.proxyHint : m.proxyInvalid}
         </p>
       </fieldset>
+      <div className="divider my-0" />
+      <ToggleRow
+        label={m.netrc}
+        description={m.netrcHint}
+        checked={settings.useNetrc ?? false}
+        onChange={(v) => save.mutate({ useNetrc: v })}
+      />
+      {settings.useNetrc && (
+        <fieldset className="fieldset">
+          <legend className="fieldset-legend">{m.netrcPath}</legend>
+          <input
+            defaultValue={settings.netrcPath ?? ''}
+            onBlur={(e) => e.target.value.trim() !== (settings.netrcPath ?? '') && save.mutate({ netrcPath: e.target.value.trim() })}
+            placeholder="~/.netrc"
+            aria-label={m.netrcPath}
+            className="input w-full font-mono"
+          />
+        </fieldset>
+      )}
+      <div className="grid sm:grid-cols-3 gap-4">
+        <SelectField
+          legend={m.impersonate}
+          value={settings.impersonate ?? ''}
+          options={[['', m.off], ['chrome', 'Chrome'], ['safari', 'Safari']]}
+          onChange={(v) => save.mutate({ impersonate: v || undefined })}
+          hint={m.impersonateHint}
+        />
+        <SelectField
+          legend={m.xff}
+          value={settings.xff ?? ''}
+          options={[['', m.off], ...['US', 'GB', 'DE', 'NL', 'TR', 'JP'].map((c): [string, string] => [c, c])]}
+          onChange={(v) => save.mutate({ xff: v || undefined })}
+          hint={m.xffHint}
+        />
+        <SelectField
+          legend={m.ip}
+          value={String(settings.ipVersion ?? '')}
+          options={[['', m.ipAuto], ['4', 'IPv4'], ['6', 'IPv6']]}
+          onChange={(v) => save.mutate({ ipVersion: v ? (Number(v) as 4 | 6) : undefined })}
+          hint={m.ipHint}
+        />
+      </div>
+      <div className="sm:w-1/2">
+        <SelectField
+          legend={m.ageLimit}
+          value={String(settings.ageLimit ?? 0)}
+          options={[['0', m.ageLimitOff], ...[7, 13, 16, 18].map((n): [string, string] => [String(n), m.ageLimitUnder(n)])]}
+          onChange={(v) => save.mutate({ ageLimit: Number(v) })}
+          hint={m.ageLimitHint}
+        />
+      </div>
     </Section>
   );
 }

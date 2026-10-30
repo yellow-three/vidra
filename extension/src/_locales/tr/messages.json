@@ -1,0 +1,32 @@
+{
+  "extName": {
+    "message": "Vidra'ya gönder"
+  },
+  "extDescription": {
+    "message": "Açık sayfanın ya da bir linkin videosunu Vidra masaüstü uygulamasında indirmek için gönderir (yt-dlp'nin desteklediği siteler)."
+  },
+  "menuVideo": {
+    "message": "Vidra ile indir (video)"
+  },
+  "menuMp3": {
+    "message": "Vidra ile indir (MP3)"
+  },
+  "buttonVideo": {
+    "message": "Video"
+  },
+  "buttonMp3": {
+    "message": "MP3"
+  },
+  "sent": {
+    "message": "Vidra'ya gönderildi. Formatı uygulamada seçip indirin."
+  },
+  "notSendable": {
+    "message": "Bu sayfa gönderilemez (yalnızca http/https linkleri)."
+  },
+  "hint": {
+    "message": "Tarayıcı Vidra'yı açmak için izin isteyebilir."
+  },
+  "notInstalled": {
+    "message": "Vidra kurulu değil mi? İndirin"
+  }
+}
