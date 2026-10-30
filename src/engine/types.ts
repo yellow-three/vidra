@@ -3,6 +3,10 @@
 export type DownloadOption =
   | { kind: 'video'; height: number }
   | { kind: 'best-video' }
+  /** En iyi video + en iyi ses, kodek ve kap degistirilmeden (MKV/WebM/MP4). */
+  | { kind: 'best' }
+  /** En iyi ses, donusturulmeden (Opus/WebM ya da M4A). */
+  | { kind: 'best-audio' }
   | { kind: 'mp3' }
   | { kind: 'm4a' }
   /** yt-dlp'nin listeledigi bir format, oldugu gibi; yalnizca goruntu olanlara en iyi ses eklenir. */

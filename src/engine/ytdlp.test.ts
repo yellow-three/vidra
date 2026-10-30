@@ -85,11 +85,17 @@ describe('buildOptions', () => {
   it('her cozunurluk icin bir video, arti MP3/M4A, ardindan yt-dlp\'nin tum formatlarini uretir', () => {
     const options = buildOptions(formats);
     expect(options.map((o) => o.formatId)).toEqual([
-      'video-1080', 'video-720', 'audio-mp3', 'audio-m4a',
+      // En iyi video + en iyi ses (orijinal kap) en basta.
+      'best-av',
+      'video-1080', 'video-720', 'audio-best', 'audio-mp3', 'audio-m4a',
       // Cozunurluge gore en iyiden kotuye, sonra ses; storyboard (mhtml) atlanir.
       'fmt-v-137', 'fmt-v-248', 'fmt-v-136', 'fmt-a-140',
     ]);
-    expect(options[0]).toMatchObject({ filesize: '9.5 MB', bytes: 10_000_000 });
+    expect(options[0]).toMatchObject({ note: 'en iyi video (1080p) + en iyi ses · dönüştürmesiz', bytes: 10_000_000 });
+    expect(options[1]).toMatchObject({ filesize: '9.5 MB', bytes: 10_000_000 });
+    expect(options.find((o) => o.formatId === 'audio-best')).toMatchObject({ ext: 'm4a', bytes: 1_000_000 });
+    // Tum formatlar listesinde en iyi video ve en iyi ses isaretlenir.
+    expect(options.filter((o) => o.note.startsWith('★')).map((o) => o.formatId)).toEqual(['fmt-v-137', 'fmt-a-140']);
   });
 
   it('ham formatlari cozunurluk, fps, kodek ve ses bilgisiyle etiketler', () => {
@@ -100,17 +106,17 @@ describe('buildOptions', () => {
       { format_id: 'http-720p', ext: 'mp4', format_note: '720p' },
     ], 1_000);
     expect(raw).toEqual([
-      expect.objectContaining({ formatId: 'fmt-v-303', resolution: '1920x1080 60fps HDR10', note: 'vp09 · en iyi sesle' }),
+      expect.objectContaining({ formatId: 'fmt-v-303', resolution: '1920x1080 60fps HDR10', note: '★ en iyi · vp09 · en iyi sesle' }),
       expect.objectContaining({ formatId: 'fmt-av-18', resolution: '640x360', ext: 'mp4', note: 'avc1 + mp4a' }),
       // Cozunurluk bilinmeyen: yt-dlp'nin notu gosterilir.
       expect.objectContaining({ formatId: 'fmt-av-http-720p', resolution: '720p', note: '' }),
-      expect.objectContaining({ formatId: 'fmt-a-251', resolution: 'Ses', note: 'opus 130k · yalnız ses', bytes: 3_000_000 }),
+      expect.objectContaining({ formatId: 'fmt-a-251', resolution: 'Ses', note: '★ en iyi · opus 130k · yalnız ses', bytes: 3_000_000 }),
     ]);
   });
 
   it('yalnizca ses sunan sitede video secenegi sunmaz', () => {
     const audio: YtdlpFormat[] = [{ format_id: 'hls_aac_160k', ext: 'm4a', vcodec: 'none', acodec: 'mp4a.40.2' }];
-    expect(buildOptions(audio).map((o) => o.formatId)).toEqual(['audio-mp3', 'audio-m4a', 'fmt-a-hls_aac_160k']);
+    expect(buildOptions(audio).map((o) => o.formatId)).toEqual(['audio-best', 'audio-mp3', 'audio-m4a', 'fmt-a-hls_aac_160k']);
     // Kodek bilgisi vermeyen site (archive.org): video olabilir.
     expect(buildOptions([{ format_id: '0', ext: 'mp4' }]).map((o) => o.formatId)[0]).toBe('video-best');
   });
@@ -141,6 +147,22 @@ describe('partialFilesToRemove', () => {
   it('Windows yollarini da ayristirir', () => {
     const entries = [{ name: 'Video.mp4.part', mtimeMs: started }];
     expect(partialFilesToRemove('C:\\Users\\a\\Video.mp4', entries, started)).toEqual(['Video.mp4.part']);
+  });
+});
+
+describe('en iyi kombinasyonlar', () => {
+  it('en iyi video + sesi kabi degistirmeden, en iyi sesi donusturmeden indirir', () => {
+    const best = buildDownloadArgs({ url: 'U', option: parseOption('best-av')!, outDir: '/o', subtitles: true, embedMetadata: true });
+    expect(best.join(' ')).toContain('-f bv*+ba/b');
+    expect(best).not.toContain('--merge-output-format');
+    expect(best).toContain('--embed-subs');
+    expect(best).toContain('--embed-thumbnail');
+    const audio = buildDownloadArgs({ url: 'U', option: parseOption('audio-best')!, outDir: '/o', subtitles: true, embedMetadata: true });
+    expect(audio.join(' ')).toContain('-f ba/b');
+    expect(audio).not.toContain('-x');
+    expect(audio).not.toContain('--embed-subs');
+    // Opus/WebM'e kapak gomulemez.
+    expect(audio).not.toContain('--embed-thumbnail');
   });
 });
 
