@@ -2,6 +2,7 @@
 // Platformdan bagimsizdir; masaustu ve Android motorlari ayni kodu kullanir.
 
 import { msg } from '../i18n';
+import { DEFAULT_PATTERN, toYtdlpTemplate } from './filename';
 import { joinPath, splitPath, stem } from './paths';
 import type { DownloadOption, FormatOption, NetworkOptions, PlaylistEntry, SponsorBlockMode, TimeRange, VideoInfo } from './types';
 
@@ -187,7 +188,12 @@ export function playlistOptions(): FormatOption[] {
 /** `yt-dlp -J --flat-playlist` ciktisinin kullandigimiz alanlari. */
 interface InfoJson {
   _type?: string;
+  id?: string;
   title?: string;
+  channel?: string;
+  uploader?: string;
+  upload_date?: string;
+  extractor_key?: string;
   duration?: number;
   thumbnail?: string;
   formats?: YtdlpFormat[];
@@ -195,6 +201,8 @@ interface InfoJson {
     id?: string;
     url?: string;
     title?: string;
+    channel?: string;
+    uploader?: string;
     duration?: number | null;
     thumbnails?: { url?: string }[];
   }[];
@@ -213,6 +221,7 @@ export function parseInfo(json: string, url: string): VideoInfo {
         title: e.title ?? msg().formats.unknownVideo,
         duration: e.duration ?? undefined,
         thumbnail: e.thumbnails?.[e.thumbnails.length - 1]?.url,
+        meta: { id: e.id, channel: e.channel ?? e.uploader ?? data.channel ?? data.uploader, site: data.extractor_key },
       }));
     return { title: data.title ?? msg().formats.playlist, url, formats: playlistOptions(), entries };
   }
@@ -222,6 +231,13 @@ export function parseInfo(json: string, url: string): VideoInfo {
     duration: data.duration,
     thumbnail: data.thumbnail,
     formats: buildOptions(data.formats ?? []),
+    meta: {
+      id: data.id,
+      channel: data.channel ?? data.uploader,
+      // YYYYMMDD -> YYYY-MM-DD (yt-dlp sablonundaki bicim).
+      date: data.upload_date?.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3'),
+      site: data.extractor_key,
+    },
   };
 }
 
@@ -266,13 +282,6 @@ export function buildInfoArgs({ url, denoPath, playlist, ...network }: InfoArgsI
   ];
 }
 
-/** Ayarlardaki dosya adi secenekleri; video adlarina ayrica cozunurluk eklenir. */
-export const FILENAME_TEMPLATES: Record<string, string> = {
-  title: '%(title)s',
-  'uploader-title': '%(uploader)s - %(title)s',
-  'title-id': '%(title)s [%(id)s]',
-};
-
 /** `12:05` / `1:02:03` ya da saniye; dosya adlarinda `:` kullanilamadigi icin `.` ile yazilir. */
 export function formatClock(seconds: number, sep = ':'): string {
   const s = Math.floor(seconds);
@@ -313,8 +322,8 @@ export interface TemplateExtras {
  * Ayni videonun farkli kalitesi ayni ada yazilsaydi yt-dlp "already downloaded" deyip
  * eskisini dondururdu; cozunurluk ve bolum ekiyle her secim ayri dosyadir.
  */
-export function outputTemplate(option: DownloadOption, template?: string, extras: TemplateExtras = {}): string {
-  const base = FILENAME_TEMPLATES[template ?? ''] ?? FILENAME_TEMPLATES.title;
+export function outputTemplate(option: DownloadOption, pattern?: string, extras: TemplateExtras = {}): string {
+  const base = toYtdlpTemplate(pattern ?? DEFAULT_PATTERN);
   const quality = option.kind === 'format'
     ? ' [%(format_id)s]'
     : option.kind === 'video' || option.kind === 'best-video' || option.kind === 'best' ? ' [%(height)sp]' : '';
@@ -333,7 +342,7 @@ export interface DownloadArgsInput extends NetworkOptions {
   ffmpegPath?: string | null;
   subtitles: boolean;
   embedMetadata?: boolean;
-  filenameTemplate?: string;
+  filenamePattern?: string;
   rateLimit?: string;
   denoPath?: string | null;
   subtitleLangs?: string;
@@ -346,11 +355,11 @@ export interface DownloadArgsInput extends NetworkOptions {
 const SPONSOR_REMOVE = 'sponsor,selfpromo,interaction';
 
 export function buildDownloadArgs({
-  url, option, outDir, ffmpegPath, subtitles, embedMetadata, filenameTemplate, rateLimit, denoPath,
+  url, option, outDir, ffmpegPath, subtitles, embedMetadata, filenamePattern, rateLimit, denoPath,
   subtitleLangs, subfolder, section, sponsorBlock, ...network
 }: DownloadArgsInput): string[] {
   const args = [
-    '-o', joinPath(outDir, outputTemplate(option, filenameTemplate, { subfolder, section })),
+    '-o', joinPath(outDir, outputTemplate(option, filenamePattern, { subfolder, section })),
     '--no-playlist',
     '--newline',
     '--progress',

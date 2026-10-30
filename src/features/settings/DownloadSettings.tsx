@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Gauge } from 'lucide-react';
 import { DEFAULT_CONCURRENT_DOWNLOADS } from '../queue/store';
+import FilenamePicker from '../queue/FilenamePicker';
+import { FILENAME_PRESETS, resolvePattern } from '../../engine/filename';
 import { useSaveSettings, useSettings } from './queries';
 import { Section, SelectField, ToggleRow } from './SettingsParts';
 import { useT } from '../../i18n';
@@ -18,27 +20,21 @@ export default function DownloadSettings() {
   const save = useSaveSettings();
   const m = useT().downloadSettings;
   const concurrency = [1, 2, 3, 4, 5].map((n): [string, string] => [String(n), n === 1 ? m.sequential : String(n)]);
-  // Anahtarlar engine/ytdlp.ts FILENAME_TEMPLATES ile ayni.
-  const filenames: [string, string][] = [
-    ['title', m.filenameTitle],
-    ['uploader-title', m.filenameUploader],
-    ['title-id', m.filenameId],
-  ];
+  // Hazir kalip anahtar olarak, digerleri `custom` + kalip olarak saklanir.
+  const saveFilename = (pattern: string | undefined) => {
+    if (!pattern) return;
+    const key = Object.keys(FILENAME_PRESETS).find((k) => k !== 'uploader-title' && FILENAME_PRESETS[k] === pattern);
+    save.mutate(key ? { filenameTemplate: key } : { filenameTemplate: 'custom', filenameCustom: pattern });
+  };
 
   return (
     <Section title={m.title} icon={<Gauge size={18} />}>
-      <div className="grid sm:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-2 gap-4">
         <SelectField
           legend={m.concurrent}
           value={String(settings.maxConcurrentDownloads ?? DEFAULT_CONCURRENT_DOWNLOADS)}
           options={concurrency}
           onChange={(v) => save.mutate({ maxConcurrentDownloads: Number(v) })}
-        />
-        <SelectField
-          legend={m.filename}
-          value={settings.filenameTemplate || 'title'}
-          options={filenames}
-          onChange={(v) => save.mutate({ filenameTemplate: v })}
         />
         <SelectField
           legend={m.rateLimit}
@@ -47,7 +43,12 @@ export default function DownloadSettings() {
           onChange={(v) => save.mutate({ rateLimit: v })}
         />
       </div>
-      <p className="text-xs text-base-content/60">{m.filenameNote}</p>
+      <FilenamePicker
+        value={resolvePattern(settings.filenameTemplate, settings.filenameCustom)}
+        onChange={saveFilename}
+        suffix=" [1080p].mp4"
+      />
+      <p className="text-xs text-base-content/60 -mt-2">{m.filenameNote}</p>
       <div className="divider my-0" />
       <ToggleRow
         label={m.embed}

@@ -1,4 +1,4 @@
-import type { SponsorBlockMode, TimeRange } from '../engine/types';
+import type { SponsorBlockMode, TimeRange, VideoMeta } from '../engine/types';
 
 export interface VideoFormat {
   formatId: string;
@@ -28,6 +28,12 @@ export interface Task {
   detail?: string;
   /** Yalnizca bu aralik indirilir. */
   section?: TimeRange;
+  /** Dosya adi onizlemesi icin kanal, kimlik, tarih. */
+  meta?: VideoMeta;
+  /** Bu video icin altyazi gomme; bos ise ayardaki varsayilan. */
+  subtitles?: boolean;
+  /** Bu video icin dosya adi kalibi; bos ise ayardaki varsayilan (engine/filename.ts). */
+  filenamePattern?: string;
   /** Inen dosyanin yolu (tamamlaninca). */
   filePath?: string;
   /** Duraklatilan indirmenin yarim dosyasi; iptal edilirse silinir, surdurulunce yt-dlp devam eder. */
@@ -55,8 +61,10 @@ export interface AppSettings {
   embedMetadata?: boolean;
   /** Ayni anda calisan indirme sayisi (varsayilan 2). */
   maxConcurrentDownloads?: number;
-  /** engine/ytdlp.ts FILENAME_TEMPLATES anahtari. */
+  /** Varsayilan dosya adi: engine/filename.ts FILENAME_PRESETS anahtari ya da `custom`. */
   filenameTemplate?: string;
+  /** `filenameTemplate` `custom` iken kullanilan kalip, orn. `{channel} - {title}`. */
+  filenameCustom?: string;
   /** yt-dlp `--limit-rate` degeri; bos ise sinirsiz. */
   rateLimit?: string;
   /** `--cookies-from-browser` icin tarayici adi (firefox, chrome...); bos ise kapali. */

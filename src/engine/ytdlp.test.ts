@@ -251,9 +251,10 @@ describe('buildDownloadArgs', () => {
     // `-` ile baslayan bir link yt-dlp secenegi olarak okunmasin.
     expect(args.slice(-2)).toEqual(['--', 'U']);
     expect(args).toContain('/out/%(title)s [%(height)sp].%(ext)s');
-    expect(outputTemplate({ kind: 'best-video' }, 'uploader-title')).toBe('%(uploader)s - %(title)s [%(height)sp].%(ext)s');
-    expect(outputTemplate({ kind: 'm4a' }, 'title-id')).toBe('%(title)s [%(id)s].%(ext)s');
-    expect(outputTemplate({ kind: 'mp3' }, 'bilinmeyen')).toBe('%(title)s.%(ext)s');
+    expect(outputTemplate({ kind: 'best-video' }, '{channel} - {title}')).toBe('%(channel,uploader,uploader_id)s - %(title)s [%(height)sp].%(ext)s');
+    expect(outputTemplate({ kind: 'm4a' }, '{title} [{id}]')).toBe('%(title)s [%(id)s].%(ext)s');
+    // Gecersiz kalip basliga duser.
+    expect(outputTemplate({ kind: 'mp3' }, '{bilinmeyen}')).toBe('%(title)s.%(ext)s');
   });
 });
 
@@ -286,8 +287,8 @@ describe('parseInfo', () => {
     const info = parseInfo(json, 'L');
     expect(info.title).toBe('Liste');
     expect(info.entries).toEqual([
-      { url: 'https://www.youtube.com/watch?v=a', title: 'A', duration: 10, thumbnail: 'b' },
-      { url: 'https://www.youtube.com/watch?v=b', title: 'B', duration: undefined, thumbnail: undefined },
+      expect.objectContaining({ url: 'https://www.youtube.com/watch?v=a', title: 'A', duration: 10, thumbnail: 'b', meta: expect.objectContaining({ id: 'a' }) }),
+      expect.objectContaining({ url: 'https://www.youtube.com/watch?v=b', title: 'B', duration: undefined, thumbnail: undefined }),
     ]);
     expect(info.formats.map((f) => f.formatId)).toContain('video-1080');
   });

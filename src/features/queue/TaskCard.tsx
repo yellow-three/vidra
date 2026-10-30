@@ -6,6 +6,7 @@ import type { Task } from '../../types';
 import DownloadProgress from './DownloadProgress';
 import FormatSelector from './FormatSelector';
 import SectionPicker from './SectionPicker';
+import VideoOptions from './VideoOptions';
 import StatusBadge from './StatusBadge';
 import Thumbnail from '../../app/Thumbnail';
 import { useT } from '../../i18n';
@@ -111,7 +112,12 @@ export default function TaskCard({
         </div>
 
         <FormatSelector task={task} onFormatChange={onFormatChange} onStartDownload={onStartDownload} />
-        {ready && task.formats && <SectionPicker task={task} />}
+        {ready && task.formats && (
+          <div className="flex flex-col gap-2">
+            <SectionPicker task={task} />
+            <VideoOptions task={task} />
+          </div>
+        )}
         {(task.status === 'downloading' || task.status === 'queued' || task.status === 'paused') && (
           <DownloadProgress task={task} onCancel={onCancel} />
         )}
