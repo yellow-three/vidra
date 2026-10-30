@@ -97,6 +97,8 @@ Android (sıradaki faz):
 - [ ] Paylaş menüsünden link alma (share intent)
 - [ ] APK dağıtımı (GitHub Releases)
 
+Tarayıcı eklentisi (linki Vidra'ya gönderir; `vidra://` deep link, sonra gerekirse native messaging): [docs/browser-extension.md](docs/browser-extension.md).
+
 Referanslar: [youtubedl-android](https://github.com/yausername/youtubedl-android), [Seal](https://github.com/JunkFood02/Seal) (Android referans uygulama).
 
 Uygulama v0.1.0'da "YouTube Downloader" (`com.abdurrahman.youtubedownloader`) adıyla, ayrı (artık silinmiş) `vidra-releases` reposunda yayınlandı. Kimlik `io.github.yellow-three.vidra` oldu; eski ayarlar, geçmiş ve yt-dlp kopyası ilk açılışta yeni klasöre taşınır (`src-tauri/src/legacy.rs`). `.deb`/`.rpm` paketleri eski `you-tube-downloader` paketinin yerini alır.
