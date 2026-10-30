@@ -308,6 +308,21 @@ fn tray_available() -> bool {
     }
 }
 
+/// deb/rpm kurulumu mu? Paketler ikiliyi /usr/bin'e, semayi tasiyan .desktop dosyasini
+/// /usr/share/applications'a koyar; AppImage (/tmp/.mount_*), gelistirme surumu (target/) ve elle
+/// kopyalanan ikili semayi kendisi kaydetmek zorunda.
+#[cfg(any(target_os = "linux", windows))]
+fn system_package_install() -> bool {
+    cfg!(target_os = "linux")
+        && std::env::current_exe().is_ok_and(|exe| is_system_path(&exe))
+        && std::path::Path::new("/usr/share/applications/Vidra.desktop").exists()
+}
+
+#[cfg(any(target_os = "linux", windows, test))]
+fn is_system_path(exe: &std::path::Path) -> bool {
+    exe.starts_with("/usr/bin/")
+}
+
 /// Kayitlar uygulamanin kayit klasorunde tek dosyada tutulur; 2 MB'i gecince eskisi silinir.
 fn log_plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
     use tauri_plugin_log::{RotationStrategy, Target, TargetKind};
@@ -378,7 +393,15 @@ pub fn run() {
             #[cfg(any(target_os = "linux", windows))]
             if std::env::var_os("FLATPAK_ID").is_none() {
                 use tauri_plugin_deep_link::DeepLinkExt;
-                if let Err(error) = app.deep_link().register_all() {
+                let result = if system_package_install() {
+                    // deb/rpm'in .desktop dosyasi semayi zaten tasir; 0.5.0'in yazdigi ikinci kayit
+                    // KDE/portal'da "Uygulama Sec" penceresi actirdigi icin kaldirilir.
+                    tauri_plugin_log::log::info!("vidra:// paket kaydi kullaniliyor; kullanici kaydi kaldiriliyor");
+                    app.deep_link().unregister("vidra")
+                } else {
+                    app.deep_link().register_all()
+                };
+                if let Err(error) = result {
                     tauri_plugin_log::log::warn!("vidra:// kaydedilemedi: {error}");
                 }
             }
@@ -436,7 +459,7 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::files_exist;
+    use super::{files_exist, is_system_path};
 
     #[test]
     fn files_exist_reports_each_path() {
@@ -452,5 +475,18 @@ mod tests {
         ]);
         assert_eq!(result, vec![true, false, false, false]);
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn system_path_is_only_package_install_location() {
+        assert!(is_system_path(std::path::Path::new("/usr/bin/vidra")));
+        assert!(!is_system_path(std::path::Path::new(
+            "/tmp/.mount_vidraX/usr/bin/vidra"
+        )));
+        assert!(!is_system_path(std::path::Path::new(
+            "/home/u/vidra/src-tauri/target/debug/vidra"
+        )));
+        assert!(!is_system_path(std::path::Path::new("/usrlocal/vidra")));
+        assert!(!is_system_path(std::path::Path::new("/usr/local/bin/vidra")));
     }
 }
