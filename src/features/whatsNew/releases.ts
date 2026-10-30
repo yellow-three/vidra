@@ -11,7 +11,7 @@ export interface ReleaseNotes {
 
 export const RELEASES: ReleaseNotes[] = [
   {
-    version: '0.6.0',
+    version: '0.5.0',
     date: '2026-10-30',
     notes: {
       tr: [
@@ -23,24 +23,6 @@ export const RELEASES: ReleaseNotes[] = [
             'Kurulum: GitHub\'daki sürüm sayfasından zip dosyası (README\'de "Tarayıcı eklentisi").',
           ],
         },
-      ],
-      en: [
-        {
-          title: 'Browser extension',
-          items: [
-            'The "Send to Vidra" extension (Firefox, Chrome, Edge) sends the video of the open page or a right-clicked link to Vidra in one click.',
-            'The video is analysed and MP3 is preselected if asked; you still start the download.',
-            'Install: the zip file on the GitHub release page (README, "Browser extension").',
-          ],
-        },
-      ],
-    },
-  },
-  {
-    version: '0.5.0',
-    date: '2026-10-30',
-    notes: {
-      tr: [
         {
           title: 'Her video için ayrı seçenekler',
           items: [
@@ -92,6 +74,14 @@ export const RELEASES: ReleaseNotes[] = [
         },
       ],
       en: [
+        {
+          title: 'Browser extension',
+          items: [
+            'The "Send to Vidra" extension (Firefox, Chrome, Edge) sends the video of the open page or a right-clicked link to Vidra in one click.',
+            'The video is analysed and MP3 is preselected if asked; you still start the download.',
+            'Install: the zip file on the GitHub release page (README, "Browser extension").',
+          ],
+        },
         {
           title: 'Options for each video',
           items: [

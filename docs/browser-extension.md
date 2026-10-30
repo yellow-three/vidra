@@ -1,6 +1,6 @@
 # Tarayıcı eklentisi — plan
 
-> **Durum (v0.6.0):** Faz 1 (deep link) ve Faz 2 (eklenti MVP) yapıldı. WXT yerine derleme aracı gerektirmeyen sade Manifest V3 kullanıldı (`extension/src`, paketleme `scripts/build-extension.mjs`). Faz 3 (mağazalarda yayın) hesaplarla yapılmalı; Faz 4 ve native messaging sonraya.
+> **Durum (v0.5.0):** Faz 1 (deep link) ve Faz 2 (eklenti MVP) yapıldı. WXT yerine derleme aracı gerektirmeyen sade Manifest V3 kullanıldı (`extension/src`, paketleme `scripts/build-extension.mjs`). Faz 3 (mağazalarda yayın) hesaplarla yapılmalı; Faz 4 ve native messaging sonraya.
 
 Amaç: tarayıcıda açık olan ya da sağ tıklanan bir linki tek tıkla Vidra'ya göndermek. Eklenti indirme yapmaz; linki masaüstü uygulamasına iletir, indirme her zamanki gibi uygulamada yt-dlp ile yapılır.
 
