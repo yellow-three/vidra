@@ -61,6 +61,8 @@ export interface PostProcessing {
   writeComments?: boolean;
   /** Dosya tarihi sunucudaki degistirilme tarihi olur (`--mtime`). */
   serverMtime?: boolean;
+  /** Dosya yerine tasininca calisan komut (`--exec`); `{}` dosya yoluyla degisir, yoksa sona eklenir. */
+  execCommand?: string;
 }
 
 /** Dosya adi ve klasor davranisi (Ayarlar > Dosyalar). */
@@ -170,6 +172,8 @@ export interface DownloadRequest extends NetworkOptions, PostProcessing, FileOpt
   liveFromStart?: boolean;
   /** Henuz baslamamis yayini bekler, baslayinca indirir (`--wait-for-video`). */
   waitForVideo?: boolean;
+  /** Video hesapta izlendi olarak isaretlenir (`--mark-watched`); tarayici cerezleri gerekir. */
+  markWatched?: boolean;
 }
 
 /** `mark`: sponsor bolumleri dosyaya bolum olarak eklenir; `remove`: dosyadan kesilir. */

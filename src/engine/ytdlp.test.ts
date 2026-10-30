@@ -264,6 +264,23 @@ describe('grup 5: ag ve dosya sistemi', () => {
   });
 });
 
+describe('grup 6: toplu isler ve otomasyon', () => {
+  it('izlendi olarak isaretler', () => {
+    const args = buildDownloadArgs({ url: 'U', outDir: '/o', option: { kind: 'best' }, subtitles: false, markWatched: true });
+    expect(args).toContain('--mark-watched');
+    expect(buildDownloadArgs({ url: 'U', outDir: '/o', option: { kind: 'best' }, subtitles: false })).not.toContain('--mark-watched');
+  });
+
+  it('indirme sonrasi komutu dosya tasindiktan sonra calistirir', () => {
+    expect(postProcessingArgs({ kind: 'best' }, '/out', undefined, { execCommand: ' notify-send Bitti {} ' }))
+      .toEqual(['--exec', 'after_move:notify-send Bitti {}']);
+    // `C:\\...` gibi bir yol yt-dlp'de zaman oneki sanilmasin diye onek hep yazilir.
+    expect(postProcessingArgs({ kind: 'best' }, '/out', undefined, { execCommand: 'C:\\a.bat' }))
+      .toEqual(['--exec', 'after_move:C:\\a.bat']);
+    expect(postProcessingArgs({ kind: 'best' }, '/out', undefined, { execCommand: '   ' })).toEqual([]);
+  });
+});
+
 describe('en iyi kombinasyonlar', () => {
   it('en iyi video + sesi kabi degistirmeden, en iyi sesi donusturmeden indirir', () => {
     const best = buildDownloadArgs({ url: 'U', option: parseOption('best-av')!, outDir: '/o', subtitles: true, embedMetadata: true });

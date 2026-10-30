@@ -282,6 +282,35 @@ test('cerez, proxy ve kapak ayarlari yt-dlp argumanlarina yansir', async ({ page
   expect(spawned[1]).toContain('[%(height)sp].%(ext)s');
 });
 
+test('dosyadan linkler eklenir; izlendi isareti ve indirme sonrasi komut yt-dlp argumanlarina yansir', async ({ page }) => {
+  await mockTauri(page, { settings: { ...accepted, cookiesFromBrowser: 'firefox' } });
+  await page.goto('/settings');
+  await page.getByRole('tab', { name: 'Ağ ve hesap' }).click();
+  await page.getByRole('checkbox', { name: 'İzlendi olarak işaretle' }).click();
+  await expect.poll(() => calls(page, 'save_settings')).toContainEqual({ settings: { markWatched: true } });
+  await page.getByRole('tab', { name: 'İndirme' }).click();
+  const exec = page.getByLabel('İndirme bitince çalışacak komut');
+  await exec.fill('notify-send Bitti {}');
+  await exec.press('Enter');
+  expect(await calls(page, 'save_settings')).toContainEqual({ settings: { execCommand: 'notify-send Bitti {}' } });
+
+  await page.getByRole('link', { name: 'İndir' }).click();
+  await page.locator('input[type=file]').setInputFiles({
+    name: 'linkler.txt', mimeType: 'text/plain', buffer: Buffer.from('bos-satir-degil\n# yorum\nhttps://youtu.be/bir\nhttps://youtu.be/iki\n'),
+  });
+  await expect.poll(async () => (await calls(page, 'process_spawn')).length).toBe(2);
+  const infos = (await calls(page, 'process_spawn')).map((a: any) => a.args.at(-1));
+  expect(infos).toEqual(['https://youtu.be/bir', 'https://youtu.be/iki']);
+  // Dosyadaki link olmayan satir yt-dlp'ye gitmez, kutuya da yazilmaz.
+  await expect(page.getByLabel('Video linki')).toHaveValue('');
+
+  await page.getByRole('button', { name: 'İndir', exact: true }).first().click();
+  await expect.poll(() => page.evaluate(() => (window as any).__mock.state.downloads.length)).toBe(1);
+  const download = (await calls(page, 'process_spawn'))[2].args.join(' ');
+  expect(download).toContain('--mark-watched');
+  expect(download).toContain('--exec after_move:notify-send Bitti {}');
+});
+
 test('kapanista yarida kalan indirme acilista devam ettirilebilir', async ({ page }) => {
   await mockTauri(page, { settings: accepted });
   await page.goto('/');

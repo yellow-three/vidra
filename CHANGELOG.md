@@ -4,8 +4,12 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/); sürümler [
 
 ## [Yayınlanmamış]
 
+### Eklenenler
+- Dosyadan link ekleme: her satırda bir link olan .txt dosyası seçilir, her link ayrı kart olarak analiz edilir (`#` ile başlayan satırlar atlanır).
+- İzlendi olarak işaretleme: tarayıcı çerezleri seçiliyken indirilen video hesapta izlendi görünür.
+- İndirme bitince çalışacak komut (ileri düzey): `{}` dosyanın yoluyla değişir.
+
 ### Sonraki sürüme kalanlar
-- Dosyadan link listesi içe aktarma, izlendi olarak işaretleme, indirme sonrası komut (docs/roadmap.md, Grup 6).
 - Eklentinin Firefox Add-ons ve Chrome Web Store'da yayımlanması.
 
 ## [0.5.1] - 2026-10-30
@@ -95,7 +99,8 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/); sürümler [
 
 - İlk sürüm ("YouTube Downloader" adıyla).
 
-[Yayınlanmamış]: https://github.com/yellow-three/vidra/compare/v0.5.0...HEAD
+[Yayınlanmamış]: https://github.com/yellow-three/vidra/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/yellow-three/vidra/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/yellow-three/vidra/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/yellow-three/vidra/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/yellow-three/vidra/compare/v0.3.0...v0.3.1

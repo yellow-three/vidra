@@ -125,6 +125,9 @@ const tr = {
     preparing: 'Hazırlanıyor...',
     invalid: 'Lütfen geçerli bir link girin (http:// ya da https:// ile başlamalı).',
     hint: 'YouTube ve yt-dlp\'nin desteklediği diğer sitelerin linklerini yapıştırın; birden fazla link de olur. Formatı analizden sonra seçersiniz.',
+    importFile: 'Dosyadan link ekle',
+    importFileHint: 'Her satırda bir link olan .txt dosyası; # ile başlayan satırlar atlanır.',
+    importEmpty: 'Dosyada link bulunamadı.',
   },
 
   list: {
@@ -219,6 +222,8 @@ const tr = {
     writeCommentsHint: 'Yorumlar bilgi dosyasına (.info.json) yazılır. Çok yorumlu videolarda indirme uzar.',
     serverMtime: 'Dosya tarihi sunucudaki tarih olsun',
     serverMtimeHint: 'Kapalıyken dosyanın tarihi indirildiği an olur (yt-dlp varsayılanı).',
+    exec: 'İndirme bitince çalışacak komut',
+    execHint: 'İleri düzey. Her dosya klasörüne taşınınca bu komut çalışır; {} dosyanın yoluyla değişir, yazılmazsa yol sona eklenir. Örnek: notify-send "İndirildi" {}. Başka alanlar yalnızca %(title)q gibi q ile yazılır (güvenlik için). Boş bırakılırsa çalışmaz.',
   },
 
   videoOptions: {
@@ -524,6 +529,8 @@ const tr = {
     netrc: '.netrc ile giriş yap',
     netrcHint: 'Kullanıcı adı ve şifre isteyen siteler için yt-dlp, .netrc dosyasındaki bilgileri kullanır (örn. "machine vimeo login ad password şifre"). Şifreler uygulamada saklanmaz.',
     netrcPath: '.netrc dosyası',
+    markWatched: 'İzlendi olarak işaretle',
+    markWatchedHint: 'İndirilen video hesabınızda izlendi olarak görünür (YouTube geçmişi). Tarayıcı çerezleri seçili olmalı.',
     ageLimit: 'Yaş sınırı',
     ageLimitOff: 'Yok',
     ageLimitUnder: (n: number) => `${n} yaş ve altı için uygun`,

@@ -347,6 +347,8 @@ export const useQueueStore = create<QueueState>()((set, get) => {
               writeInfoJson: settings.writeInfoJson,
               writeComments: settings.writeComments,
               serverMtime: settings.serverMtime,
+              execCommand: settings.execCommand?.trim() || undefined,
+              markWatched: settings.markWatched,
               filenameChars: settings.filenameChars,
               trimFilenames: settings.trimFilenames || undefined,
               overwrite: settings.overwrite,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isHttpUrl, mergeClipboardLinks, splitUrls, videoKey } from './duplicates';
+import { isHttpUrl, linksFromBatchFile, mergeClipboardLinks, splitUrls, videoKey } from './duplicates';
 
 describe('videoKey', () => {
   it('farkli YouTube link bicimlerini ayni videoya indirger', () => {
@@ -22,6 +22,16 @@ describe('splitUrls', () => {
   it('satir, bosluk ve bitisik linkleri ayirir; tekrarlari atar', () => {
     expect(splitUrls(' https://a.com/1\n https://a.com/2https://a.com/1 ')).toEqual(['https://a.com/1', 'https://a.com/2']);
     expect(splitUrls('   ')).toEqual([]);
+  });
+});
+
+describe('linksFromBatchFile', () => {
+  it('yt-dlp toplu dosyasi gibi okur: yorum satirlarini ve link olmayanlari atlar', () => {
+    const text = '# liste\r\nhttps://a.com/1\n; not\n] eski\n  https://a.com/2  \n\n--exec rm\nhttps://a.com/1\n';
+    expect(linksFromBatchFile(text)).toEqual(['https://a.com/1', 'https://a.com/2']);
+    expect(linksFromBatchFile('')).toEqual([]);
+    const many = Array.from({ length: 600 }, (_, i) => `https://a.com/${i}`).join('\n');
+    expect(linksFromBatchFile(many)).toHaveLength(500);
   });
 });
 

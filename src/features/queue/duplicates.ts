@@ -25,6 +25,15 @@ export function splitUrls(text: string): string[] {
   return [...new Set(parts)];
 }
 
+/** Bir dosyadan en fazla bu kadar link: her biri ayri bir analiz sureci acar. */
+export const BATCH_LIMIT = 500;
+
+/** yt-dlp toplu dosyasi (`-a`) gibi: `#`, `;` ya da `]` ile baslayan satirlar yorumdur. */
+export function linksFromBatchFile(text: string): string[] {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !/^[#;\]]/.test(l));
+  return splitUrls(lines.join('\n')).filter(isHttpUrl).slice(0, BATCH_LIMIT);
+}
+
 /** Yalnizca http(s) linkleri yt-dlp'ye gider; `-` ile baslayan metin secenek olarak okunurdu. */
 export function isHttpUrl(text: string): boolean {
   try {
