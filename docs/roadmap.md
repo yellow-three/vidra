@@ -6,14 +6,14 @@ Zaten kullanılanlar: format seçimi ve sıralama (`-f`, `-S`), birleştirme, MP
 
 ## Grup 1: hız, altyazı, ses
 
-- [ ] **1. Parçaları paralel indirme** (`-N`): HLS/DASH videolarda bir videonun parçaları aynı anda iner. Ayarlar'da "parça başına bağlantı" (1–8).
-- [ ] **2. Yeniden deneme** (`--retries`, `--fragment-retries`, `--retry-sleep`): Kopan bağlantıda indirme yarıda kalmaz.
-- [ ] **3. İstekler arası bekleme** (`--sleep-requests`, `--sleep-interval`): Uzun listelerde "çok fazla istek" engelini azaltır.
-- [ ] **4. Dosya boyutu sınırı** (`--max-filesize`, `--min-filesize`).
-- [ ] **11. Otomatik altyazılar** (`--write-auto-subs`): YouTube'un ürettiği ve çevirdiği altyazılar.
-- [ ] **12. Altyazıyı ayrı dosya olarak kaydetme** (`--write-subs`, `--convert-subs srt`).
-- [ ] **13. Videodaki altyazı dillerini gösterme** (`--list-subs` / analiz verisi): Kartta mevcut dillerden seçim.
-- [ ] **16. Ses kalitesi ve biçimleri** (`--audio-quality`, `--audio-format` opus/flac/wav/aac).
+- [x] **1. Parçaları paralel indirme** (`-N`): HLS/DASH videolarda bir videonun parçaları aynı anda iner. Ayarlar'da "parça başına bağlantı" (1–8).
+- [x] **2. Yeniden deneme** (`--retries`, `--fragment-retries`, `--retry-sleep`): Kopan bağlantıda indirme yarıda kalmaz.
+- [x] **3. İstekler arası bekleme** (`--sleep-requests`, `--sleep-interval`): Uzun listelerde "çok fazla istek" engelini azaltır.
+- [x] **4. Dosya boyutu sınırı** (`--max-filesize`, `--min-filesize`).
+- [x] **11. Otomatik altyazılar** (`--write-auto-subs`): YouTube'un ürettiği ve çevirdiği altyazılar.
+- [x] **12. Altyazıyı ayrı dosya olarak kaydetme** (`--write-subs`, `--convert-subs srt`).
+- [x] **13. Videodaki altyazı dillerini gösterme** (`--list-subs` / analiz verisi): Kartta mevcut dillerden seçim.
+- [x] **16. Ses kalitesi ve biçimleri** (`--audio-quality`, `--audio-format` opus/flac/wav/aac).
 
 ## Grup 2: liste ve kanal
 
