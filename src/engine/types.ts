@@ -38,6 +38,27 @@ export interface VideoMeta {
   subtitles?: string[];
   /** Otomatik altyazinin ozgun dili (YouTube); ceviriler sayilmaz. */
   autoSubtitles?: string[];
+  /** Videodaki bolum sayisi (bolumlere ayirma icin). */
+  chapters?: number;
+}
+
+/** Indirme sonrasi islemler (Ayarlar > Sonradan isleme ve video secenekleri). */
+export interface PostProcessing {
+  /** Her bolum ayri dosya olur (`--split-chapters`). */
+  splitChapters?: boolean;
+  /** Adi bu duzenli ifadeye uyan bolumler kesilir, orn. `(?i)intro|outro`. */
+  removeChapters?: string;
+  /** Video kabi kayipsiz degistirilir (`--remux-video`). */
+  remux?: 'mp4' | 'mkv';
+  /** "Sanatci - Sarki" basligi sanatci ve sarki etiketlerine ayrilir. */
+  parseArtist?: boolean;
+  writeThumbnail?: boolean;
+  writeDescription?: boolean;
+  writeInfoJson?: boolean;
+  /** Yorumlar bilgi dosyasina (JSON) yazilir. */
+  writeComments?: boolean;
+  /** Dosya tarihi sunucudaki degistirilme tarihi olur (`--mtime`). */
+  serverMtime?: boolean;
 }
 
 export interface PlaylistEntry {
@@ -77,7 +98,7 @@ export interface DownloadProgress {
   eta: string;
 }
 
-export interface DownloadRequest extends NetworkOptions {
+export interface DownloadRequest extends NetworkOptions, PostProcessing {
   id: string;
   url: string;
   formatId: string;

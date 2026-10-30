@@ -25,12 +25,12 @@ Zaten kullanılanlar: format seçimi ve sıralama (`-f`, `-S`), birleştirme, MP
 
 ## Grup 3: sonradan işleme
 
-- [ ] **14. Bölümlere ayırma** (`--split-chapters`): Albüm videosunu şarkı şarkı ayırma.
-- [ ] **15. Bölüm silme** (`--remove-chapters`): Adı kalıba uyan bölümleri kesme.
-- [ ] **17. Video dönüştürme / kap değiştirme** (`--recode-video`, `--remux-video`).
-- [ ] **18. Etiket düzenleme** (`--parse-metadata`, `--replace-in-metadata`): "Sanatçı - Şarkı" başlığını etiketlere ayırma.
-- [ ] **19. Ek dosyalar** (`--write-thumbnail`, `--write-description`, `--write-info-json`, `--write-comments`).
-- [ ] **20. Dosya tarihi** (`--no-mtime`): Yüklenme tarihi mi indirme tarihi mi.
+- [x] **14. Bölümlere ayırma** (`--split-chapters`): Albüm videosunu şarkı şarkı ayırma.
+- [x] **15. Bölüm silme** (`--remove-chapters`): Adı kalıba uyan bölümleri kesme.
+- [x] **17. Kap değiştirme** (`--remux-video` MP4/MKV). Yeniden kodlama (`--recode-video`) sunulmuyor: indirilen LGPL FFmpeg'de H.264 kodlayıcısı yok.
+- [x] **18. Etiket düzenleme** (`--parse-metadata`, `--replace-in-metadata`): "Sanatçı - Şarkı" başlığını etiketlere ayırma.
+- [x] **19. Ek dosyalar** (`--write-thumbnail`, `--write-description`, `--write-info-json`, `--write-comments`).
+- [x] **20. Dosya tarihi** (`--no-mtime`): Yüklenme tarihi mi indirme tarihi mi.
 
 ## Grup 4: canlı yayın, giriş, özel durumlar
 

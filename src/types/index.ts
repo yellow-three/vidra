@@ -1,4 +1,4 @@
-import type { SponsorBlockMode, TimeRange, VideoMeta } from '../engine/types';
+import type { PostProcessing, SponsorBlockMode, TimeRange, VideoMeta } from '../engine/types';
 
 export interface VideoFormat {
   formatId: string;
@@ -32,6 +32,8 @@ export interface Task {
   meta?: VideoMeta;
   /** Bu video icin altyazi gomme; bos ise ayardaki varsayilan. */
   subtitles?: boolean;
+  /** Bu video bolumlere ayrilsin mi; bos ise ayardaki varsayilan. */
+  splitChapters?: boolean;
   /** Listedeki sira, orn. `03` (dosya adindaki Sira no). */
   playlistIndex?: string;
   /** YYYYMMDD: bu tarihten once yuklenmisse indirilmez. */
@@ -50,7 +52,7 @@ export interface Task {
 
 export type TaskStatus = 'analyzing' | 'ready-to-select' | 'queued' | 'downloading' | 'paused' | 'complete' | 'cancelled' | 'error';
 
-export interface AppSettings {
+export interface AppSettings extends PostProcessing {
   downloadDir?: string;
   defaultQuality?: string;
   defaultFormat?: string;

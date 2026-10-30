@@ -4,7 +4,7 @@
 import { msg } from '../i18n';
 import { DEFAULT_PATTERN, toYtdlpTemplate } from './filename';
 import { joinPath, splitPath, stem } from './paths';
-import type { AudioCodec, DownloadOption, FormatOption, NetworkOptions, PlaylistEntry, SponsorBlockMode, TimeRange, VideoInfo } from './types';
+import type { AudioCodec, DownloadOption, FormatOption, PostProcessing, NetworkOptions, PlaylistEntry, SponsorBlockMode, TimeRange, VideoInfo } from './types';
 
 /** `yt-dlp -J` ciktisindaki format nesnesinin kullandigimiz alanlari. */
 export interface YtdlpFormat {
@@ -203,6 +203,7 @@ export function playlistOptions(): FormatOption[] {
 /** `yt-dlp -J --flat-playlist` ciktisinin kullandigimiz alanlari. */
 interface InfoJson {
   _type?: string;
+  chapters?: unknown[] | null;
   subtitles?: Record<string, unknown>;
   automatic_captions?: Record<string, unknown>;
   id?: string;
@@ -256,6 +257,7 @@ export function parseInfo(json: string, url: string): VideoInfo {
       site: data.extractor_key,
       subtitles: Object.keys(data.subtitles ?? {}).filter((l) => l !== 'live_chat'),
       // YouTube her dile ceviri sunar; yalnizca konusmanin ozgun dili (`xx-orig`) gosterilir.
+      chapters: data.chapters?.length,
       autoSubtitles: Object.keys(data.automatic_captions ?? {}).filter((l) => l.endsWith('-orig')).map((l) => l.slice(0, -5)),
     },
   };
@@ -357,7 +359,7 @@ export function outputTemplate(option: DownloadOption, pattern?: string, extras:
   return subfolder ? `${safeFolderName(subfolder)}/${file}` : file;
 }
 
-export interface DownloadArgsInput extends NetworkOptions {
+export interface DownloadArgsInput extends NetworkOptions, PostProcessing {
   url: string;
   option: DownloadOption;
   outDir: string;
@@ -391,7 +393,9 @@ const SPONSOR_REMOVE = 'sponsor,selfpromo,interaction';
 export function buildDownloadArgs({
   url, option, outDir, ffmpegPath, subtitles, embedMetadata, filenamePattern, rateLimit, denoPath,
   subtitleLangs, subfolder, section, sponsorBlock, subtitleFile, autoSubtitles, concurrentFragments,
-  sleepInterval, maxFilesize, mp3Quality, playlistIndex, dateAfter, ...network
+  sleepInterval, maxFilesize, mp3Quality, playlistIndex, dateAfter,
+  splitChapters, removeChapters, remux, parseArtist, writeThumbnail, writeDescription, writeInfoJson, writeComments,
+  serverMtime, ...network
 }: DownloadArgsInput): string[] {
   const args = [
     '-o', joinPath(outDir, outputTemplate(option, filenamePattern, { subfolder, section, playlistIndex })),
@@ -438,8 +442,7 @@ export function buildDownloadArgs({
       break;
   }
 
-  const audioOnly = option.kind === 'mp3' || option.kind === 'm4a' || option.kind === 'audio'
-    || option.kind === 'best-audio' || (option.kind === 'format' && !option.video);
+  const audioOnly = isAudioOnlyOption(option);
   if (subtitles && !audioOnly) {
     args.push('--embed-subs');
     // `--write-subs` ile altyazi dosyasi gomulduktan sonra da diskte kalir.
@@ -472,8 +475,35 @@ export function buildDownloadArgs({
   if (sleepInterval) args.push('--sleep-interval', String(sleepInterval), '--sleep-requests', '1');
   if (maxFilesize) args.push('--max-filesize', maxFilesize);
   if (dateAfter) args.push('--dateafter', dateAfter);
+  args.push(...postProcessingArgs(option, outDir, subfolder, {
+    splitChapters, removeChapters, remux, parseArtist, writeThumbnail, writeDescription, writeInfoJson, writeComments, serverMtime,
+  }));
   if (ffmpegPath) args.push('--ffmpeg-location', ffmpegPath);
   args.push(...networkArgs(network), ...jsRuntimeArgs(denoPath), ...urlArgs(url));
+  return args;
+}
+
+/** Sonuc yalnizca ses dosyasi mi (altyazi, kap degistirme uygulanmaz). */
+const isAudioOnlyOption = (option: DownloadOption) => option.kind === 'mp3' || option.kind === 'm4a' || option.kind === 'audio'
+  || option.kind === 'best-audio' || (option.kind === 'format' && !option.video);
+
+/** Indirme sonrasi islemler: bolumler, kap, etiketler, ek dosyalar, dosya tarihi. */
+export function postProcessingArgs(option: DownloadOption, outDir: string, subfolder: string | undefined, p: PostProcessing): string[] {
+  const args: string[] = [];
+  if (p.splitChapters) {
+    // Bolumler videonun adiyla bir klasore: "Baslik/01 - Bolum adi.mp4". Ana dosya da kalir.
+    const dir = subfolder ? joinPath(outDir, safeFolderName(subfolder)) : outDir;
+    args.push('--split-chapters', '-o', `chapter:${joinPath(dir, '%(title)s/%(section_number)02d - %(section_title)s.%(ext)s')}`);
+  }
+  if (p.removeChapters?.trim()) args.push('--remove-chapters', p.removeChapters.trim());
+  if (p.remux && !isAudioOnlyOption(option)) args.push('--remux-video', p.remux);
+  // Indirmeden sonra: dosya adi ozgun basligi korur, yalnizca gomulen etiketler ayrilir.
+  if (p.parseArtist) args.push('--parse-metadata', 'post_process:title:%(artist)s - %(title)s');
+  if (p.writeThumbnail) args.push('--write-thumbnail', '--convert-thumbnails', 'jpg');
+  if (p.writeDescription) args.push('--write-description');
+  if (p.writeInfoJson || p.writeComments) args.push('--write-info-json');
+  if (p.writeComments) args.push('--write-comments');
+  if (p.serverMtime) args.push('--mtime');
   return args;
 }
 

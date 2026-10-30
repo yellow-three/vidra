@@ -12,6 +12,7 @@ import ThemePicker from './ThemePicker';
 import DownloadSettings, { SubtitleLanguages } from './DownloadSettings';
 import NetworkSettings from './NetworkSettings';
 import SponsorBlockSettings from './SponsorBlockSettings';
+import PostProcessingSettings from './PostProcessingSettings';
 import ToolsSettings from './ToolsSettings';
 import { Section, SelectField, ToggleRow } from './SettingsParts';
 import { updateYtdlp as runYtdlpUpdate, ytdlpVersionKey as versionKey } from './ytdlpAutoUpdate';
@@ -113,6 +114,8 @@ export default function SettingsForm() {
       <DownloadSettings />
 
       <SponsorBlockSettings />
+
+      <PostProcessingSettings />
 
       <NetworkSettings />
 

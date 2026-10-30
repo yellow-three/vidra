@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  postProcessingArgs,
   rawOptions,
   buildDownloadArgs,
   buildInfoArgs,
@@ -198,6 +199,28 @@ describe('grup 1: hiz, altyazi, ses', () => {
       automatic_captions: { 'en-orig': [], en: [], de: [] },
     }), 'U');
     expect(info.meta).toMatchObject({ subtitles: ['tr', 'en'], autoSubtitles: ['en'] });
+  });
+});
+
+describe('grup 3: sonradan isleme', () => {
+  it('bolumleri klasore ayirir, bolum keser, kabi degistirir, etiketleri ve ek dosyalari yazar', () => {
+    const args = postProcessingArgs({ kind: 'best' }, '/out', 'Liste', {
+      splitChapters: true, removeChapters: ' (?i)intro ', remux: 'mp4', parseArtist: true,
+      writeThumbnail: true, writeDescription: true, writeComments: true, serverMtime: true,
+    });
+    expect(args).toEqual([
+      '--split-chapters', '-o', 'chapter:/out/Liste/%(title)s/%(section_number)02d - %(section_title)s.%(ext)s',
+      '--remove-chapters', '(?i)intro',
+      '--remux-video', 'mp4',
+      '--parse-metadata', 'post_process:title:%(artist)s - %(title)s',
+      '--write-thumbnail', '--convert-thumbnails', 'jpg',
+      '--write-description',
+      // Yorumlar bilgi dosyasina yazildigi icin o da acilir.
+      '--write-info-json', '--write-comments',
+      '--mtime',
+    ]);
+    expect(postProcessingArgs({ kind: 'mp3' }, '/out', undefined, { remux: 'mkv' })).toEqual([]);
+    expect(postProcessingArgs({ kind: 'best' }, '/out', undefined, {})).toEqual([]);
   });
 });
 

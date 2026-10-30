@@ -13,7 +13,8 @@ export default function VideoOptions({ task }: { task: Task }) {
   const m = useT();
   const settings = useSettings().data ?? {};
   const setVideoOptions = useQueueStore((s) => s.setVideoOptions);
-  const customized = task.subtitles !== undefined || task.filenamePattern !== undefined || task.subtitleLangs !== undefined;
+  const customized = task.subtitles !== undefined || task.filenamePattern !== undefined || task.subtitleLangs !== undefined
+    || task.splitChapters !== undefined;
   const [open, setOpen] = useState(customized);
   const audio = isAudioOptionId(task.selectedFormatId);
   const subtitles = task.subtitles ?? settings.downloadSubtitles ?? false;
@@ -35,7 +36,7 @@ export default function VideoOptions({ task }: { task: Task }) {
   }
 
   const reset = () => {
-    setVideoOptions(task.id, { subtitles: undefined, subtitleLangs: undefined, filenamePattern: undefined });
+    setVideoOptions(task.id, { subtitles: undefined, subtitleLangs: undefined, filenamePattern: undefined, splitChapters: undefined });
     setOpen(false);
   };
 
@@ -81,6 +82,17 @@ export default function VideoOptions({ task }: { task: Task }) {
             {task.meta.autoSubtitles?.length ? m.videoOptions.onlyAuto(task.meta.autoSubtitles.join(', ')) : m.videoOptions.none}
           </p>
         )
+      )}
+      {(task.meta?.chapters ?? 0) > 1 && (
+        <label className="flex items-center gap-2 cursor-pointer text-sm">
+          <input
+            type="checkbox"
+            className="checkbox checkbox-sm"
+            checked={task.splitChapters ?? settings.splitChapters ?? false}
+            onChange={(e) => setVideoOptions(task.id, { splitChapters: e.target.checked })}
+          />
+          {m.videoOptions.splitChapters(task.meta!.chapters!)}
+        </label>
       )}
       <FilenamePicker
         value={task.filenamePattern}

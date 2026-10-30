@@ -81,7 +81,7 @@ interface QueueState {
   /** Yalnizca bir araligi indirmek icin; `undefined` tum videoyu secer. */
   setSection(id: string, section: TimeRange | undefined): void;
   /** Bu video icin altyazi ve dosya adi; `undefined` ayardaki varsayilana doner. */
-  setVideoOptions(id: string, options: Partial<Pick<Task, 'subtitles' | 'subtitleLangs' | 'filenamePattern'>>): void;
+  setVideoOptions(id: string, options: Partial<Pick<Task, 'subtitles' | 'subtitleLangs' | 'filenamePattern' | 'splitChapters'>>): void;
   startDownload(id: string): Promise<void>;
   /** Format secimini bekleyen tum gorevleri listedeki sirayla kuyruga alir. */
   startAll(): Promise<void>;
@@ -328,6 +328,15 @@ export const useQueueStore = create<QueueState>()((set, get) => {
               maxFilesize: settings.maxFilesize || undefined,
               mp3Quality: settings.mp3Quality,
               playlistIndex: task.playlistIndex,
+              splitChapters: task.splitChapters ?? settings.splitChapters,
+              removeChapters: settings.removeChapters,
+              remux: settings.remux,
+              parseArtist: settings.parseArtist,
+              writeThumbnail: settings.writeThumbnail,
+              writeDescription: settings.writeDescription,
+              writeInfoJson: settings.writeInfoJson,
+              writeComments: settings.writeComments,
+              serverMtime: settings.serverMtime,
               dateAfter: task.dateAfter,
               subfolder: (settings.playlistSubfolder ?? true) ? task.playlist : undefined,
               section: task.section,
