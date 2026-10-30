@@ -256,6 +256,7 @@ const tr = {
 
   whatsNew: {
     title: (v: string) => `Vidra ${v}: yenilikler`,
+    older: (v: string) => `${v} sürümünde`,
     close: 'Tamam',
   },
 

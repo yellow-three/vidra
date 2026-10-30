@@ -256,6 +256,7 @@ const en: Messages = {
 
   whatsNew: {
     title: (v) => `Vidra ${v}: what's new`,
+    older: (v) => `In ${v}`,
     close: 'OK',
   },
 

@@ -129,6 +129,15 @@ test('altyazi ve dosya adi her video icin ayri secilir', async ({ page }) => {
   expect(args.join(' ')).toContain('%(channel,uploader,uploader_id)s - %(title)s [%(height)sp].%(ext)s');
 });
 
+test('tarayici eklentisinin vidra:// linki analiz edilir, MP3 secilir ama indirme baslamaz', async ({ page }) => {
+  await mockTauri(page, { settings: accepted, deepLink: `vidra://download?url=${encodeURIComponent(URL)}&mode=mp3` });
+  await page.goto('/settings');
+  // Link gelince indirme sayfasina gecilir.
+  await expect(page.getByRole('article', { name: 'Me at the zoo' })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Format' })).toHaveValue('audio-mp3');
+  expect(await page.evaluate(() => (window as any).__mock.state.downloads.length)).toBe(0);
+});
+
 test('indirme hatasi kartta gosterilir', async ({ page }) => {
   await mockTauri(page, { settings: accepted });
   await page.goto('/');
@@ -448,7 +457,7 @@ test('sistem temasinda acik ve koyu mod icin secilen temalar kullanilir; yenilik
 
   await page.getByRole('tab', { name: 'Sistem' }).click();
   await page.getByRole('button', { name: 'Bu sürümde neler var' }).click();
-  await expect(page.getByRole('dialog', { name: /yenilikler/ })).toContainText('Abonelikler');
+  await expect(page.getByRole('dialog', { name: /yenilikler/ })).toContainText('Tarayıcı eklentisi');
 });
 
 test('tema: sistem secimi isletim sistemine gore YouTube temasini kullanir', async ({ page }) => {

@@ -361,6 +361,7 @@ pub fn run() {
     );
     builder
         .plugin(log_plugin())
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -372,6 +373,15 @@ pub fn run() {
                 .build(),
         )
         .setup(|app| {
+            // `vidra://` semasi: paketler (deb/rpm/NSIS/MSI) kurulurken kaydeder; AppImage ve
+            // gelistirme surumu icin kullanici duzeyinde kaydedilir. Flatpak'te .desktop dosyasi kaydeder.
+            #[cfg(any(target_os = "linux", windows))]
+            if std::env::var_os("FLATPAK_ID").is_none() {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                if let Err(error) = app.deep_link().register_all() {
+                    tauri_plugin_log::log::warn!("vidra:// kaydedilemedi: {error}");
+                }
+            }
             allow_download_dir(app.handle());
             let handle = app.handle().clone();
             std::thread::spawn(move || dependencies::prune_stale_ytdlp(&handle));

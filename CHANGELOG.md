@@ -6,6 +6,13 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/); sürümler [
 
 ### Sonraki sürüme kalanlar
 - Dosyadan link listesi içe aktarma, izlendi olarak işaretleme, indirme sonrası komut (docs/roadmap.md, Grup 6).
+- Eklentinin Firefox Add-ons ve Chrome Web Store'da yayımlanması.
+
+## [0.6.0] - 2026-10-30
+
+### Eklenenler
+- "Vidra'ya gönder" tarayıcı eklentisi (Firefox, Chrome, Edge): araç çubuğu düğmesi ve sağ tık menüsü; zip olarak sürüm sayfasında.
+- `vidra://download?url=…&mode=video|mp3` linkleri: uygulama açıksa öne gelir, değilse açılır; video analiz edilir, indirme kullanıcıya bırakılır.
 
 ## [0.5.0] - 2026-10-30
 
@@ -87,7 +94,8 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/); sürümler [
 
 - İlk sürüm ("YouTube Downloader" adıyla).
 
-[Yayınlanmamış]: https://github.com/yellow-three/vidra/compare/v0.5.0...HEAD
+[Yayınlanmamış]: https://github.com/yellow-three/vidra/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/yellow-three/vidra/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/yellow-three/vidra/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/yellow-three/vidra/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/yellow-three/vidra/compare/v0.3.0...v0.3.1

@@ -5,7 +5,7 @@ import { useLanguageCode, useT } from '../../i18n';
 import { useAppVersion } from '../settings/appUpdate';
 import { useSaveSettings, useSettings } from '../settings/queries';
 import { missingTools, useToolsStatus } from '../setup/tools';
-import { RELEASES } from './releases';
+import { RELEASES, releasesSince } from './releases';
 
 /** Pencere Ayarlar'dan ve kenar cubugundaki surumden de acilir. */
 export const useWhatsNew = create<{ open: boolean }>()(() => ({ open: false }));
@@ -36,7 +36,9 @@ export default function WhatsNew() {
     useWhatsNew.setState({ open: false });
     if (version && settings.data?.lastSeenVersion !== version) save.mutate({ lastSeenVersion: version });
   };
-  const release = RELEASES.find((r) => r.version === version) ?? RELEASES[0];
+  // Son gorulenden bu yana cikan surumler (birden fazla surum atlandiysa hepsi), yoksa yalnizca bu surum.
+  const releases = releasesSince(settings.data?.lastSeenVersion, version);
+  const release = releases[0];
 
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="whats-new-title" className="modal modal-open">
@@ -51,13 +53,18 @@ export default function WhatsNew() {
           </div>
         </div>
         <div className="overflow-y-auto flex flex-col gap-4 pr-1">
-          {release.notes[language].map((group) => (
-            <section key={group.title}>
-              <h3 className="font-semibold text-sm mb-1">{group.title}</h3>
-              <ul className="list-disc pl-5 text-sm text-base-content/80 space-y-1">
-                {group.items.map((item) => <li key={item}>{item}</li>)}
-              </ul>
-            </section>
+          {releases.map((r, i) => (
+            <div key={r.version} className="flex flex-col gap-4">
+              {i > 0 && <div className="divider my-0 text-xs">{m.older(r.version)}</div>}
+              {r.notes[language].map((group) => (
+                <section key={group.title}>
+                  <h3 className="font-semibold text-sm mb-1">{group.title}</h3>
+                  <ul className="list-disc pl-5 text-sm text-base-content/80 space-y-1">
+                    {group.items.map((item) => <li key={item}>{item}</li>)}
+                  </ul>
+                </section>
+              ))}
+            </div>
           ))}
         </div>
         <div className="modal-action">

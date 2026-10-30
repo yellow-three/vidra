@@ -11,6 +11,32 @@ export interface ReleaseNotes {
 
 export const RELEASES: ReleaseNotes[] = [
   {
+    version: '0.6.0',
+    date: '2026-10-30',
+    notes: {
+      tr: [
+        {
+          title: 'Tarayıcı eklentisi',
+          items: [
+            '"Vidra\'ya gönder" eklentisi (Firefox, Chrome, Edge): açık sayfanın ya da sağ tıklanan linkin videosu tek tıkla Vidra\'ya gelir.',
+            'Video analiz edilir, MP3 istendiyse ses seçili gelir; indirmeyi yine siz başlatırsınız.',
+            'Kurulum: GitHub\'daki sürüm sayfasından zip dosyası (README\'de "Tarayıcı eklentisi").',
+          ],
+        },
+      ],
+      en: [
+        {
+          title: 'Browser extension',
+          items: [
+            'The "Send to Vidra" extension (Firefox, Chrome, Edge) sends the video of the open page or a right-clicked link to Vidra in one click.',
+            'The video is analysed and MP3 is preselected if asked; you still start the download.',
+            'Install: the zip file on the GitHub release page (README, "Browser extension").',
+          ],
+        },
+      ],
+    },
+  },
+  {
     version: '0.5.0',
     date: '2026-10-30',
     notes: {
@@ -119,3 +145,21 @@ export const RELEASES: ReleaseNotes[] = [
     },
   },
 ];
+
+/** `0.10.0` > `0.9.1`: surumleri sayi sayi karsilastirir. */
+export function compareVersions(a: string, b: string): number {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (d) return d;
+  }
+  return 0;
+}
+
+/** `seen`den sonra `current`e kadar cikan surumlerin notlari, yeniden eskiye; yoksa en guncel kayit. */
+export function releasesSince(seen: string | undefined, current: string | undefined): ReleaseNotes[] {
+  const list = RELEASES.filter((r) => (!current || compareVersions(r.version, current) <= 0)
+    && (seen ? compareVersions(r.version, seen) > 0 : r.version === current));
+  return list.length ? list : [RELEASES.find((r) => r.version === current) ?? RELEASES[0]];
+}
