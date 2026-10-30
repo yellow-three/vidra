@@ -41,15 +41,15 @@ Zaten kullanılanlar: format seçimi ve sıralama (`-f`, `-S`), birleştirme, MP
 
 ## Grup 5: ağ ve dosya sistemi
 
-- [ ] **5. Harici indirici** (`--downloader aria2c`): aria2 kuruluysa.
-- [ ] **25. Tarayıcı taklidi** (`--impersonate`): Cloudflare korumalı sitelerde 403 hataları.
-- [ ] **26. Bölge engeli** (`--geo-verification-proxy`, `--xff`).
-- [ ] **27. Ağ çıkışı** (`--source-address`, `--force-ipv4`/`--force-ipv6`).
-- [ ] **28. Güvenli dosya adı** (`--restrict-filenames`, `--windows-filenames`, `--trim-filenames`).
-- [ ] **29. Üzerine yazma davranışı** (`--no-overwrites`, `--force-overwrites`).
-- [ ] **30. Klasör düzeni** (`-P`, kalıpta klasör): Örneğin Kanal/Yıl/Başlık.
+- [x] **5. Harici indirici** (`--downloader aria2c`): aria2 kuruluysa.
+- [x] **25. Tarayıcı taklidi** (`--impersonate`): Cloudflare korumalı sitelerde 403 hataları.
+- [x] **26. Bölge engeli** (`--xff`).
+- [x] **27. IP sürümü** (`--force-ipv4`/`--force-ipv6`).
+- [x] **28. Güvenli dosya adı** (`--restrict-filenames`, `--windows-filenames`, `--trim-filenames`).
+- [x] **29. Üzerine yazma davranışı** (`--no-overwrites`, `--force-overwrites`).
+- [x] **30. Klasör düzeni** (`-P`, kalıpta klasör): Örneğin Kanal/Yıl/Başlık.
 
-## Grup 6: toplu işler ve otomasyon
+## Grup 6: toplu işler ve otomasyon (sonraki sürüm)
 
 - [ ] **31. Dosyadan link listesi** (`-a`): `.txt` dosyasındaki linkleri içe aktarma.
 - [ ] **32. İzlendi olarak işaretleme** (`--mark-watched`).

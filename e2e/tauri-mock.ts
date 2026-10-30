@@ -135,6 +135,8 @@ function install(options: MockOptions) {
     },
     files_exist: (args: { paths: string[] }) => args.paths.map((p) => !p.includes('silinmis')),
     free_space: () => options.freeSpace ?? null,
+    aria2_available: () => false,
+    tray_available: () => true,
     process_spawn: spawn,
     process_kill: ({ id }) => {
       const d = state.downloads.find((x) => x.pid === id);

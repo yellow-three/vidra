@@ -63,6 +63,20 @@ export interface PostProcessing {
   serverMtime?: boolean;
 }
 
+/** Dosya adi ve klasor davranisi (Ayarlar > Dosyalar). */
+export interface FileOptions {
+  /** `windows`: Windows'ta gecersiz karakterler degisir; `ascii`: yalnizca ASCII, bosluksuz. */
+  filenameChars?: 'windows' | 'ascii';
+  /** Dosya adi en fazla bu kadar karakter (`--trim-filenames`). */
+  trimFilenames?: number;
+  /** Ayni adli dosya varsa uzerine yaz (`--force-overwrites`); yoksa atlanir. */
+  overwrite?: boolean;
+  /** Dosyalar bu klasor duzenine gore ayrilir, orn. `{channel}/{year}`. */
+  folderLayout?: string;
+  /** aria2c ile indir (sistemde kuruluysa). */
+  aria2?: boolean;
+}
+
 export interface PlaylistEntry {
   url: string;
   title: string;
@@ -93,6 +107,12 @@ export interface NetworkOptions {
   netrc?: boolean | string;
   /** Bu yasin ustundeki icerik indirilmez (`--age-limit`). */
   ageLimit?: number;
+  /** Tarayici taklidi (`--impersonate`): Cloudflare korumali sitelerde 403'u asar. */
+  impersonate?: string;
+  /** Bolge engeli icin ulke kodu (`--xff`), orn. `US`. */
+  xff?: string;
+  /** Yalnizca IPv4 ya da IPv6 kullan. */
+  ipVersion?: 4 | 6;
 }
 
 export interface InfoOptions extends NetworkOptions {
@@ -108,7 +128,7 @@ export interface DownloadProgress {
   downloaded?: string;
 }
 
-export interface DownloadRequest extends NetworkOptions, PostProcessing {
+export interface DownloadRequest extends NetworkOptions, PostProcessing, FileOptions {
   id: string;
   url: string;
   formatId: string;

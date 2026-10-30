@@ -33,6 +33,9 @@ const networkOptions = (s: AppSettings | null, task?: Pick<Task, 'videoPassword'
   proxy: s?.proxy?.trim() || undefined,
   netrc: s?.useNetrc ? (s.netrcPath?.trim() || true) : undefined,
   ageLimit: s?.ageLimit || undefined,
+  impersonate: s?.impersonate || undefined,
+  xff: s?.xff || undefined,
+  ipVersion: s?.ipVersion || undefined,
   videoPassword: task?.videoPassword || undefined,
 });
 
@@ -344,6 +347,11 @@ export const useQueueStore = create<QueueState>()((set, get) => {
               writeInfoJson: settings.writeInfoJson,
               writeComments: settings.writeComments,
               serverMtime: settings.serverMtime,
+              filenameChars: settings.filenameChars,
+              trimFilenames: settings.trimFilenames || undefined,
+              overwrite: settings.overwrite,
+              folderLayout: settings.folderLayout,
+              aria2: settings.aria2,
               dateAfter: task.dateAfter,
               subfolder: (settings.playlistSubfolder ?? true) ? task.playlist : undefined,
               section: task.section,

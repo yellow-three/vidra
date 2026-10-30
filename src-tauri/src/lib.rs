@@ -268,6 +268,12 @@ fn process_kill(id: u32, state: State<'_, AppState>) -> bool {
     state.processes.kill(id)
 }
 
+/// Sistemde aria2c var mi; varsa Ayarlar'da harici indirici olarak secilebilir.
+#[tauri::command]
+fn aria2_available() -> bool {
+    system_tools::find_in_path("aria2c").is_some()
+}
+
 /// Linux'ta tepsi simgesi AppIndicator kutuphanesiyle cizilir; yoksa tray-icon kutuphanesi
 /// simgeyi olustururken panikler ve uygulama (suren indirmelerle birlikte) kapanir.
 /// Arayuz bu durumda pencereyi tepsiye gizlemek yerine kucultur.
@@ -394,6 +400,7 @@ pub fn run() {
             free_space,
             open_log_folder,
             tray_available,
+            aria2_available,
             start_clipboard_monitor,
             stop_clipboard_monitor,
             process_spawn,

@@ -245,6 +245,25 @@ describe('grup 4: canli yayin, sifre, giris, yas siniri', () => {
   });
 });
 
+describe('grup 5: ag ve dosya sistemi', () => {
+  it('tarayici taklidi, bolge ve IP surumunu ag seceneklerine ekler', () => {
+    expect(networkArgs({ impersonate: 'chrome', xff: 'US', ipVersion: 4 }))
+      .toEqual(['--impersonate', 'chrome', '--xff', 'US', '--force-ipv4']);
+  });
+
+  it('klasor duzeni, dosya adi kurallari, uzerine yazma ve aria2', () => {
+    const args = buildDownloadArgs({
+      url: 'U', outDir: '/out', option: { kind: 'mp3' }, subtitles: false,
+      folderLayout: 'channel-year', filenameChars: 'ascii', trimFilenames: 120, overwrite: true, aria2: true,
+    });
+    expect(args[args.indexOf('-o') + 1]).toBe('/out/%(channel,uploader,uploader_id)s/%(upload_date>%Y)s/%(title)s.%(ext)s');
+    // Sinir indirme klasorunun ("/out" + "/") uzerine eklenir.
+    expect(args.join(' ')).toContain('--restrict-filenames --trim-filenames 125 --force-overwrites --downloader http:aria2c');
+    const plain = buildDownloadArgs({ url: 'U', outDir: '/out', option: { kind: 'mp3' }, subtitles: false, folderLayout: 'bilinmeyen' });
+    expect(plain[plain.indexOf('-o') + 1]).toBe('/out/%(title)s.%(ext)s');
+  });
+});
+
 describe('en iyi kombinasyonlar', () => {
   it('en iyi video + sesi kabi degistirmeden, en iyi sesi donusturmeden indirir', () => {
     const best = buildDownloadArgs({ url: 'U', option: parseOption('best-av')!, outDir: '/o', subtitles: true, embedMetadata: true });

@@ -1,4 +1,4 @@
-import type { PostProcessing, SponsorBlockMode, TimeRange, VideoMeta } from '../engine/types';
+import type { FileOptions, PostProcessing, SponsorBlockMode, TimeRange, VideoMeta } from '../engine/types';
 
 export interface VideoFormat {
   formatId: string;
@@ -60,7 +60,13 @@ export interface Task {
 
 export type TaskStatus = 'analyzing' | 'ready-to-select' | 'queued' | 'downloading' | 'paused' | 'complete' | 'cancelled' | 'error';
 
-export interface AppSettings extends PostProcessing {
+export interface AppSettings extends PostProcessing, FileOptions {
+  /** Tarayici taklidi (`--impersonate`), orn. `chrome`. */
+  impersonate?: string;
+  /** Bolge engeli icin ulke kodu (`--xff`). */
+  xff?: string;
+  /** Yalnizca IPv4 (4) ya da IPv6 (6). */
+  ipVersion?: 4 | 6;
   downloadDir?: string;
   defaultQuality?: string;
   defaultFormat?: string;

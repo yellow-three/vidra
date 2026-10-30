@@ -8,6 +8,7 @@ export const FILENAME_FIELDS = {
   id: '%(id)s',
   date: '%(upload_date>%Y-%m-%d)s',
   site: '%(extractor_key)s',
+  year: '%(upload_date>%Y)s',
   // Listedeki sira: video tek basina (--no-playlist) indirildigi icin yt-dlp bilmez; uygulama yazar.
   index: '',
 } as const;
@@ -69,6 +70,21 @@ export function toYtdlpTemplate(pattern: string, index?: string): string {
       ? (part === 'index' ? (index ?? '').replace(UNSAFE, '_').replace(/%/g, '%%') : FILENAME_FIELDS[part as FilenameField])
       : part.replace(UNSAFE, '_').replace(/%/g, '%%')))
     .join('');
+}
+
+/** Hazir klasor duzenleri (Ayarlar > Dosyalar). */
+export const FOLDER_LAYOUTS: Record<string, string> = {
+  channel: '{channel}',
+  'channel-year': '{channel}/{year}',
+  'site-channel': '{site}/{channel}',
+  year: '{year}',
+};
+
+/** Klasor duzenini yt-dlp sablonuna cevirir; her klasor adi dosya adi gibi temizlenir. */
+export function folderTemplate(layout: string | undefined): string {
+  const pattern = layout && FOLDER_LAYOUTS[layout];
+  if (!pattern) return '';
+  return `${pattern.split('/').map((part) => toYtdlpTemplate(part)).join('/')}/`;
 }
 
 export type FilenameSample = Partial<Record<FilenameField, string>>;

@@ -80,6 +80,29 @@ export default function NetworkSettings() {
           />
         </fieldset>
       )}
+      <div className="grid sm:grid-cols-3 gap-4">
+        <SelectField
+          legend={m.impersonate}
+          value={settings.impersonate ?? ''}
+          options={[['', m.off], ['chrome', 'Chrome'], ['safari', 'Safari']]}
+          onChange={(v) => save.mutate({ impersonate: v || undefined })}
+          hint={m.impersonateHint}
+        />
+        <SelectField
+          legend={m.xff}
+          value={settings.xff ?? ''}
+          options={[['', m.off], ...['US', 'GB', 'DE', 'NL', 'TR', 'JP'].map((c): [string, string] => [c, c])]}
+          onChange={(v) => save.mutate({ xff: v || undefined })}
+          hint={m.xffHint}
+        />
+        <SelectField
+          legend={m.ip}
+          value={String(settings.ipVersion ?? '')}
+          options={[['', m.ipAuto], ['4', 'IPv4'], ['6', 'IPv6']]}
+          onChange={(v) => save.mutate({ ipVersion: v ? (Number(v) as 4 | 6) : undefined })}
+          hint={m.ipHint}
+        />
+      </div>
       <div className="sm:w-1/2">
         <SelectField
           legend={m.ageLimit}

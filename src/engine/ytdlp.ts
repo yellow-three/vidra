@@ -2,9 +2,9 @@
 // Platformdan bagimsizdir; masaustu ve Android motorlari ayni kodu kullanir.
 
 import { msg } from '../i18n';
-import { DEFAULT_PATTERN, toYtdlpTemplate } from './filename';
+import { DEFAULT_PATTERN, folderTemplate, toYtdlpTemplate } from './filename';
 import { joinPath, splitPath, stem } from './paths';
-import type { AudioCodec, DownloadOption, FormatOption, PostProcessing, NetworkOptions, PlaylistEntry, SponsorBlockMode, TimeRange, VideoInfo } from './types';
+import type { AudioCodec, DownloadOption, FileOptions, FormatOption, PostProcessing, NetworkOptions, PlaylistEntry, SponsorBlockMode, TimeRange, VideoInfo } from './types';
 
 /** `yt-dlp -J` ciktisindaki format nesnesinin kullandigimiz alanlari. */
 export interface YtdlpFormat {
@@ -278,8 +278,13 @@ export function jsRuntimeArgs(denoPath?: string | null): string[] {
   return denoPath ? ['--js-runtimes', `deno:${denoPath}`] : [];
 }
 
-export function networkArgs({ cookiesFromBrowser, proxy, videoPassword, netrc, ageLimit }: NetworkOptions): string[] {
+export function networkArgs({
+  cookiesFromBrowser, proxy, videoPassword, netrc, ageLimit, impersonate, xff, ipVersion,
+}: NetworkOptions): string[] {
   return [
+    ...(impersonate ? ['--impersonate', impersonate] : []),
+    ...(xff ? ['--xff', xff] : []),
+    ...(ipVersion ? [`--force-ipv${ipVersion}`] : []),
     ...(cookiesFromBrowser ? ['--cookies-from-browser', cookiesFromBrowser] : []),
     ...(proxy ? ['--proxy', proxy] : []),
     ...(videoPassword ? ['--video-password', videoPassword] : []),
@@ -364,7 +369,7 @@ export function outputTemplate(option: DownloadOption, pattern?: string, extras:
   return subfolder ? `${safeFolderName(subfolder)}/${file}` : file;
 }
 
-export interface DownloadArgsInput extends NetworkOptions, PostProcessing {
+export interface DownloadArgsInput extends NetworkOptions, PostProcessing, FileOptions {
   url: string;
   option: DownloadOption;
   outDir: string;
@@ -402,10 +407,10 @@ export function buildDownloadArgs({
   subtitleLangs, subfolder, section, sponsorBlock, subtitleFile, autoSubtitles, concurrentFragments,
   sleepInterval, maxFilesize, mp3Quality, playlistIndex, dateAfter, liveFromStart, waitForVideo,
   splitChapters, removeChapters, remux, parseArtist, writeThumbnail, writeDescription, writeInfoJson, writeComments,
-  serverMtime, ...network
+  serverMtime, filenameChars, trimFilenames, overwrite, folderLayout, aria2, ...network
 }: DownloadArgsInput): string[] {
   const args = [
-    '-o', joinPath(outDir, outputTemplate(option, filenamePattern, { subfolder, section, playlistIndex })),
+    '-o', joinPath(outDir, folderTemplate(folderLayout) + outputTemplate(option, filenamePattern, { subfolder, section, playlistIndex })),
     '--no-playlist',
     '--newline',
     '--progress',
@@ -482,6 +487,13 @@ export function buildDownloadArgs({
   if (sleepInterval) args.push('--sleep-interval', String(sleepInterval), '--sleep-requests', '1');
   if (maxFilesize) args.push('--max-filesize', maxFilesize);
   if (dateAfter) args.push('--dateafter', dateAfter);
+  if (filenameChars === 'windows') args.push('--windows-filenames');
+  if (filenameChars === 'ascii') args.push('--restrict-filenames');
+  // yt-dlp siniri `-o`daki tam yola uygular; indirme klasoru sayilmasin diye ona eklenir.
+  if (trimFilenames) args.push('--trim-filenames', String(trimFilenames + outDir.length + 1));
+  if (overwrite) args.push('--force-overwrites');
+  // aria2 bir dosyayi 8 baglantiyla indirir; parcali (HLS/DASH) videolarda yt-dlp kendi indiricisini kullanir.
+  if (aria2) args.push('--downloader', 'http:aria2c', '--downloader-args', 'aria2c:-x8 -s8 -k1M');
   if (liveFromStart) args.push('--live-from-start');
   // Yayin baslayana kadar 30 sn ile 10 dk arasi araliklarla tekrar bakilir.
   if (waitForVideo) args.push('--wait-for-video', '30-600');
