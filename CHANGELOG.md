@@ -4,12 +4,14 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/); sürümler [
 
 ## [Yayınlanmamış]
 
-### Düzeltilenler
-- Linux (deb/rpm): tarayıcıdan gelen `vidra://` linkinde KDE ve diğer masaüstleri "Uygulama Seç" penceresi açıyordu; menü dosyası linki uygulamaya iletmiyordu (`%u` eksikti) ve uygulama ikinci bir kayıt yazıyordu. Artık tek kayıt var ve link doğrudan Vidra'ya gider.
-
 ### Sonraki sürüme kalanlar
 - Dosyadan link listesi içe aktarma, izlendi olarak işaretleme, indirme sonrası komut (docs/roadmap.md, Grup 6).
 - Eklentinin Firefox Add-ons ve Chrome Web Store'da yayımlanması.
+
+## [0.5.1] - 2026-10-30
+
+### Düzeltilenler
+- Linux (deb/rpm): tarayıcıdan gelen `vidra://` linkinde KDE ve diğer masaüstleri "Uygulama Seç" penceresi açıyordu; menü dosyası linki uygulamaya iletmiyordu (`%u` eksikti) ve uygulama ikinci bir kayıt yazıyordu. Artık tek kayıt var ve link doğrudan Vidra'ya gider.
 
 ## [0.5.0] - 2026-10-30
 

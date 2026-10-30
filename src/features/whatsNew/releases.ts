@@ -11,6 +11,28 @@ export interface ReleaseNotes {
 
 export const RELEASES: ReleaseNotes[] = [
   {
+    version: '0.5.1',
+    date: '2026-10-30',
+    notes: {
+      tr: [
+        {
+          title: 'Düzeltmeler',
+          items: [
+            'Linux: tarayıcı eklentisinden gelen linklerde artık "Uygulama Seç" penceresi çıkmıyor; link doğrudan Vidra\'ya gidiyor.',
+          ],
+        },
+      ],
+      en: [
+        {
+          title: 'Fixes',
+          items: [
+            'Linux: links from the browser extension no longer bring up an "Open with" dialog; they go straight to Vidra.',
+          ],
+        },
+      ],
+    },
+  },
+  {
     version: '0.5.0',
     date: '2026-10-30',
     notes: {
