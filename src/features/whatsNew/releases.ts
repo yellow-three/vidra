@@ -11,6 +11,32 @@ export interface ReleaseNotes {
 
 export const RELEASES: ReleaseNotes[] = [
   {
+    version: '0.6.0',
+    date: '2026-10-30',
+    notes: {
+      tr: [
+        {
+          title: 'Toplu indirme ve otomasyon',
+          items: [
+            'Dosyadan link ekleme: her satırda bir link olan .txt dosyasını seçin, her link ayrı kart olarak gelir.',
+            'İzlendi olarak işaretleme: tarayıcı çerezleri seçiliyse indirdiğiniz video hesabınızda izlendi görünür (Ayarlar > Ağ ve hesap).',
+            'İndirme bitince çalışacak komut (ileri düzey): her dosyadan sonra kendi komutunuzu çalıştırın (Ayarlar > İndirme).',
+          ],
+        },
+      ],
+      en: [
+        {
+          title: 'Batch downloads and automation',
+          items: [
+            'Add links from a file: pick a .txt file with one link per line and each link becomes its own card.',
+            'Mark as watched: with browser cookies selected, downloaded videos show as watched on your account (Settings > Network & account).',
+            'Command after a download (advanced): run your own command after each file (Settings > Downloads).',
+          ],
+        },
+      ],
+    },
+  },
+  {
     version: '0.5.1',
     date: '2026-10-30',
     notes: {
