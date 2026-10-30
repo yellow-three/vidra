@@ -87,7 +87,7 @@ describe('buildOptions', () => {
     expect(options.map((o) => o.formatId)).toEqual([
       // En iyi video + en iyi ses (orijinal kap) en basta.
       'best-av',
-      'video-1080', 'video-720', 'audio-best', 'audio-mp3', 'audio-m4a',
+      'video-1080', 'video-720', 'audio-best', 'audio-mp3', 'audio-m4a', 'audio-opus', 'audio-flac', 'audio-wav',
       // Cozunurluge gore en iyiden kotuye, sonra ses; storyboard (mhtml) atlanir.
       'fmt-v-137', 'fmt-v-248', 'fmt-v-136', 'fmt-a-140',
     ]);
@@ -116,13 +116,13 @@ describe('buildOptions', () => {
 
   it('yalnizca ses sunan sitede video secenegi sunmaz', () => {
     const audio: YtdlpFormat[] = [{ format_id: 'hls_aac_160k', ext: 'm4a', vcodec: 'none', acodec: 'mp4a.40.2' }];
-    expect(buildOptions(audio).map((o) => o.formatId)).toEqual(['audio-best', 'audio-mp3', 'audio-m4a', 'fmt-a-hls_aac_160k']);
+    expect(buildOptions(audio).map((o) => o.formatId)).toEqual(['audio-best', 'audio-mp3', 'audio-m4a', 'audio-opus', 'audio-flac', 'audio-wav', 'fmt-a-hls_aac_160k']);
     // Kodek bilgisi vermeyen site (archive.org): video olabilir.
     expect(buildOptions([{ format_id: '0', ext: 'mp4' }]).map((o) => o.formatId)[0]).toBe('video-best');
   });
 
   it('cozunurluk bilgisi yoksa en iyi videoya duser', () => {
-    expect(buildOptions([]).map((o) => o.formatId)).toEqual(['video-best', 'audio-mp3', 'audio-m4a']);
+    expect(buildOptions([]).map((o) => o.formatId)).toEqual(['video-best', 'audio-mp3', 'audio-m4a', 'audio-opus', 'audio-flac', 'audio-wav']);
   });
 });
 
@@ -147,6 +147,57 @@ describe('partialFilesToRemove', () => {
   it('Windows yollarini da ayristirir', () => {
     const entries = [{ name: 'Video.mp4.part', mtimeMs: started }];
     expect(partialFilesToRemove('C:\\Users\\a\\Video.mp4', entries, started)).toEqual(['Video.mp4.part']);
+  });
+});
+
+describe('grup 1: hiz, altyazi, ses', () => {
+  const base = { url: 'U', outDir: '/o' };
+
+  it('her indirmede yeniden dener; parca, bekleme ve boyut sinirini ayardan alir', () => {
+    const plain = buildDownloadArgs({ ...base, option: { kind: 'video', height: 720 }, subtitles: false });
+    expect(plain.join(' ')).toContain('--retries 10 --fragment-retries 10 --retry-sleep fragment:exp=1:20');
+    expect(plain).not.toContain('-N');
+    expect(plain).not.toContain('--max-filesize');
+    const tuned = buildDownloadArgs({
+      ...base, option: { kind: 'video', height: 720 }, subtitles: false, concurrentFragments: 4, sleepInterval: 3, maxFilesize: '1G',
+    });
+    expect(tuned.join(' ')).toContain('-N 4');
+    expect(tuned.join(' ')).toContain('--sleep-interval 3 --sleep-requests 1');
+    expect(tuned.join(' ')).toContain('--max-filesize 1G');
+  });
+
+  it('altyaziyi gomer; istenirse .srt olarak da yazar ve otomatik altyazilari kullanir', () => {
+    const embed = buildDownloadArgs({ ...base, option: { kind: 'video', height: 720 }, subtitles: true, subtitleLangs: 'de' });
+    expect(embed.join(' ')).toContain('--embed-subs --sub-langs de');
+    expect(embed).not.toContain('--write-subs');
+    const all = buildDownloadArgs({
+      ...base, option: { kind: 'video', height: 720 }, subtitles: true, subtitleFile: true, autoSubtitles: true,
+    });
+    expect(all.join(' ')).toContain('--embed-subs --write-subs --convert-subs srt --write-auto-subs --sub-langs tr,en --ignore-errors');
+    // Altyazi kapaliysa .srt ayari tek basina bir sey yapmaz.
+    const off = buildDownloadArgs({ ...base, option: { kind: 'video', height: 720 }, subtitles: false, subtitleFile: true });
+    expect(off).not.toContain('--write-subs');
+  });
+
+  it('Opus/FLAC/WAV\'a donusturur; WAV\'a kapak gomulmez; MP3 kalitesi secilir', () => {
+    expect(parseOption('audio-flac')).toEqual({ kind: 'audio', codec: 'flac' });
+    const flac = buildDownloadArgs({ ...base, option: parseOption('audio-flac')!, subtitles: true, embedMetadata: true });
+    expect(flac.join(' ')).toContain('-x --audio-format flac');
+    expect(flac).toContain('--embed-thumbnail');
+    expect(flac).not.toContain('--embed-subs');
+    const wav = buildDownloadArgs({ ...base, option: parseOption('audio-wav')!, subtitles: false, embedMetadata: true });
+    expect(wav).not.toContain('--embed-thumbnail');
+    const mp3 = buildDownloadArgs({ ...base, option: { kind: 'mp3' }, subtitles: false, mp3Quality: '192K' });
+    expect(mp3.join(' ')).toContain('--audio-quality 192K');
+  });
+
+  it('videodaki elle eklenmis altyazilari ve otomatik altyazinin ozgun dilini okur', () => {
+    const info = parseInfo(JSON.stringify({
+      title: 'K', formats: [],
+      subtitles: { tr: [], en: [], live_chat: [] },
+      automatic_captions: { 'en-orig': [], en: [], de: [] },
+    }), 'U');
+    expect(info.meta).toMatchObject({ subtitles: ['tr', 'en'], autoSubtitles: ['en'] });
   });
 });
 

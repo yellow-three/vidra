@@ -13,10 +13,17 @@ export default function VideoOptions({ task }: { task: Task }) {
   const m = useT();
   const settings = useSettings().data ?? {};
   const setVideoOptions = useQueueStore((s) => s.setVideoOptions);
-  const customized = task.subtitles !== undefined || task.filenamePattern !== undefined;
+  const customized = task.subtitles !== undefined || task.filenamePattern !== undefined || task.subtitleLangs !== undefined;
   const [open, setOpen] = useState(customized);
   const audio = isAudioOptionId(task.selectedFormatId);
   const subtitles = task.subtitles ?? settings.downloadSubtitles ?? false;
+  const langs = (task.subtitleLangs ?? settings.subtitleLangs ?? 'tr,en').split(',').map((l) => l.trim()).filter(Boolean);
+  const available = task.meta?.subtitles ?? [];
+  const auto = settings.autoSubtitles ? (task.meta?.autoSubtitles ?? []).filter((l) => !available.includes(l)) : [];
+  const toggleLang = (lang: string) => {
+    const next = langs.includes(lang) ? langs.filter((l) => l !== lang) : [...langs, lang];
+    setVideoOptions(task.id, { subtitleLangs: next.join(',') });
+  };
   const defaultPattern = resolvePattern(settings.filenameTemplate, settings.filenameCustom);
 
   if (!open) {
@@ -28,7 +35,7 @@ export default function VideoOptions({ task }: { task: Task }) {
   }
 
   const reset = () => {
-    setVideoOptions(task.id, { subtitles: undefined, filenamePattern: undefined });
+    setVideoOptions(task.id, { subtitles: undefined, subtitleLangs: undefined, filenamePattern: undefined });
     setOpen(false);
   };
 
@@ -47,15 +54,37 @@ export default function VideoOptions({ task }: { task: Task }) {
             type="checkbox"
             className="checkbox checkbox-sm"
             checked={subtitles}
-            onChange={(e) => setVideoOptions(task.id, { subtitles: e.target.checked, filenamePattern: task.filenamePattern })}
+            onChange={(e) => setVideoOptions(task.id, { subtitles: e.target.checked })}
           />
           {m.videoOptions.subtitles}
-          <span className="text-xs text-base-content/50">({settings.subtitleLangs?.trim() || 'tr,en'})</span>
+          <span className="text-xs text-base-content/50">({langs.join(', ') || '-'})</span>
         </label>
+      )}
+      {!audio && subtitles && task.meta?.subtitles && (
+        available.length + auto.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-1 pl-6" role="group" aria-label={m.videoOptions.languages}>
+            <span className="text-xs text-base-content/60 mr-1">{m.videoOptions.languages}:</span>
+            {[...available.map((l) => [l, false] as const), ...auto.map((l) => [l, true] as const)].map(([lang, isAuto]) => (
+              <button
+                key={lang}
+                type="button"
+                onClick={() => toggleLang(lang)}
+                aria-pressed={langs.includes(lang)}
+                className={`badge badge-sm cursor-pointer ${langs.includes(lang) ? 'badge-primary' : 'badge-ghost'}`}
+              >
+                {lang}{isAuto ? ` (${m.videoOptions.auto})` : ''}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-base-content/50 pl-6">
+            {task.meta.autoSubtitles?.length ? m.videoOptions.onlyAuto(task.meta.autoSubtitles.join(', ')) : m.videoOptions.none}
+          </p>
+        )
       )}
       <FilenamePicker
         value={task.filenamePattern}
-        onChange={(pattern) => setVideoOptions(task.id, { subtitles: task.subtitles, filenamePattern: pattern })}
+        onChange={(pattern) => setVideoOptions(task.id, { filenamePattern: pattern })}
         defaultLabel={m.videoOptions.defaultFilename}
         defaultPattern={defaultPattern}
         sample={{ ...task.meta, title: task.title }}

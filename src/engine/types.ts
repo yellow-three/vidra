@@ -9,8 +9,12 @@ export type DownloadOption =
   | { kind: 'best-audio' }
   | { kind: 'mp3' }
   | { kind: 'm4a' }
+  /** Diger ses bicimlerine donusturme. */
+  | { kind: 'audio'; codec: AudioCodec }
   /** yt-dlp'nin listeledigi bir format, oldugu gibi; yalnizca goruntu olanlara en iyi ses eklenir. */
   | { kind: 'format'; formatId: string; video: boolean; audio: boolean };
+
+export type AudioCodec = 'opus' | 'flac' | 'wav';
 
 /** UI'da secilebilen sade indirme secenegi. */
 export interface FormatOption {
@@ -30,6 +34,10 @@ export interface VideoMeta {
   channel?: string;
   date?: string;
   site?: string;
+  /** Videonun elle eklenmis altyazi dilleri (orn. `tr`, `en`). */
+  subtitles?: string[];
+  /** Otomatik altyazinin ozgun dili (YouTube); ceviriler sayilmaz. */
+  autoSubtitles?: string[];
 }
 
 export interface PlaylistEntry {
@@ -91,6 +99,18 @@ export interface DownloadRequest extends NetworkOptions {
   sponsorBlock?: SponsorBlockMode;
   /** Duraklatilip surdurulen indirmenin ilk basladigi an (Unix ms); iptalde o andan beri yazilanlar silinir. */
   partialSince?: number;
+  /** Altyaziyi ayrica .srt dosyasi olarak da kaydeder. */
+  subtitleFile?: boolean;
+  /** Otomatik (konusmadan uretilen) altyazilari da kullanir. */
+  autoSubtitles?: boolean;
+  /** Ayni anda indirilen parca sayisi (`-N`); HLS/DASH videolarda hizlandirir. */
+  concurrentFragments?: number;
+  /** Indirmeden once bekleme, saniye (`--sleep-interval`); uzun listelerde engellenmeyi azaltir. */
+  sleepInterval?: number;
+  /** Bundan buyuk dosyalar indirilmez, orn. `1G` (`--max-filesize`). */
+  maxFilesize?: string;
+  /** MP3 kalitesi: `0` en iyi VBR ya da `320K` gibi sabit bit hizi. */
+  mp3Quality?: string;
 }
 
 /** `mark`: sponsor bolumleri dosyaya bolum olarak eklenir; `remove`: dosyadan kesilir. */

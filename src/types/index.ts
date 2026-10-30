@@ -32,6 +32,8 @@ export interface Task {
   meta?: VideoMeta;
   /** Bu video icin altyazi gomme; bos ise ayardaki varsayilan. */
   subtitles?: boolean;
+  /** Bu video icin altyazi dilleri (`tr,en`); bos ise ayardaki diller. */
+  subtitleLangs?: string;
   /** Bu video icin dosya adi kalibi; bos ise ayardaki varsayilan (engine/filename.ts). */
   filenamePattern?: string;
   /** Inen dosyanin yolu (tamamlaninca). */
@@ -53,6 +55,18 @@ export interface AppSettings {
   downloadSubtitles?: boolean;
   /** `--sub-langs` degeri (varsayilan `tr,en`). */
   subtitleLangs?: string;
+  /** Otomatik (konusmadan uretilen) altyazilari da kullan. */
+  autoSubtitles?: boolean;
+  /** Altyaziyi ayrica .srt dosyasi olarak da kaydet. */
+  subtitleFile?: boolean;
+  /** `-N`: ayni anda indirilen parca sayisi (varsayilan 1). */
+  concurrentFragments?: number;
+  /** Indirmeler arasi bekleme, saniye (varsayilan 0). */
+  sleepInterval?: number;
+  /** En buyuk dosya, orn. `2G`; bos ise sinirsiz. */
+  maxFilesize?: string;
+  /** MP3 kalitesi: `0` (en iyi VBR) ya da `320K`, `192K`, `128K`. */
+  mp3Quality?: string;
   /** Oynatma listesi videolari liste adiyla bir alt klasore iner (varsayilan acik). */
   playlistSubfolder?: boolean;
   /** ffprobe kurulu degilse uygulanmaz. */

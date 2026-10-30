@@ -101,6 +101,7 @@ export class DesktopEngine implements DownloadEngine {
 
     let destination = '';
     let filePath = '';
+    let tooLarge = false;
     let lastPercent = -1;
     const stderr: string[] = [];
     // Surdurulen indirmede ilk denemenin dosyalari da bu indirmenindir.
@@ -109,6 +110,8 @@ export class DesktopEngine implements DownloadEngine {
     const proc = await spawnProcess('yt-dlp', args, {
       onStderr: (line) => stderr.push(line),
       onStdout: (line) => {
+        // `--max-filesize` asilinca yt-dlp dosya yazmadan basariyla cikar; neden bu satirdadir.
+        if (line.includes('larger than max-filesize')) tooLarge = true;
         const parsed = parseOutputLine(line);
         if (!parsed) return;
         if (parsed.type === 'destination') destination = parsed.path;
@@ -129,6 +132,9 @@ export class DesktopEngine implements DownloadEngine {
       if (this.pausing.has(request.id)) return { status: 'paused', destination, startedMs };
       if (destination) await removePartialFiles(destination, startedMs);
       return { status: 'cancelled' };
+    }
+    if (exit.code === 0 && !filePath) {
+      return { status: 'error', message: tooLarge ? msg().engine.tooLarge(request.maxFilesize ?? '') : msg().engine.noFile };
     }
     if (exit.code === 0) {
       const fileSize = await stat(filePath).then((s) => s.size, () => undefined);

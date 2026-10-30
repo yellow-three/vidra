@@ -37,7 +37,7 @@ test('analiz, varsayilan format, canli ilerleme ve tamamlanma', async ({ page })
   await expect(select).toHaveValue('video-240');
   await expect(select.locator('option')).toHaveText([
     /^★ En iyi kalite · en iyi video \(360p\) \+ en iyi ses/, /^★ En iyi ses · en iyi ses · dönüştürmesiz/,
-    /360p/, /240p/, /MP3/, /M4A/,
+    /360p/, /240p/, /MP3/, /M4A/, /^OPUS/, /^FLAC/, /^WAV/,
     // yt-dlp'nin tum formatlari, en iyiden kotuye.
     /^360p · mp4 · ★ en iyi · avc1 · en iyi sesle/, /^240p · mp4/, /^Ses · m4a · ★ en iyi · mp4a · yalnız ses/,
   ]);

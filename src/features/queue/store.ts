@@ -66,7 +66,7 @@ interface QueueState {
   /** Yalnizca bir araligi indirmek icin; `undefined` tum videoyu secer. */
   setSection(id: string, section: TimeRange | undefined): void;
   /** Bu video icin altyazi ve dosya adi; `undefined` ayardaki varsayilana doner. */
-  setVideoOptions(id: string, options: Pick<Task, 'subtitles' | 'filenamePattern'>): void;
+  setVideoOptions(id: string, options: Partial<Pick<Task, 'subtitles' | 'subtitleLangs' | 'filenamePattern'>>): void;
   startDownload(id: string): Promise<void>;
   /** Format secimini bekleyen tum gorevleri listedeki sirayla kuyruga alir. */
   startAll(): Promise<void>;
@@ -289,7 +289,13 @@ export const useQueueStore = create<QueueState>()((set, get) => {
               formatId,
               outDir,
               subtitles: task.subtitles ?? settings.downloadSubtitles ?? false,
-              subtitleLangs: settings.subtitleLangs,
+              subtitleLangs: task.subtitleLangs ?? settings.subtitleLangs,
+              subtitleFile: settings.subtitleFile,
+              autoSubtitles: settings.autoSubtitles,
+              concurrentFragments: settings.concurrentFragments,
+              sleepInterval: settings.sleepInterval,
+              maxFilesize: settings.maxFilesize || undefined,
+              mp3Quality: settings.mp3Quality,
               subfolder: (settings.playlistSubfolder ?? true) ? task.playlist : undefined,
               section: task.section,
               sponsorBlock: settings.sponsorBlock,

@@ -96,6 +96,18 @@ export default function SettingsForm() {
           onChange={(v) => updateAndSave('downloadSubtitles', v)}
         />
         {settings.downloadSubtitles && <SubtitleLanguages />}
+        <ToggleRow
+          label={m.autoSubtitles}
+          description={m.autoSubtitlesHint}
+          checked={settings.autoSubtitles ?? false}
+          onChange={(v) => updateAndSave('autoSubtitles', v)}
+        />
+        <ToggleRow
+          label={m.subtitleFile}
+          description={m.subtitleFileHint}
+          checked={settings.subtitleFile ?? false}
+          onChange={(v) => updateAndSave('subtitleFile', v)}
+        />
       </Section>
 
       <DownloadSettings />

@@ -7,6 +7,11 @@ import { useSaveSettings, useSettings } from './queries';
 import { Section, SelectField, ToggleRow } from './SettingsParts';
 import { useT } from '../../i18n';
 
+const FRAGMENTS = [1, 2, 4, 8];
+const SLEEPS = [0, 1, 3, 5, 10];
+const MAX_SIZES: [string, string][] = [['100M', '100 MB'], ['500M', '500 MB'], ['1G', '1 GB'], ['2G', '2 GB'], ['4G', '4 GB']];
+const MP3_QUALITIES = ['320K', '256K', '192K', '128K'];
+
 const RATE_LIMITS: [string, string][] = [
   ['500K', '500 KB/s'],
   ['1M', '1 MB/s'],
@@ -29,7 +34,7 @@ export default function DownloadSettings() {
 
   return (
     <Section title={m.title} icon={<Gauge size={18} />}>
-      <div className="grid sm:grid-cols-2 gap-4">
+      <div className="grid sm:grid-cols-3 gap-4">
         <SelectField
           legend={m.concurrent}
           value={String(settings.maxConcurrentDownloads ?? DEFAULT_CONCURRENT_DOWNLOADS)}
@@ -41,6 +46,32 @@ export default function DownloadSettings() {
           value={settings.rateLimit || ''}
           options={[['', m.unlimited], ...RATE_LIMITS]}
           onChange={(v) => save.mutate({ rateLimit: v })}
+        />
+        <SelectField
+          legend={m.fragments}
+          value={String(settings.concurrentFragments ?? 1)}
+          options={FRAGMENTS.map((n) => [String(n), n === 1 ? m.fragmentsOff : String(n)])}
+          onChange={(v) => save.mutate({ concurrentFragments: Number(v) })}
+          hint={m.fragmentsHint}
+        />
+        <SelectField
+          legend={m.sleep}
+          value={String(settings.sleepInterval ?? 0)}
+          options={SLEEPS.map((n) => [String(n), n === 0 ? m.sleepOff : m.seconds(n)])}
+          onChange={(v) => save.mutate({ sleepInterval: Number(v) })}
+          hint={m.sleepHint}
+        />
+        <SelectField
+          legend={m.maxFilesize}
+          value={settings.maxFilesize || ''}
+          options={[['', m.unlimited], ...MAX_SIZES]}
+          onChange={(v) => save.mutate({ maxFilesize: v })}
+        />
+        <SelectField
+          legend={m.mp3Quality}
+          value={settings.mp3Quality || '0'}
+          options={[['0', m.mp3Best], ...MP3_QUALITIES.map((q): [string, string] => [q, `${q.slice(0, -1)} kbps`])]}
+          onChange={(v) => save.mutate({ mp3Quality: v })}
         />
       </div>
       <FilenamePicker
