@@ -394,6 +394,7 @@ export interface DownloadArgsInput extends NetworkOptions, PostProcessing, FileO
   dateAfter?: string;
   liveFromStart?: boolean;
   waitForVideo?: boolean;
+  markWatched?: boolean;
 }
 
 /** Kopan baglantida indirme yarida kalmasin: istek ve parca basina 10 deneme, artan bekleme. */
@@ -407,7 +408,7 @@ export function buildDownloadArgs({
   subtitleLangs, subfolder, section, sponsorBlock, subtitleFile, autoSubtitles, concurrentFragments,
   sleepInterval, maxFilesize, mp3Quality, playlistIndex, dateAfter, liveFromStart, waitForVideo,
   splitChapters, removeChapters, remux, parseArtist, writeThumbnail, writeDescription, writeInfoJson, writeComments,
-  serverMtime, filenameChars, trimFilenames, overwrite, folderLayout, aria2, ...network
+  serverMtime, execCommand, filenameChars, trimFilenames, overwrite, folderLayout, aria2, markWatched, ...network
 }: DownloadArgsInput): string[] {
   const args = [
     '-o', joinPath(outDir, folderTemplate(folderLayout) + outputTemplate(option, filenamePattern, { subfolder, section, playlistIndex })),
@@ -497,8 +498,9 @@ export function buildDownloadArgs({
   if (liveFromStart) args.push('--live-from-start');
   // Yayin baslayana kadar 30 sn ile 10 dk arasi araliklarla tekrar bakilir.
   if (waitForVideo) args.push('--wait-for-video', '30-600');
+  if (markWatched) args.push('--mark-watched');
   args.push(...postProcessingArgs(option, outDir, subfolder, {
-    splitChapters, removeChapters, remux, parseArtist, writeThumbnail, writeDescription, writeInfoJson, writeComments, serverMtime,
+    splitChapters, removeChapters, remux, parseArtist, writeThumbnail, writeDescription, writeInfoJson, writeComments, serverMtime, execCommand,
   }));
   if (ffmpegPath) args.push('--ffmpeg-location', ffmpegPath);
   args.push(...networkArgs(network), ...jsRuntimeArgs(denoPath), ...urlArgs(url));
@@ -526,6 +528,8 @@ export function postProcessingArgs(option: DownloadOption, outDir: string, subfo
   if (p.writeInfoJson || p.writeComments) args.push('--write-info-json');
   if (p.writeComments) args.push('--write-comments');
   if (p.serverMtime) args.push('--mtime');
+  // Onek hep yazilir: `C:\betik.bat` gibi bir komutta `C` zaman oneki sanilmasin.
+  if (p.execCommand?.trim()) args.push('--exec', `after_move:${p.execCommand.trim()}`);
   return args;
 }
 

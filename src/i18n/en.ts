@@ -125,6 +125,9 @@ const en: Messages = {
     preparing: 'Preparing...',
     invalid: 'Please enter a valid link (starting with http:// or https://).',
     hint: 'Paste links from YouTube or any other site yt-dlp supports, several at once if you like. Pick the format after the lookup.',
+    importFile: 'Add links from a file',
+    importFileHint: 'A .txt file with one link per line; lines starting with # are skipped.',
+    importEmpty: 'No links found in the file.',
   },
 
   list: {
@@ -219,6 +222,8 @@ const en: Messages = {
     writeCommentsHint: 'Comments are written into the details file (.info.json). Slows down videos with many comments.',
     serverMtime: 'Use the server date as file date',
     serverMtimeHint: 'When off, the file date is the moment of download (the yt-dlp default).',
+    exec: 'Command to run after a download',
+    execHint: 'Advanced. Runs once each file is moved to its folder; {} is replaced with the file path, or the path is appended if {} is missing. Example: notify-send "Downloaded" {}. Other fields must be written with q, like %(title)q (for safety). Leave empty to run nothing.',
   },
 
   videoOptions: {
@@ -522,6 +527,8 @@ const en: Messages = {
     netrc: 'Log in with .netrc',
     netrcHint: 'For sites that need a user name and password, yt-dlp uses the entries in a .netrc file (e.g. "machine vimeo login name password secret"). Passwords are not stored in the app.',
     netrcPath: '.netrc file',
+    markWatched: 'Mark as watched',
+    markWatchedHint: 'Downloaded videos show as watched on your account (YouTube history). Needs browser cookies to be selected.',
     ageLimit: 'Age limit',
     ageLimitOff: 'None',
     ageLimitUnder: (n) => `Suitable for age ${n}`,

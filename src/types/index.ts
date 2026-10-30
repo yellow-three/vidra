@@ -67,6 +67,8 @@ export interface AppSettings extends PostProcessing, FileOptions {
   xff?: string;
   /** Yalnizca IPv4 (4) ya da IPv6 (6). */
   ipVersion?: 4 | 6;
+  /** Indirilen video hesapta izlendi olarak isaretlenir (`--mark-watched`). */
+  markWatched?: boolean;
   downloadDir?: string;
   defaultQuality?: string;
   defaultFormat?: string;

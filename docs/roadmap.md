@@ -49,8 +49,8 @@ Zaten kullanılanlar: format seçimi ve sıralama (`-f`, `-S`), birleştirme, MP
 - [x] **29. Üzerine yazma davranışı** (`--no-overwrites`, `--force-overwrites`).
 - [x] **30. Klasör düzeni** (`-P`, kalıpta klasör): Örneğin Kanal/Yıl/Başlık.
 
-## Grup 6: toplu işler ve otomasyon (sonraki sürüm)
+## Grup 6: toplu işler ve otomasyon
 
-- [ ] **31. Dosyadan link listesi** (`-a`): `.txt` dosyasındaki linkleri içe aktarma.
-- [ ] **32. İzlendi olarak işaretleme** (`--mark-watched`).
-- [ ] **33. İndirme sonrası komut** (`--exec`): İleri düzey; kullanıcının belirlediği komut.
+- [x] **31. Dosyadan link listesi** (`-a`): `.txt` dosyasındaki linkleri içe aktarma.
+- [x] **32. İzlendi olarak işaretleme** (`--mark-watched`).
+- [x] **33. İndirme sonrası komut** (`--exec`): İleri düzey; kullanıcının belirlediği komut.

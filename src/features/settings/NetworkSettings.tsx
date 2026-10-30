@@ -44,6 +44,15 @@ export default function NetworkSettings() {
         onChange={(v) => save.mutate({ cookiesFromBrowser: v })}
         hint={m.cookiesHint}
       />
+      {/* Izlendi bilgisi hesaba yazilir; cerez olmadan yt-dlp bunu sessizce atlar. */}
+      {settings.cookiesFromBrowser && (
+        <ToggleRow
+          label={m.markWatched}
+          description={m.markWatchedHint}
+          checked={settings.markWatched ?? false}
+          onChange={(v) => save.mutate({ markWatched: v })}
+        />
+      )}
       <fieldset className="fieldset">
         <legend className="fieldset-legend">{m.proxy}</legend>
         <input

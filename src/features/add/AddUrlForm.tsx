@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { Link2, X } from 'lucide-react';
+import { useRef, useState, type ChangeEvent } from 'react';
+import { FileText, Link2, X } from 'lucide-react';
 import { useAppStatus } from '../queue/appStatus';
+import { linksFromBatchFile } from '../queue/duplicates';
 import { useQueueStore } from '../queue/store';
 import { useT } from '../../i18n';
 
@@ -12,6 +13,8 @@ export default function AddUrlForm() {
   const analyze = useQueueStore((s) => s.analyze);
   const depsReady = useAppStatus((s) => s.depsReady);
   const [urlError, setUrlError] = useState(false);
+  const [importEmpty, setImportEmpty] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const onAnalyze = () => {
     if (!url.trim()) {
@@ -21,6 +24,19 @@ export default function AddUrlForm() {
     // Kutu analiz baslarken (ilk await'ten once) bosaltilir; link olmayan parcalar kutuda kalir.
     void analyze();
     if (useQueueStore.getState().url.trim()) setUrlError(true);
+  };
+
+  /** yt-dlp `-a` yerine: her link ayri kart olur, format ve tekrar uyarisi tek tek calisir. */
+  const onImport = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const links = linksFromBatchFile(await file.text());
+    setImportEmpty(links.length === 0);
+    if (links.length === 0) return;
+    setUrl([url.trim(), ...links].filter(Boolean).join('\n'));
+    setUrlError(false);
+    void analyze();
   };
 
   return (
@@ -35,7 +51,7 @@ export default function AddUrlForm() {
             type="text"
             aria-label={m.addUrl.label}
             value={url}
-            onChange={(e) => { setUrl(e.target.value); setUrlError(false); }}
+            onChange={(e) => { setUrl(e.target.value); setUrlError(false); setImportEmpty(false); }}
             placeholder="https://www.youtube.com/watch?v=…"
             className="grow"
             autoFocus
@@ -50,11 +66,24 @@ export default function AddUrlForm() {
           {depsReady ? m.addUrl.analyze : m.addUrl.preparing}
         </button>
       </div>
-      {urlError ? (
-        <p className="text-xs text-error px-1">{m.addUrl.invalid}</p>
-      ) : (
-        <p className="text-xs text-base-content/50 px-1">{m.addUrl.hint}</p>
-      )}
+      <div className="flex items-start gap-2 px-1">
+        {urlError || importEmpty ? (
+          <p className="text-xs text-error grow">{urlError ? m.addUrl.invalid : m.addUrl.importEmpty}</p>
+        ) : (
+          <p className="text-xs text-base-content/50 grow">{m.addUrl.hint}</p>
+        )}
+        <input ref={fileInput} type="file" accept=".txt,text/plain" onChange={(e) => void onImport(e)} className="hidden" aria-hidden tabIndex={-1} />
+        <button
+          type="button"
+          disabled={!depsReady}
+          onClick={() => fileInput.current?.click()}
+          title={m.addUrl.importFileHint}
+          className="btn btn-ghost btn-xs shrink-0"
+        >
+          <FileText size={14} />
+          {m.addUrl.importFile}
+        </button>
+      </div>
     </form>
   );
 }

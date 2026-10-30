@@ -25,6 +25,8 @@ export default function PostProcessingSettings() {
   const [draft, setDraft] = useState<string | null>(null);
   const removeChapters = draft ?? settings.removeChapters ?? '';
   const invalid = removeChapters.trim() !== '' && regexError(removeChapters.trim());
+  const [execDraft, setExecDraft] = useState<string | null>(null);
+  const execCommand = execDraft ?? settings.execCommand ?? '';
 
   const toggle = (key: Toggle) => ({
     checked: settings[key] ?? false,
@@ -34,6 +36,10 @@ export default function PostProcessingSettings() {
     if (invalid) return;
     if (removeChapters.trim() !== (settings.removeChapters ?? '')) save.mutate({ removeChapters: removeChapters.trim() });
     setDraft(null);
+  };
+  const commitExec = () => {
+    if (execCommand.trim() !== (settings.execCommand ?? '')) save.mutate({ execCommand: execCommand.trim() });
+    setExecDraft(null);
   };
 
   return (
@@ -71,6 +77,20 @@ export default function PostProcessingSettings() {
       <ToggleRow label={m.writeComments} description={m.writeCommentsHint} {...toggle('writeComments')} />
       <div className="divider my-0" />
       <ToggleRow label={m.serverMtime} description={m.serverMtimeHint} {...toggle('serverMtime')} />
+      <div className="divider my-0" />
+      <fieldset className="fieldset">
+        <legend className="fieldset-legend">{m.exec}</legend>
+        <input
+          value={execCommand}
+          onChange={(e) => setExecDraft(e.target.value)}
+          onBlur={commitExec}
+          onKeyDown={(e) => e.key === 'Enter' && commitExec()}
+          placeholder='notify-send "Vidra" {}'
+          aria-label={m.exec}
+          className="input w-full font-mono"
+        />
+        <p className="label whitespace-normal">{m.execHint}</p>
+      </fieldset>
     </Section>
   );
 }
