@@ -42,8 +42,8 @@ modules:
     buildsystem: simple
     sources:
       - type: file
-        url: https://github.com/yellow-three/vidra/releases/download/v0.5.0/Vidra_0.5.0_amd64.deb
-        sha256: e1b2a361d9e5af1af85ae94c3c1cc15ec1117c17ba2ce3af19279e2dc3dea6d7
+        url: https://github.com/yellow-three/vidra/releases/download/v0.5.1/Vidra_0.5.1_amd64.deb
+        sha256: d6972419c10deade76b2712c979f88dc146cf664a6d35be78275c12667a69248
         dest-filename: vidra.deb
         only-arches: [x86_64]
       - type: file
