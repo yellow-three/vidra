@@ -1,6 +1,6 @@
 pkgbase = vidra-bin
 	pkgdesc = Video and audio downloader for YouTube and other yt-dlp sites (yt-dlp + FFmpeg, downloaded on first run)
-	pkgver = 0.3.1
+	pkgver = 0.4.0
 	pkgrel = 1
 	url = https://github.com/yellow-three/vidra
 	arch = x86_64
@@ -11,12 +11,12 @@ pkgbase = vidra-bin
 	optdepends = libayatana-appindicator: indirme surerken sistem tepsisi simgesi
 	provides = vidra
 	conflicts = vidra
-	noextract = Vidra_0.3.1_amd64.deb
+	noextract = Vidra_0.4.0_amd64.deb
 	options = !strip
 	options = !debug
-	source = Vidra_0.3.1_amd64.deb::https://github.com/yellow-three/vidra/releases/download/v0.3.1/Vidra_0.3.1_amd64.deb
-	source = LICENSE-0.3.1::https://raw.githubusercontent.com/yellow-three/vidra/v0.3.1/LICENSE
-	sha256sums = 89cf4f89105a1ed0bddc8aab21180c46cf64e53819865865ebf585f7b3271f61
+	source = Vidra_0.4.0_amd64.deb::https://github.com/yellow-three/vidra/releases/download/v0.4.0/Vidra_0.4.0_amd64.deb
+	source = LICENSE-0.4.0::https://raw.githubusercontent.com/yellow-three/vidra/v0.4.0/LICENSE
+	sha256sums = 92bd5d8f4ac83ee81accba885a4e39437a3d3dab752d1cf037e62304aca67af0
 	sha256sums = 79a959c221b22dcf84a476cf70779a972886107540cb5c2f102b099defd957a8
 
 pkgname = vidra-bin
