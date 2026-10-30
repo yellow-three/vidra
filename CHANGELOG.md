@@ -4,6 +4,27 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/); sürümler [
 
 ## [Yayınlanmamış]
 
+### Sonraki sürüme kalanlar
+- Dosyadan link listesi içe aktarma, izlendi olarak işaretleme, indirme sonrası komut (docs/roadmap.md, Grup 6).
+
+## [0.5.0] - 2026-10-30
+
+### Eklenenler
+- Her video için altyazı, altyazı dili, dosya adı ve bölümlere ayırma seçimi (kartta "Seçenekler").
+- Dosya adı kalıpları: kanal, başlık, video kimliği, tarih, site, sıra no; hazır kalıplar ve özel kalıp.
+- Abonelikler: kanal ya da liste takibi, yeni videolar seçim penceresinde "Yeni" olarak gelir.
+- Liste penceresinde ilk N video, kısa videoları çıkarma, ters sıra, tarihten sonrakiler.
+- Otomatik altyazılar, .srt olarak kaydetme, videodaki altyazı dilleri.
+- Opus, FLAC, WAV; MP3 kalitesi.
+- Paralel parça indirme, indirmeler arası bekleme, en büyük dosya sınırı; kopan bağlantıda otomatik yeniden deneme.
+- Sonradan işleme: bölümlere ayırma, bölüm kesme, MP4/MKV kap değiştirme, sanatçı/şarkı etiketleri, kapak/açıklama/bilgi/yorum dosyaları, dosya tarihi.
+- Canlı yayınları baştan kaydetme, başlamamış yayını bekleyip indirme, şifreli videolar, .netrc ile giriş, yaş sınırı.
+- Tarayıcı taklidi, bölge, IPv4/IPv6; klasör düzeni, sade/Windows uyumlu dosya adları, en uzun ad, üzerine yazma, aria2.
+
+### Düzeltilenler
+- Bir altyazı dili alınamadığında (YouTube 429) indirmenin tamamı başarısız oluyordu.
+- Dosya boyutu sınırına ya da tarih süzgecine takılan indirme tamamlanmış gibi görünüyordu.
+
 ## [0.4.0] - 2026-10-30
 
 ### Eklenenler
@@ -61,7 +82,8 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/); sürümler [
 
 - İlk sürüm ("YouTube Downloader" adıyla).
 
-[Yayınlanmamış]: https://github.com/yellow-three/vidra/compare/v0.4.0...HEAD
+[Yayınlanmamış]: https://github.com/yellow-three/vidra/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/yellow-three/vidra/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/yellow-three/vidra/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/yellow-three/vidra/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/yellow-three/vidra/compare/v0.2.2...v0.3.0
