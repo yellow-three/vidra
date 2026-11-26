@@ -11,6 +11,30 @@ export interface ReleaseNotes {
 
 export const RELEASES: ReleaseNotes[] = [
   {
+    version: '0.6.1',
+    date: '2026-11-27',
+    notes: {
+      tr: [
+        {
+          title: 'Güvenlik ve bakım',
+          items: [
+            'Uygulamanın kullandığı kütüphanelerdeki güvenlik açıkları kapatıldı.',
+            'Tauri eklentileri ve arayüz kütüphaneleri güncellendi.',
+          ],
+        },
+      ],
+      en: [
+        {
+          title: 'Security and maintenance',
+          items: [
+            'Security issues in libraries the app uses are fixed.',
+            'Tauri plugins and interface libraries are updated.',
+          ],
+        },
+      ],
+    },
+  },
+  {
     version: '0.6.0',
     date: '2026-10-30',
     notes: {
