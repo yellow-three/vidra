@@ -7,6 +7,14 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/); sürümler [
 ### Sonraki sürüme kalanlar
 - Eklentinin Firefox Add-ons ve Chrome Web Store'da yayımlanması.
 
+## [0.6.1] - 2026-11-27
+
+### Düzeltilenler
+- Güvenlik: Rust bağımlılıklarındaki `cookie` (RUSTSEC-2026-0594) ve `url` (RUSTSEC-2026-0592) kayıtları için yamalı sürümlere geçildi.
+
+### Değişenler
+- Tauri eklentileri ve arayüz kütüphaneleri güncellendi (npm ve Cargo birlikte, sürümleri eşleşecek şekilde).
+
 ## [0.6.0] - 2026-10-30
 
 ### Eklenenler
@@ -101,7 +109,8 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/); sürümler [
 
 - İlk sürüm ("YouTube Downloader" adıyla).
 
-[Yayınlanmamış]: https://github.com/yellow-three/vidra/compare/v0.6.0...HEAD
+[Yayınlanmamış]: https://github.com/yellow-three/vidra/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/yellow-three/vidra/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/yellow-three/vidra/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/yellow-three/vidra/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/yellow-three/vidra/compare/v0.4.0...v0.5.0
