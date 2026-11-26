@@ -9,4 +9,9 @@ ignore = [
   # yapilandirmasini okur; disaridan XML islenmez. plist yeni surume gecince kalkar.
   "RUSTSEC-2026-0194",
   "RUSTSEC-2026-0195",
+  # libsqlite3-sys (SQLite < 3.54): ayni klasorde sayfa boyutu farkli, hazirlanmis bir -wal dosyasiyla
+  # acilan veritabani bellekten eski baytlar dondurebilir. Uygulama yalnizca kendi veri klasorundeki
+  # gecmis veritabanini acar; o klasore dosya koyabilen biri zaten kullanicinin yetkisine sahiptir.
+  # tauri-plugin-sql 2.x sqlx 0.8'e (libsqlite3-sys 0.30) bagli; eklenti sqlx 0.9'a gecince kalkar.
+  "RUSTSEC-2026-0459",
 ]
